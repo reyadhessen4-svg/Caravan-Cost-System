@@ -810,11 +810,13 @@ async function loadDashboard() {
     const [start, end] = [new Date(mon+'-01'), new Date(mon+'-31')];
 
     const [tripsSnap, txSnap, pendSnap, clSnap] = await Promise.all([
-      getDocs(query(collection(db,'trips'), where('date','>=',mon+'-01'), where('date','<=',mon+'-31'), orderBy('date','desc'), limit(5))),
-      getDocs(query(collection(db,'transactions'), where('date','>=',mon+'-01'), orderBy('date','desc'), limit(20))),
-      getDocs(query(collection(db,'transactions'), where('status','==','pending'))),
-      getDocs(query(collection(db,'claims')))
+      getDocs(query(collection(db,'trips'), orderBy('date','desc'), limit(10))),
+      getDocs(query(collection(db,'transactions'), orderBy('date','desc'), limit(30))),
+      getDocs(collection(db,'transactions')),
+      getDocs(collection(db,'claims'))
     ]);
+    // filter pending client-side
+    const pendSnap2 = { docs: txSnap.docs.filter(d=>d.data().status==='pending'), size: txSnap.docs.filter(d=>d.data().status==='pending').length };
 
     let totalRev = 0, tripsCount = 0;
     const tripsRows = [];
@@ -832,7 +834,7 @@ async function loadDashboard() {
       if(x.type === 'expense' && x.status === 'approved') { balance -= Number(x.amount||0); expense += Number(x.amount||0); }
     });
 
-    const pending = pendSnap.size;
+    const pending = pendSnap2.size;
     document.getElementById('d-revenue').textContent = fmtR(totalRev);
     document.getElementById('d-trips').textContent = tripsCount;
     document.getElementById('d-balance').textContent = fmtR(balance);
@@ -845,11 +847,11 @@ async function loadDashboard() {
 
     // pending approvals in dashboard
     const apprList = document.getElementById('dash-approvals');
-    if(pendSnap.empty) {
+    if(pendSnap2.docs.length===0) {
       apprList.innerHTML = '<div class="empty" style="padding:24px"><div class="empty-icon">✅</div><div class="empty-sub">لا توجد طلبات معلقة</div></div>';
     } else {
       let html = '';
-      pendSnap.forEach(d => {
+      pendSnap2.docs.forEach(d => {
         const x = d.data();
         html += `<div class="appr-card"><div class="appr-hdr">⚠️ ${x.description||x.category||'طلب صرف'}</div>
           <div class="appr-row"><span class="appr-key">المبلغ</span><span class="appr-val">${fmtR(x.amount)}</span></div>
@@ -874,7 +876,7 @@ window.loadTrips = async function() {
   const mon = document.getElementById('tripsMonth').value || thisMonth();
   const [s, e] = [mon+'-01', mon+'-31'];
   try {
-    const snap = await getDocs(query(collection(db,'trips'), where('date','>=',s), where('date','<=',e), orderBy('date','desc')));
+    const snap = await getDocs(query(collection(db,'trips'), orderBy('date','desc'), limit(200)));
     let count=0, rev=0, meals=0, rows='';
     snap.forEach(d => {
       const x = d.data(); count++; rev += Number(x.amount||0); meals += Number(x.meals||0);
@@ -933,7 +935,8 @@ window.saveTrip = async function() {
 window.loadRevenue = async function() {
   const mon = document.getElementById('revMonth').value || thisMonth();
   try {
-    const snap = await getDocs(query(collection(db,'trips'), where('date','>=',mon+'-01'), where('date','<=',mon+'-31'), orderBy('date','desc')));
+    const allR = await getDocs(query(collection(db,'trips'), orderBy('date','desc'), limit(300)));
+    const snap = { docs: allR.docs.filter(d => { const dt = d.data().date||''; return dt >= mon+'-01' && dt <= mon+'-31'; }) };
     let total=0, count=0, byDay={}, byCar={}, maxDay=0;
     snap.forEach(d => {
       const x = d.data(); total += Number(x.amount||0); count++;
@@ -980,7 +983,8 @@ window.loadRevenue = async function() {
 // ── TREASURY ──
 window.loadTreasury = async function() {
   try {
-    const snap = await getDocs(query(collection(db,'transactions'), orderBy('date','desc'), limit(40)));
+    const snap = await getDocs(collection(db,'transactions'));
+    snap.docs.sort((a,b)=>(b.data().date||'').localeCompare(a.data().date||''));
     let balance=0, income=0, expense=0, pending=0, rows='', apprHtml='';
     snap.forEach(d => {
       const x = d.data();
@@ -1078,7 +1082,8 @@ window.loadDaily = async function() {
   const date = document.getElementById('dailyDate').value || today();
   document.getElementById('daily-content').innerHTML = '<div class="loading"><div class="spinner"></div> جاري التحميل...</div>';
   try {
-    const snap = await getDocs(query(collection(db,'transactions'), where('date','==',date), orderBy('createdAt','asc')));
+    const allTx = await getDocs(collection(db,'transactions'));
+    const snap = { docs: allTx.docs.filter(d=>d.data().date===date) };
     let bankIn=0,bankOut=0,cashIn=0,cashOut=0,rows='';
     snap.forEach(d => {
       const x = d.data();
@@ -1288,7 +1293,8 @@ window.calcVatInline = function() {
 let selectedClaim = null;
 window.loadClaims = async function() {
   try {
-    const snap = await getDocs(query(collection(db,'claims'), orderBy('incidentDate','desc')));
+    const snap = await getDocs(collection(db,'claims'));
+    snap.docs.sort((a,b)=>(b.data().incidentDate||'').localeCompare(a.data().incidentDate||''));
     let total=0, active=0, totalAmt=0, collected=0, rows='';
     snap.forEach(d => {
       const x = d.data(); total++;
@@ -1413,8 +1419,9 @@ window.deleteDoc2 = async function(col, id, reload) {
 };
 
 // ── REAL-TIME LISTENER for pending ──
-onSnapshot(query(collection(db,'transactions'), where('status','==','pending')), snap => {
-  const count = snap.size;
+onSnapshot(collection(db,'transactions'), allSnap => {
+  const pendingDocs = allSnap.docs.filter(d=>d.data().status==='pending');
+  const count = pendingDocs.length;
   document.getElementById('sb-pending-count').textContent = count;
   document.getElementById('sb-pending-count').style.display = count > 0 ? '' : 'none';
   if(count > 0) {
