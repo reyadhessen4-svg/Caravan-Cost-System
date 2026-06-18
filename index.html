@@ -3,1436 +3,321 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام القوافل الخمسة — لوحة التحكم</title>
+<title>نظام القوافل الخمسة</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --navy:#0B1F4B;--royal:#1A56DB;--royal2:#1E40AF;--sky:#3B82F6;
-  --light:#EBF2FF;--lighter:#F5F9FF;--gold:#F0A500;--gold2:#FBBF24;
-  --white:#FFFFFF;--gray:#6B7280;--gray2:#9CA3AF;--border:#DBEAFE;
-  --success:#059669;--warning:#D97706;--danger:#DC2626;
-  --font:'Cairo',sans-serif;--mono:'Poppins',sans-serif;
-}
+:root{--navy:#0B1F4B;--royal:#1A56DB;--royal2:#1E40AF;--light:#EBF2FF;--lighter:#F5F9FF;--gold:#F0A500;--white:#FFFFFF;--gray:#6B7280;--gray2:#9CA3AF;--border:#DBEAFE;--success:#059669;--warning:#D97706;--danger:#DC2626;--font:"Cairo",sans-serif;--mono:"Poppins",sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
 body{font-family:var(--font);background:var(--lighter);color:var(--navy);direction:rtl;min-height:100vh}
-
-/* LAYOUT */
 .shell{display:flex;min-height:100vh}
-.sidebar{width:240px;background:var(--navy);flex-shrink:0;display:flex;flex-direction:column;position:fixed;top:0;right:0;bottom:0;z-index:50;overflow-y:auto}
-.main{margin-right:240px;flex:1;display:flex;flex-direction:column;min-height:100vh}
-.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;box-shadow:0 1px 10px rgba(26,86,219,.06)}
+.sidebar{width:240px;background:var(--navy);flex-shrink:0;position:fixed;top:0;right:0;bottom:0;z-index:50;overflow-y:auto;display:flex;flex-direction:column}
+.main{margin-right:240px;flex:1;display:flex;flex-direction:column}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
 .content{padding:24px 28px;flex:1}
-
-/* SIDEBAR */
 .sb-logo{padding:20px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
-.sb-logo-icon{width:38px;height:38px;background:var(--royal);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.sb-logo-name{font-size:13px;font-weight:700;color:var(--white);line-height:1.3}
-.sb-logo-sub{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px}
-.sb-section{padding:16px 12px 6px;font-size:10px;font-weight:700;letter-spacing:.08em;color:rgba(255,255,255,.3);text-transform:uppercase}
-.sb-link{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:9px;margin:2px 8px;font-size:13px;font-weight:500;color:rgba(255,255,255,.6);cursor:pointer;transition:all .2s;border:none;background:transparent;width:calc(100% - 16px);text-align:right}
-.sb-link:hover{background:rgba(255,255,255,.08);color:var(--white)}
-.sb-link.active{background:var(--royal);color:var(--white)}
-.sb-link .sb-icon{font-size:16px;width:20px;text-align:center}
-.sb-badge{margin-right:auto;background:var(--danger);color:white;font-size:10px;padding:1px 7px;border-radius:100px;font-weight:700}
+.sb-logo-icon{width:38px;height:38px;background:var(--royal);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.sb-logo-name{font-size:13px;font-weight:700;color:#fff;line-height:1.3}
+.sb-logo-sub{font-size:10px;color:rgba(255,255,255,.4)}
+.sb-sec{padding:14px 12px 5px;font-size:10px;font-weight:700;letter-spacing:.08em;color:rgba(255,255,255,.3);text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:9px;margin:2px 8px;font-size:13px;font-weight:500;color:rgba(255,255,255,.6);cursor:pointer;border:none;background:transparent;width:calc(100% - 16px);text-align:right;font-family:var(--font);transition:all .2s}
+.sb-link:hover{background:rgba(255,255,255,.08);color:#fff}
+.sb-link.active{background:var(--royal);color:#fff}
+.sb-badge{margin-right:auto;background:var(--danger);color:#fff;font-size:10px;padding:1px 7px;border-radius:100px;font-weight:700;display:none}
 .sb-footer{margin-top:auto;padding:14px 12px;border-top:1px solid rgba(255,255,255,.06)}
-.sb-user{display:flex;align-items:center;gap:9px;padding:8px;border-radius:9px;cursor:pointer}
-.sb-user:hover{background:rgba(255,255,255,.06)}
-.sb-avatar{width:32px;height:32px;border-radius:50%;background:var(--royal);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0}
-.sb-user-name{font-size:12px;font-weight:600;color:var(--white)}
-.sb-user-role{font-size:10px;color:rgba(255,255,255,.4)}
-
-/* TOPBAR */
-.tb-title{font-size:16px;font-weight:700;color:var(--navy)}
+.sb-user{display:flex;align-items:center;gap:9px;padding:8px}
+.sb-avatar{width:32px;height:32px;border-radius:50%;background:var(--royal);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.tb-title{font-size:16px;font-weight:700}
 .tb-right{display:flex;align-items:center;gap:12px}
-.tb-notif{position:relative;width:36px;height:36px;border-radius:9px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;background:transparent}
-.tb-notif:hover{background:var(--light)}
-.notif-dot{position:absolute;top:6px;left:6px;width:8px;height:8px;border-radius:50%;background:var(--danger);border:2px solid white}
 .tb-date{font-size:12px;color:var(--gray);background:var(--lighter);padding:6px 12px;border-radius:8px}
-
-/* PAGES */
-.page{display:none}
-.page.active{display:block}
-
-/* CARDS */
-.card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px}
-.card-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
-.card-title-l{display:flex;align-items:center;gap:8px}
-
-/* METRICS */
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}
+.sync-ind{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray)}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--gray2)}
+.page{display:none}.page.active{display:block}
+.card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px}
+.ct{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.ctl{display:flex;align-items:center;gap:8px}
+.mets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}
 .met{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:18px}
-.met-label{font-size:12px;color:var(--gray);margin-bottom:6px;display:flex;align-items:center;gap:6px}
-.met-val{font-size:22px;font-weight:700;font-family:var(--mono);color:var(--navy)}
-.met-sub{font-size:11px;color:var(--gray2);margin-top:4px}
-.met-icon{font-size:22px}
-
-/* TABLE */
-.tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+.ml{font-size:12px;color:var(--gray);margin-bottom:6px}
+.mv{font-size:22px;font-weight:700;font-family:var(--mono)}
+.ms{font-size:11px;color:var(--gray2);margin-top:4px}
+.tw{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:right;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gray);background:var(--lighter);border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--navy);vertical-align:middle}
+td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tbody tr:hover td{background:var(--lighter)}
-
-/* BADGE */
 .badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;white-space:nowrap}
-.b-blue{background:var(--light);color:var(--royal2)}
-.b-gold{background:#FEF3C7;color:#92400E}
-.b-green{background:#D1FAE5;color:#065F46}
-.b-red{background:#FEE2E2;color:#991B1B}
-.b-gray{background:#F3F4F6;color:#4B5563}
-.b-purple{background:#EDE9FE;color:#5B21B6}
-
-/* BUTTONS */
-.btn{padding:8px 18px;border-radius:9px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all .18s;border:1px solid var(--border);background:var(--white);color:var(--navy)}
+.bg{background:#F3F4F6;color:#4B5563}.bb{background:var(--light);color:var(--royal2)}.bo{background:#FEF3C7;color:#92400E}.bn{background:#D1FAE5;color:#065F46}.br{background:#FEE2E2;color:#991B1B}.bp{background:#EDE9FE;color:#5B21B6}
+.btn{padding:8px 18px;border-radius:9px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--white);color:var(--navy);transition:all .18s}
 .btn:hover{background:var(--lighter)}
-.btn-primary{background:var(--royal);border-color:var(--royal);color:white}
-.btn-primary:hover{background:var(--royal2);border-color:var(--royal2)}
-.btn-success{background:#059669;border-color:#059669;color:white}
-.btn-success:hover{background:#047857}
-.btn-danger{background:#FEE2E2;border-color:#FCA5A5;color:#991B1B}
-.btn-danger:hover{background:#FEE2E2}
-.btn-sm{padding:5px 12px;font-size:12px}
-.btn-gold{background:var(--gold);border-color:var(--gold);color:var(--navy)}
-.btn-gold:hover{background:var(--gold2)}
-
-/* FORM */
-.form-grid{display:grid;gap:14px}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.bp2{background:var(--royal);border-color:var(--royal);color:#fff}.bp2:hover{background:var(--royal2)}
+.bs{background:#059669;border-color:#059669;color:#fff}.bs:hover{background:#047857}
+.bd{background:#FEE2E2;border-color:#FCA5A5;color:#991B1B}
+.bg2{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+.bsm{padding:5px 12px;font-size:12px}
+.fg{display:flex;flex-direction:column;gap:14px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .fld{display:flex;flex-direction:column;gap:5px}
-.fld label{font-size:12px;font-weight:600;color:var(--navy)}
-.fld input,.fld select,.fld textarea{padding:9px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;color:var(--navy);outline:none;transition:border-color .2s;background:var(--white)}
+.fld label{font-size:12px;font-weight:600}
+.fld input,.fld select,.fld textarea{padding:9px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;color:var(--navy);outline:none;background:var(--white);transition:border-color .2s}
 .fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--royal)}
 .fld textarea{min-height:70px;resize:vertical}
-.form-section{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px}
-
-/* MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(11,31,75,.5);z-index:200;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto}
-.modal-overlay.open{display:flex}
-.modal-box{background:var(--white);border-radius:16px;padding:24px;width:560px;max-width:96%;margin-bottom:40px}
-.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.modal-title{font-size:16px;font-weight:700;color:var(--navy)}
-.modal-close{background:none;border:none;font-size:22px;color:var(--gray);cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px}
-.modal-close:hover{background:var(--lighter)}
-.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
-
-/* ALERT / TOAST */
-.toast{position:fixed;bottom:24px;left:24px;background:var(--navy);color:white;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:999;display:none;align-items:center;gap:10px;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+.fsep{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);padding:8px 0 4px;border-bottom:1px solid var(--border)}
+.mo{display:none;position:fixed;inset:0;background:rgba(11,31,75,.55);z-index:200;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.mo.open{display:flex}
+.mb{background:var(--white);border-radius:16px;padding:24px;width:560px;max-width:100%;margin-bottom:40px}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.mt2{font-size:16px;font-weight:700}
+.mc{background:none;border:none;font-size:22px;color:var(--gray);cursor:pointer;line-height:1;padding:4px 8px;border-radius:6px;font-family:var(--font)}
+.mc:hover{background:var(--lighter)}
+.mf{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.toast{position:fixed;bottom:24px;left:24px;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:999;display:none;align-items:center;gap:10px;font-family:var(--font);max-width:360px}
 .toast.show{display:flex}
-.toast.success{background:var(--success)}
-.toast.error{background:var(--danger)}
-
-/* APPROVAL CARD */
-.appr-card{border:1px solid #FDE68A;background:#FFFBEB;border-radius:12px;padding:16px;margin-bottom:12px}
-.appr-hdr{font-size:14px;font-weight:700;color:#92400E;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.appr-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
-.appr-key{color:#B45309}
-.appr-val{font-weight:600;color:#78350F;font-family:var(--mono)}
-.appr-btns{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #FDE68A}
-
-/* NOTIF */
-.notif-panel{position:fixed;top:60px;left:20px;width:340px;background:white;border:1px solid var(--border);border-radius:14px;box-shadow:0 10px 40px rgba(11,31,75,.15);z-index:300;display:none;max-height:500px;overflow-y:auto}
-.notif-panel.open{display:block}
-.notif-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer}
-.notif-item:hover{background:var(--lighter)}
-.notif-item:last-child{border-bottom:none}
-.notif-item.unread{background:#EFF6FF}
-.notif-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.notif-body h5{font-size:12px;font-weight:700;color:var(--navy)}
-.notif-body p{font-size:11px;color:var(--gray);margin-top:2px;line-height:1.5}
-.notif-time{font-size:10px;color:var(--gray2);margin-top:3px}
-
-/* PROGRESS */
-.prog-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:5px}
-.prog-fill{height:100%;border-radius:3px;transition:width .4s}
-
-/* STAT RING */
-.stat-ring{width:60px;height:60px;flex-shrink:0}
-
-/* TIMELINE */
-.tl-item{display:flex;gap:12px;margin-bottom:14px}
-.tl-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
-.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.tl-conn{width:1px;background:var(--border);flex:1;margin-top:3px;min-height:18px}
-.tl-body{flex:1}
-.tl-title{font-size:13px;font-weight:600;color:var(--navy)}
-.tl-sub{font-size:12px;color:var(--gray);margin-top:2px;line-height:1.5}
-.tl-date{font-size:11px;color:var(--gray2);margin-top:3px}
-
-/* LOADING */
-.loading{display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:var(--gray);font-size:14px}
-.spinner{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--royal);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* EMPTY STATE */
-.empty{text-align:center;padding:50px 20px;color:var(--gray)}
-.empty-icon{font-size:42px;margin-bottom:12px}
-.empty-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px}
-.empty-sub{font-size:13px;color:var(--gray)}
-
-/* PIPELINE */
-.pipeline{display:flex;gap:0;background:var(--white);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
-.pipe-step{flex:1;padding:14px;text-align:center;border-left:1px solid var(--border);position:relative;cursor:default}
-.pipe-step:last-child{border-left:none}
-.pipe-step.done{background:#F0FDF4}
-.pipe-step.current{background:var(--light)}
-.pipe-step.pending{background:var(--lighter)}
-.pipe-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin:0 auto 6px}
-.pipe-label{font-size:11px;font-weight:600;color:var(--navy)}
-.pipe-sub{font-size:10px;color:var(--gray);margin-top:2px}
-
-/* VAT CALC INLINE */
-.vat-calc{background:var(--light);border-radius:10px;padding:14px;margin-top:8px}
-.vat-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border)}
-.vat-row:last-child{border-bottom:none;font-weight:700;font-size:14px;padding-top:8px}
-.vat-row span:first-child{color:var(--gray)}
-.vat-row span:last-child{font-family:var(--mono);font-weight:600}
-
-/* RESPONSIVE */
-@media(max-width:900px){
-  .sidebar{width:200px}
-  .main{margin-right:200px}
-  .metrics{grid-template-columns:1fr 1fr}
-  .content{padding:16px}
-}
-@media(max-width:640px){
-  .sidebar{transform:translateX(100%);transition:transform .25s}
-  .sidebar.open{transform:none}
-  .main{margin-right:0}
-  .metrics{grid-template-columns:1fr 1fr}
-}
+.ts{background:#059669;color:#fff}.te{background:#DC2626;color:#fff}.ti{background:var(--navy);color:#fff}
+.ac{border:1px solid #FDE68A;background:#FFFBEB;border-radius:12px;padding:16px;margin-bottom:12px}
+.ah{font-size:14px;font-weight:700;color:#92400E;margin-bottom:10px}
+.ar{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
+.ak{color:#B45309}.av{font-weight:600;color:#78350F;font-family:var(--mono)}
+.ab{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #FDE68A}
+.tl{display:flex;gap:12px;margin-bottom:14px}
+.tll{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.tld{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.tlc{width:1px;background:var(--border);flex:1;margin-top:3px;min-height:18px}
+.tlb{flex:1}
+.lbox{display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:var(--gray);font-size:14px}
+.spin{width:22px;height:22px;border:3px solid var(--border);border-top-color:var(--royal);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ebox{text-align:center;padding:40px 20px}
+.ei{font-size:38px;margin-bottom:10px}
+.et{font-size:14px;font-weight:700;margin-bottom:4px}
+.es{font-size:13px;color:var(--gray)}
+.pb{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:5px}
+.pf{height:100%;border-radius:3px}
+.vb{background:var(--light);border-radius:10px;padding:14px;margin-top:10px}
+.vr{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border)}
+.vr:last-child{border-bottom:none;font-weight:700;font-size:14px;padding-top:8px}
+.vr span:first-child{color:var(--gray)}
+.vr span:last-child{font-family:var(--mono);font-weight:600}
+.ib{background:var(--light);border-radius:9px;padding:10px 14px;font-size:13px;color:var(--royal2);display:flex;gap:8px;margin-bottom:14px}
+@media(max-width:768px){.sidebar{width:200px}.main{margin-right:200px}.mets{grid-template-columns:1fr 1fr}.content{padding:16px}}
 </style>
 </head>
 <body>
 
-<!-- TOAST -->
-<div class="toast" id="toast">
-  <span id="toast-icon">✓</span>
-  <span id="toast-msg">تمت العملية بنجاح</span>
-</div>
-
-<!-- NOTIF PANEL -->
-<div class="notif-panel" id="notifPanel">
-  <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-    <span style="font-size:13px;font-weight:700;color:var(--navy)">الإشعارات</span>
-    <button onclick="markAllRead()" style="font-size:11px;color:var(--royal);background:none;border:none;cursor:pointer;font-family:var(--font)">تعليم الكل مقروء</button>
-  </div>
-  <div id="notifList"><div class="loading"><div class="spinner"></div> جاري التحميل...</div></div>
-</div>
-
-<!-- APP SHELL -->
-<div class="shell">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="sb-logo">
-      <div class="sb-logo-icon">🚛</div>
-      <div>
-        <div class="sb-logo-name">القوافل الخمسة</div>
-        <div class="sb-logo-sub">نظام التشغيل</div>
-      </div>
-    </div>
-
-    <div class="sb-section">الرئيسية</div>
-    <button class="sb-link active" onclick="showPage('dashboard',this)">
-      <span class="sb-icon">📊</span> لوحة التحكم
-    </button>
-
-    <div class="sb-section">العمليات</div>
-    <button class="sb-link" onclick="showPage('trips',this)">
-      <span class="sb-icon">🚛</span> الرحلات اليومية
-    </button>
-    <button class="sb-link" onclick="showPage('revenue',this)">
-      <span class="sb-icon">💰</span> الإيرادات
-    </button>
-
-    <div class="sb-section">المالية</div>
-    <button class="sb-link" onclick="showPage('treasury',this)">
-      <span class="sb-icon">🏦</span> الخزينة
-      <span class="sb-badge" id="sb-pending-count">3</span>
-    </button>
-    <button class="sb-link" onclick="showPage('daily',this)">
-      <span class="sb-icon">📋</span> البيان اليومي
-    </button>
-    <button class="sb-link" onclick="showPage('custody',this)">
-      <span class="sb-icon">👛</span> العهد الشخصية
-    </button>
-
-    <div class="sb-section">التأمين</div>
-    <button class="sb-link" onclick="showPage('claims',this)">
-      <span class="sb-icon">🛡️</span> المطالبات
-    </button>
-
-    <div class="sb-footer">
-      <div class="sb-user">
-        <div class="sb-avatar">م</div>
+<div id="setup-banner" style="display:none;position:fixed;inset:0;background:rgba(11,31,75,.92);z-index:9999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:20px;padding:36px;max-width:580px;width:100%;text-align:right;direction:rtl">
+    <div style="font-size:28px;margin-bottom:10px">🔐</div>
+    <div style="font-size:20px;font-weight:700;color:#0B1F4B;margin-bottom:8px">يرجى تفعيل Firebase Rules أولاً</div>
+    <div style="font-size:14px;color:#6B7280;margin-bottom:24px;line-height:1.8">قاعدة البيانات تمنع الوصول بشكل افتراضي. اتبع الخطوات التالية:</div>
+    
+    <div style="background:#F5F9FF;border-radius:12px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px">
+        <div style="width:28px;height:28px;border-radius:50%;background:#1A56DB;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">1</div>
         <div>
-          <div class="sb-user-name">المدير العام</div>
-          <div class="sb-user-role">صلاحيات كاملة</div>
+          <div style="font-size:14px;font-weight:600;color:#0B1F4B;margin-bottom:4px">افتح Firebase Console</div>
+          <div style="font-size:12px;color:#6B7280;word-break:break-all">console.firebase.google.com/project/caravan-cost-system/firestore/rules</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px">
+        <div style="width:28px;height:28px;border-radius:50%;background:#1A56DB;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">2</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#0B1F4B;margin-bottom:6px">استبدل الكود بهذا وانسخه</div>
+          <div style="background:#0B1F4B;color:#93C5FD;border-radius:8px;padding:12px;font-family:monospace;font-size:12px;line-height:1.8;cursor:pointer" onclick="copyRules(this)">rules_version = '2';<br>service cloud.firestore {<br>&nbsp;&nbsp;match /databases/{database}/documents {<br>&nbsp;&nbsp;&nbsp;&nbsp;match /{document=**} {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>&nbsp;&nbsp;&nbsp;&nbsp;}<br>&nbsp;&nbsp;}<br>}<br><br><span style="color:#FBBF24">[انقر هنا لنسخ الكود]</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:28px;height:28px;border-radius:50%;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">3</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#0B1F4B">اضغط Publish ثم عُد هنا</div>
+          <div style="font-size:12px;color:#6B7280">يصبح فعالاً خلال دقيقة واحدة</div>
         </div>
       </div>
     </div>
+    
+    <div style="display:flex;gap:10px">
+      <button onclick="retryConnection()" style="flex:1;background:#1A56DB;color:#fff;border:none;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔄 إعادة المحاولة بعد التفعيل</button>
+      <a href="https://console.firebase.google.com/project/caravan-cost-system/firestore/rules" target="_blank" style="flex:1;background:#F5F9FF;color:#1A56DB;border:1px solid #DBEAFE;padding:13px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center">🔗 فتح Firebase</a>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"><span id="ti"></span><span id="tm"></span></div>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sb-logo"><div class="sb-logo-icon">&#x1F69B;</div><div><div class="sb-logo-name">القوافل الخمسة</div><div class="sb-logo-sub">نظام التشغيل</div></div></div>
+    <div class="sb-sec">الرئيسية</div>
+    <button class="sb-link active" onclick="nav('dashboard',this)"><span>&#x1F4CA;</span> لوحة التحكم</button>
+    <div class="sb-sec">العمليات</div>
+    <button class="sb-link" onclick="nav('trips',this)"><span>&#x1F69B;</span> الرحلات</button>
+    <button class="sb-link" onclick="nav('revenue',this)"><span>&#x1F4B0;</span> الإيرادات</button>
+    <div class="sb-sec">المالية</div>
+    <button class="sb-link" onclick="nav('treasury',this)"><span>&#x1F3E6;</span> الخزينة <span class="sb-badge" id="pbadge">0</span></button>
+    <button class="sb-link" onclick="nav('daily',this)"><span>&#x1F4CB;</span> البيان اليومي</button>
+    <button class="sb-link" onclick="nav('custody',this)"><span>&#x1F45B;</span> العهد الشخصية</button>
+    <div class="sb-sec">التأمين</div>
+    <button class="sb-link" onclick="nav('claims',this)"><span>&#x1F6E1;&#xFE0F;</span> المطالبات</button>
+    <div class="sb-footer"><div class="sb-user"><div class="sb-avatar">م</div><div><div style="font-size:12px;font-weight:600;color:#fff">المدير العام</div><div style="font-size:10px;color:rgba(255,255,255,.4)">صلاحيات كاملة</div></div></div></div>
   </aside>
-
-  <!-- MAIN -->
   <div class="main">
     <div class="topbar">
-      <div class="tb-title" id="pageTitle">لوحة التحكم</div>
+      <div class="tb-title" id="ptitle">لوحة التحكم</div>
       <div class="tb-right">
-        <div class="tb-date" id="topDate"></div>
-        <div id="syncStatus" style="font-size:12px;color:var(--gray);display:flex;align-items:center;gap:6px">
-          <span id="syncDot" style="width:8px;height:8px;border-radius:50%;background:var(--gray2);display:inline-block"></span>
-          <span id="syncText">جاري الاتصال...</span>
-        </div>
-        <div class="tb-notif" onclick="toggleNotif()" title="الإشعارات">
-          🔔
-          <div class="notif-dot" id="notifDot" style="display:none"></div>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ إضافة</button>
+        <div class="tb-date" id="tdate"></div>
+        <div class="sync-ind"><div class="sync-dot" id="sdot"></div><span id="stxt">جاري الاتصال...</span></div>
+        <button class="btn bp2 bsm" onclick="openAdd()">+ إضافة</button>
       </div>
     </div>
-
     <div class="content">
-
-      <!-- ══════════ DASHBOARD ══════════ -->
+      <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
-        <div class="metrics" id="dash-metrics">
-          <div class="met"><div class="met-label"><span class="met-icon">💰</span> إيرادات الشهر</div><div class="met-val" id="d-revenue">—</div><div class="met-sub" id="d-revenue-sub">جاري التحميل</div></div>
-          <div class="met"><div class="met-label"><span class="met-icon">🚛</span> رحلات الشهر</div><div class="met-val" id="d-trips">—</div><div class="met-sub" id="d-trips-sub">رحلة</div></div>
-          <div class="met"><div class="met-label"><span class="met-icon">🏦</span> رصيد الخزينة</div><div class="met-val" id="d-balance">—</div><div class="met-sub" id="d-balance-sub">ريال</div></div>
-          <div class="met"><div class="met-label"><span class="met-icon">⚠️</span> طلبات معلقة</div><div class="met-val" id="d-pending" style="color:var(--danger)">—</div><div class="met-sub" id="d-pending-sub">تحتاج اعتمادك</div></div>
+        <div class="mets">
+          <div class="met"><div class="ml">&#x1F4B0; إيرادات الشهر</div><div class="mv" id="d-rev">—</div></div>
+          <div class="met"><div class="ml">&#x1F69B; رحلات الشهر</div><div class="mv" id="d-tr">—</div></div>
+          <div class="met"><div class="ml">&#x1F3E6; رصيد الخزينة</div><div class="mv" id="d-bal">—</div></div>
+          <div class="met"><div class="ml">&#x26A0;&#xFE0F; طلبات معلقة</div><div class="mv" id="d-pnd" style="color:var(--danger)">—</div></div>
         </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-          <div class="card">
-            <div class="card-title"><span class="card-title-l">⏳ طلبات الاعتماد</span><button class="btn btn-sm" onclick="showPage('treasury',document.querySelector('[onclick*=treasury]'))">عرض الكل</button></div>
-            <div id="dash-approvals"><div class="loading"><div class="spinner"></div></div></div>
-          </div>
-          <div class="card">
-            <div class="card-title"><span class="card-title-l">🔔 آخر الإشعارات</span></div>
-            <div id="dash-notifs"><div class="loading"><div class="spinner"></div></div></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title"><span class="card-title-l">🚛 آخر الرحلات</span><button class="btn btn-primary btn-sm" onclick="openAddModal()">+ رحلة جديدة</button></div>
-          <div class="tbl-wrap"><table>
-            <thead><tr><th>التاريخ</th><th>السيارة</th><th>الوجهة</th><th>وجبات</th><th>الإيراد</th><th>الحالة</th></tr></thead>
-            <tbody id="dash-trips-table"><tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
-          </table></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="card"><div class="ct"><span class="ctl">&#x26A0;&#xFE0F; طلبات الاعتماد</span><button class="btn bsm" onclick="nav('treasury',null)">عرض الكل</button></div><div id="d-appr"><div class="lbox"><div class="spin"></div></div></div></div>
+          <div class="card"><div class="ct"><span class="ctl">&#x1F69B; آخر الرحلات</span><button class="btn bp2 bsm" onclick="openModal('trip')">+ رحلة</button></div><div id="d-trps"><div class="lbox"><div class="spin"></div></div></div></div>
         </div>
       </div>
-
-      <!-- ══════════ TRIPS ══════════ -->
+      <!-- TRIPS -->
       <div class="page" id="page-trips">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-          <div>
-            <div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">العمليات</div>
-            <h2 style="font-size:20px;font-weight:700;color:var(--navy)">الرحلات اليومية</h2>
-          </div>
-          <div style="display:flex;gap:8px">
-            <input type="month" id="tripsMonth" onchange="loadTrips()" style="padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;color:var(--navy);outline:none">
-            <button class="btn btn-primary" onclick="openModal('trip')">🚛 تسجيل رحلة</button>
-          </div>
+          <h2 style="font-size:20px;font-weight:700">الرحلات اليومية</h2>
+          <div style="display:flex;gap:8px"><input type="month" id="tr-mon" onchange="loadTrips()" style="padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;outline:none"><button class="btn bp2" onclick="openModal('trip')">&#x1F69B; تسجيل رحلة</button></div>
         </div>
-        <div class="metrics">
-          <div class="met"><div class="met-label">رحلات الشهر</div><div class="met-val" id="trips-count">—</div></div>
-          <div class="met"><div class="met-label">إجمالي الإيراد</div><div class="met-val" id="trips-revenue">—</div></div>
-          <div class="met"><div class="met-label">متوسط الرحلة</div><div class="met-val" id="trips-avg">—</div></div>
-          <div class="met"><div class="met-label">إجمالي الوجبات</div><div class="met-val" id="trips-meals">—</div></div>
-        </div>
-        <div class="card">
-          <div class="card-title"><span class="card-title-l">📋 سجل الرحلات</span></div>
-          <div class="tbl-wrap"><table>
-            <thead><tr><th>التاريخ</th><th>السيارة</th><th>السائق</th><th>الوجهة</th><th>خروج</th><th>عودة</th><th>وجبات</th><th>الإيراد</th><th>الحالة</th><th></th></tr></thead>
-            <tbody id="trips-table"><tr><td colspan="10"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
-          </table></div>
-        </div>
+        <div class="mets"><div class="met"><div class="ml">رحلات الشهر</div><div class="mv" id="tc">—</div></div><div class="met"><div class="ml">إجمالي الإيراد</div><div class="mv" id="tr2">—</div></div><div class="met"><div class="ml">متوسط الرحلة</div><div class="mv" id="ta">—</div></div><div class="met"><div class="ml">إجمالي الوجبات</div><div class="mv" id="tm">—</div></div></div>
+        <div class="card"><div class="ct"><span class="ctl">&#x1F4CB; سجل الرحلات</span></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>السيارة</th><th>السائق</th><th>الوجهة</th><th>خروج</th><th>عودة</th><th>وجبات</th><th>الإيراد</th><th>الحالة</th><th></th></tr></thead><tbody id="trb"></tbody></table></div></div>
       </div>
-
-      <!-- ══════════ REVENUE ══════════ -->
+      <!-- REVENUE -->
       <div class="page" id="page-revenue">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-          <h2 style="font-size:20px;font-weight:700;color:var(--navy)">إدارة الإيرادات</h2>
-          <input type="month" id="revMonth" onchange="loadRevenue()" style="padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;outline:none">
-        </div>
-        <div class="metrics">
-          <div class="met"><div class="met-label">إجمالي الشهر</div><div class="met-val" id="rev-total">—</div></div>
-          <div class="met"><div class="met-label">متوسط يومي</div><div class="met-val" id="rev-daily">—</div></div>
-          <div class="met"><div class="met-label">أعلى يوم</div><div class="met-val" id="rev-max">—</div></div>
-          <div class="met"><div class="met-label">عدد الرحلات</div><div class="met-val" id="rev-count">—</div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div class="card">
-            <div class="card-title"><span class="card-title-l">🚛 أداء كل سيارة</span></div>
-            <div id="rev-by-car"><div class="loading"><div class="spinner"></div></div></div>
-          </div>
-          <div class="card">
-            <div class="card-title"><span class="card-title-l">📅 آخر 7 أيام</span></div>
-            <div id="rev-by-day"><div class="loading"><div class="spinner"></div></div></div>
-          </div>
-        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h2 style="font-size:20px;font-weight:700">الإيرادات</h2><input type="month" id="rv-mon" onchange="loadRevenue()" style="padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;outline:none"></div>
+        <div class="mets"><div class="met"><div class="ml">إجمالي الشهر</div><div class="mv" id="rv1">—</div></div><div class="met"><div class="ml">متوسط يومي</div><div class="mv" id="rv2">—</div></div><div class="met"><div class="ml">أعلى يوم</div><div class="mv" id="rv3">—</div></div><div class="met"><div class="ml">عدد الرحلات</div><div class="mv" id="rv4">—</div></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><div class="ct"><span class="ctl">&#x1F69B; أداء كل سيارة</span></div><div id="rv-cars"><div class="lbox"><div class="spin"></div></div></div></div><div class="card"><div class="ct"><span class="ctl">&#x1F4C5; آخر 7 أيام</span></div><div id="rv-days"><div class="lbox"><div class="spin"></div></div></div></div></div>
       </div>
-
-      <!-- ══════════ TREASURY ══════════ -->
+      <!-- TREASURY -->
       <div class="page" id="page-treasury">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-          <h2 style="font-size:20px;font-weight:700;color:var(--navy)">نظام الخزينة</h2>
-          <div style="display:flex;gap:8px">
-            <button class="btn" onclick="openModal('income')">📥 إضافة وارد</button>
-            <button class="btn btn-gold" onclick="openModal('expense')">📤 طلب صرف</button>
-          </div>
-        </div>
-        <div class="metrics">
-          <div class="met"><div class="met-label">🏦 رصيد الخزينة</div><div class="met-val" id="tr-balance">—</div></div>
-          <div class="met"><div class="met-label">📥 وارد الشهر</div><div class="met-val" id="tr-income" style="color:var(--success)">—</div></div>
-          <div class="met"><div class="met-label">📤 صادر الشهر</div><div class="met-val" id="tr-expense" style="color:var(--danger)">—</div></div>
-          <div class="met"><div class="met-label">⏳ معلق للاعتماد</div><div class="met-val" id="tr-pending" style="color:var(--warning)">—</div></div>
-        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h2 style="font-size:20px;font-weight:700">الخزينة</h2><div style="display:flex;gap:8px"><button class="btn" onclick="openModal('income')">&#x1F4E5; إضافة وارد</button><button class="btn bg2" onclick="openModal('expense')">&#x1F4E4; طلب صرف</button></div></div>
+        <div class="mets"><div class="met"><div class="ml">&#x1F3E6; رصيد الخزينة</div><div class="mv" id="tn1">—</div></div><div class="met"><div class="ml">&#x1F4E5; وارد الشهر</div><div class="mv" id="tn2" style="color:var(--success)">—</div></div><div class="met"><div class="ml">&#x1F4E4; صادر الشهر</div><div class="mv" id="tn3" style="color:var(--danger)">—</div></div><div class="met"><div class="ml">&#x23F3; معلق</div><div class="mv" id="tn4" style="color:var(--warning)">—</div></div></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div class="card">
-            <div class="card-title"><span class="card-title-l">⚠️ طلبات تنتظر اعتمادك</span><span class="badge b-red" id="pending-badge">0</span></div>
-            <div id="approvals-list"><div class="loading"><div class="spinner"></div></div></div>
-          </div>
-          <div class="card">
-            <div class="card-title"><span class="card-title-l">📒 آخر الحركات</span></div>
-            <div class="tbl-wrap"><table>
-              <thead><tr><th>التاريخ</th><th>البيان</th><th>نوع</th><th>المبلغ</th><th>الرصيد بعد</th><th>الحالة</th></tr></thead>
-              <tbody id="treasury-table"><tr><td colspan="6"><div class="loading"><div class="spinner"></div></td></tr></tbody>
-            </table></div>
-          </div>
+          <div class="card"><div class="ct"><span class="ctl">&#x26A0;&#xFE0F; تحتاج اعتمادك</span><span class="badge br" id="ac">0</span></div><div id="appr-list"><div class="lbox"><div class="spin"></div></div></div></div>
+          <div class="card"><div class="ct"><span class="ctl">&#x1F4D2; آخر الحركات</span></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البيان</th><th>نوع</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody id="txb"></tbody></table></div></div>
         </div>
       </div>
-
-      <!-- ══════════ DAILY ══════════ -->
+      <!-- DAILY -->
       <div class="page" id="page-daily">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-          <h2 style="font-size:20px;font-weight:700;color:var(--navy)">البيان اليومي</h2>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input type="date" id="dailyDate" onchange="loadDaily()" style="padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;outline:none">
-            <button class="btn btn-primary" onclick="printDaily()">🖨️ طباعة</button>
-          </div>
-        </div>
-        <div id="daily-content"><div class="loading"><div class="spinner"></div> جاري تحميل البيان...</div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h2 style="font-size:20px;font-weight:700">البيان اليومي</h2><div style="display:flex;gap:8px;align-items:center"><input type="date" id="dd" onchange="loadDaily()" style="padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;outline:none"><button class="btn bp2" onclick="window.print()">&#x1F5A8;&#xFE0F; طباعة</button></div></div>
+        <div id="daily-c"><div class="lbox"><div class="spin"></div></div></div>
       </div>
-
-      <!-- ══════════ CUSTODY ══════════ -->
+      <!-- CUSTODY -->
       <div class="page" id="page-custody">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-          <h2 style="font-size:20px;font-weight:700;color:var(--navy)">العهد الشخصية</h2>
-          <div style="display:flex;gap:8px">
-            <button class="btn" onclick="openModal('employee')">👤 موظف جديد</button>
-            <button class="btn btn-primary" onclick="openModal('custodyEntry')">💸 قيد مصروف</button>
-          </div>
-        </div>
-        <div class="metrics">
-          <div class="met"><div class="met-label">إجمالي العهد</div><div class="met-val" id="cus-total">—</div></div>
-          <div class="met"><div class="met-label">إجمالي المصروف</div><div class="met-val" id="cus-spent" style="color:var(--danger)">—</div></div>
-          <div class="met"><div class="met-label">ض.ق.م المحصَّلة</div><div class="met-val" id="cus-vat" style="color:var(--warning)">—</div></div>
-          <div class="met"><div class="met-label">المتبقي</div><div class="met-val" id="cus-rem" style="color:var(--success)">—</div></div>
-        </div>
-        <div class="tbl-wrap" style="margin-bottom:16px"><table>
-          <thead><tr><th>الموظف</th><th>الوظيفة</th><th>السيارة</th><th>رصيد البداية</th><th>المصروف</th><th>ض.ق.م</th><th>قبل الضريبة</th><th>المتبقي</th><th>الحالة</th><th></th></tr></thead>
-          <tbody id="custody-table"><tr><td colspan="10"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
-        </table></div>
-        <!-- CUSTODY DETAIL -->
-        <div class="card" id="custody-detail" style="display:none">
-          <div class="card-title"><span class="card-title-l" id="cus-det-name">تفاصيل العهدة</span><button class="btn btn-sm btn-primary" onclick="openModal('custodyEntry')">+ قيد</button></div>
-          <div class="tbl-wrap"><table>
-            <thead><tr><th>التاريخ</th><th>السيارة</th><th>البند</th><th>التفاصيل</th><th>نوع المبلغ</th><th>قبل الضريبة</th><th>ض.ق.م</th><th>الإجمالي</th><th>مستند</th></tr></thead>
-            <tbody id="cus-entries-table"></tbody>
-          </table></div>
-          <!-- VAT CALC -->
-          <div style="margin-top:14px;background:var(--lighter);border-radius:10px;padding:14px">
-            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">🧮 حاسبة ض.ق.م السريعة</div>
-            <div style="display:flex;gap:10px;align-items:flex-end">
-              <div class="fld" style="flex:1"><label>المبلغ</label><input type="number" id="vatCalcAmt" placeholder="0" oninput="calcVatInline()"></div>
-              <div class="fld" style="flex:1"><label>النوع</label><select id="vatCalcType" onchange="calcVatInline()"><option value="inc">شامل الضريبة</option><option value="exc">خارج الضريبة</option></select></div>
-            </div>
-            <div class="vat-calc" id="vatCalcResult" style="display:none">
-              <div class="vat-row"><span>قبل الضريبة</span><span id="vc-pre">—</span></div>
-              <div class="vat-row"><span>ض.ق.م 15%</span><span id="vc-vat" style="color:var(--warning)">—</span></div>
-              <div class="vat-row"><span>الإجمالي</span><span id="vc-total" style="color:var(--royal)">—</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h2 style="font-size:20px;font-weight:700">العهد الشخصية</h2><div style="display:flex;gap:8px"><button class="btn" onclick="openModal('employee')">&#x1F464; موظف جديد</button><button class="btn bp2" onclick="openModal('custodyEntry')">&#x1F4B8; قيد مصروف</button></div></div>
+        <div class="mets"><div class="met"><div class="ml">إجمالي العهد</div><div class="mv" id="cu1">—</div></div><div class="met"><div class="ml">المصروف</div><div class="mv" id="cu2" style="color:var(--danger)">—</div></div><div class="met"><div class="ml">ض.ق.م</div><div class="mv" id="cu3" style="color:var(--warning)">—</div></div><div class="met"><div class="ml">المتبقي</div><div class="mv" id="cu4" style="color:var(--success)">—</div></div></div>
+        <div class="card"><div class="ct"><span class="ctl">&#x1F465; كشف الموظفين</span></div><div class="tw"><table><thead><tr><th>الموظف</th><th>الوظيفة</th><th>السيارة</th><th>رصيد البداية</th><th>المصروف</th><th>ض.ق.م</th><th>قبل الضريبة</th><th>المتبقي</th><th>الحالة</th><th></th></tr></thead><tbody id="cub"></tbody></table></div></div>
+        <div class="card" id="cud" style="display:none">
+          <div class="ct"><span class="ctl" id="cudn">تفاصيل العهدة</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div style="background:var(--light);border-radius:10px;padding:6px 12px;display:flex;gap:8px;align-items:center">
+                <input type="number" id="vc-a" placeholder="المبلغ" oninput="calcVI()" style="width:90px;padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-family:var(--font);font-size:12px;outline:none">
+                <select id="vc-t" onchange="calcVI()" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-family:var(--font);font-size:12px;outline:none"><option value="inc">شامل ض.ق.م</option><option value="exc">خارج ض.ق.م</option></select>
+                <span id="vc-r" style="font-size:12px;color:var(--royal2);font-weight:600"></span>
+              </div>
+              <button class="btn bp2 bsm" onclick="openModal('custodyEntry')">+ قيد</button>
             </div>
           </div>
+          <div class="tw"><table><thead><tr><th>التاريخ</th><th>السيارة</th><th>البند</th><th>التفاصيل</th><th>نوع المبلغ</th><th>قبل الضريبة</th><th>ض.ق.م</th><th>الإجمالي</th></tr></thead><tbody id="cue"></tbody></table></div>
         </div>
       </div>
-
-      <!-- ══════════ CLAIMS ══════════ -->
+      <!-- CLAIMS -->
       <div class="page" id="page-claims">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-          <h2 style="font-size:20px;font-weight:700;color:var(--navy)">مطالبات التأمين</h2>
-          <button class="btn btn-primary" onclick="openModal('claim')">🛡️ مطالبة جديدة</button>
-        </div>
-        <div class="metrics">
-          <div class="met"><div class="met-label">إجمالي المطالبات</div><div class="met-val" id="cl-total">—</div></div>
-          <div class="met"><div class="met-label">قيد المتابعة</div><div class="met-val" id="cl-active" style="color:var(--warning)">—</div></div>
-          <div class="met"><div class="met-label">إجمالي المطالَب به</div><div class="met-val" id="cl-amount">—</div></div>
-          <div class="met"><div class="met-label">تم تحصيله</div><div class="met-val" id="cl-collected" style="color:var(--success)">—</div></div>
-        </div>
-        <div class="tbl-wrap" style="margin-bottom:16px"><table>
-          <thead><tr><th>رقم اللوحة</th><th>تاريخ الحادث</th><th>رقم DA</th><th>رقم RD</th><th>شركة التأمين</th><th>مبلغ التقدير</th><th>نسبة الخطأ</th><th>المحوَّل</th><th>الأيام</th><th>المرحلة</th><th>إجراء</th></tr></thead>
-          <tbody id="claims-table"><tr><td colspan="11"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
-        </table></div>
-        <!-- FOLLOWUP SECTION -->
-        <div class="card" id="followup-section" style="display:none">
-          <div class="card-title"><span class="card-title-l" id="fu-claim-id">سجل المتابعة</span><button class="btn btn-sm btn-primary" onclick="openModal('followup')">📞 تسجيل متابعة</button></div>
-          <div id="followup-timeline"><div class="loading"><div class="spinner"></div></div></div>
-        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h2 style="font-size:20px;font-weight:700">مطالبات التأمين</h2><button class="btn bp2" onclick="openModal('claim')">&#x1F6E1;&#xFE0F; مطالبة جديدة</button></div>
+        <div class="mets"><div class="met"><div class="ml">إجمالي المطالبات</div><div class="mv" id="cl1">—</div></div><div class="met"><div class="ml">قيد المتابعة</div><div class="mv" id="cl2" style="color:var(--warning)">—</div></div><div class="met"><div class="ml">إجمالي المطالَب</div><div class="mv" id="cl3">—</div></div><div class="met"><div class="ml">تم تحصيله</div><div class="mv" id="cl4" style="color:var(--success)">—</div></div></div>
+        <div class="card"><div class="ct"><span class="ctl">&#x1F4CB; جميع المطالبات</span></div><div class="tw"><table><thead><tr><th>رقم اللوحة</th><th>تاريخ الحادث</th><th>رقم DA</th><th>رقم RD</th><th>شركة التأمين</th><th>مبلغ التقدير</th><th>نسبة الخطأ</th><th>المحوَّل</th><th>الأيام</th><th>المرحلة</th><th>إجراء</th></tr></thead><tbody id="clb"></tbody></table></div></div>
+        <div class="card" id="fuc" style="display:none"><div class="ct"><span class="ctl" id="fut">سجل المتابعة</span><button class="btn bp2 bsm" onclick="openModal('followup')">&#x1F4DE; متابعة جديدة</button></div><div id="futl"></div></div>
       </div>
-
-    </div><!-- /content -->
-  </div><!-- /main -->
-</div><!-- /shell -->
-
-<!-- ══════ MODALS ══════ -->
-
-<!-- TRIP MODAL -->
-<div class="modal-overlay" id="modal-trip">
-  <div class="modal-box">
-    <div class="modal-hdr"><div class="modal-title">🚛 تسجيل رحلة جديدة</div><button class="modal-close" onclick="closeModal('trip')">×</button></div>
-    <div class="form-grid">
-      <div class="form-row">
-        <div class="fld"><label>التاريخ</label><input type="date" id="t-date"></div>
-        <div class="fld"><label>السيارة</label><select id="t-car"><option value="TC-01">TC-01</option><option value="TC-02">TC-02</option><option value="TC-03">TC-03</option><option value="TC-04">TC-04</option><option value="TC-05">TC-05</option></select></div>
-      </div>
-      <div class="fld"><label>السائق</label><select id="t-driver"><option>محمد العتيبي</option><option>أحمد الشمري</option><option>خالد الدوسري</option><option>عبدالله القحطاني</option><option>سعد الحربي</option></select></div>
-      <div class="fld"><label>الوجهة</label><input type="text" id="t-dest" placeholder="حي النزهة — الرياض"></div>
-      <div class="form-row">
-        <div class="fld"><label>وقت الخروج</label><input type="time" id="t-out"></div>
-        <div class="fld"><label>وقت العودة</label><input type="time" id="t-in"></div>
-      </div>
-      <div class="form-row">
-        <div class="fld"><label>عدد الوجبات</label><input type="number" id="t-meals" placeholder="0"></div>
-        <div class="fld"><label>قيمة الرحلة (ريال)</label><input type="number" id="t-amount" placeholder="0"></div>
-      </div>
-      <div class="fld"><label>الحالة</label><select id="t-status"><option value="مكتملة">مكتملة</option><option value="جارية">جارية</option><option value="مجدولة">مجدولة</option></select></div>
-      <div class="fld"><label>ملاحظات</label><textarea id="t-notes" placeholder="أي ملاحظات..."></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('trip')">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveTrip()">حفظ الرحلة</button>
     </div>
   </div>
 </div>
-
-<!-- INCOME MODAL -->
-<div class="modal-overlay" id="modal-income">
-  <div class="modal-box">
-    <div class="modal-hdr"><div class="modal-title">📥 إضافة وارد للخزينة</div><button class="modal-close" onclick="closeModal('income')">×</button></div>
-    <div class="form-grid">
-      <div class="form-row">
-        <div class="fld"><label>التاريخ</label><input type="date" id="i-date"></div>
-        <div class="fld"><label>المبلغ (ريال)</label><input type="number" id="i-amount" placeholder="0"></div>
-      </div>
-      <div class="fld"><label>البيان</label><input type="text" id="i-desc" placeholder="مثال: إيراد رحلات اليوم"></div>
-      <div class="fld"><label>القناة</label><select id="i-channel"><option>بنك</option><option>نقدي</option></select></div>
-      <div class="fld"><label>ملاحظات</label><textarea id="i-notes"></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('income')">إلغاء</button>
-      <button class="btn btn-success" onclick="saveIncome()">إضافة للخزينة</button>
-    </div>
-  </div>
-</div>
-
-<!-- EXPENSE MODAL -->
-<div class="modal-overlay" id="modal-expense">
-  <div class="modal-box">
-    <div class="modal-hdr"><div class="modal-title">📤 طلب صرف من الخزينة</div><button class="modal-close" onclick="closeModal('expense')">×</button></div>
-    <div style="background:var(--light);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--royal2);display:flex;gap:8px">
-      🔒 سيُرسل هذا الطلب للمدير للاعتماد — لن يُصرف قبل الموافقة
-    </div>
-    <div class="form-grid">
-      <div class="form-row">
-        <div class="fld"><label>التاريخ</label><input type="date" id="e-date"></div>
-        <div class="fld"><label>الفئة</label><select id="e-cat"><option>وقود</option><option>صيانة</option><option>رواتب</option><option>مستلزمات</option><option>أخرى</option></select></div>
-      </div>
-      <div class="fld"><label>البيان</label><input type="text" id="e-desc" placeholder="وصف واضح"></div>
-      <div class="form-row">
-        <div class="fld"><label>المبلغ المطلوب (ريال)</label><input type="number" id="e-amount" placeholder="0"></div>
-        <div class="fld"><label>القناة</label><select id="e-channel"><option>بنك</option><option>نقدي</option></select></div>
-      </div>
-      <div class="fld"><label>ملاحظات</label><textarea id="e-notes"></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('expense')">إلغاء</button>
-      <button class="btn btn-gold" onclick="saveExpense()">إرسال للاعتماد</button>
-    </div>
-  </div>
-</div>
-
-<!-- EMPLOYEE MODAL -->
-<div class="modal-overlay" id="modal-employee">
-  <div class="modal-box">
-    <div class="modal-hdr"><div class="modal-title">👤 إضافة موظف وتحديد العهدة</div><button class="modal-close" onclick="closeModal('employee')">×</button></div>
-    <div class="form-grid">
-      <div class="form-row">
-        <div class="fld"><label>اسم الموظف</label><input type="text" id="em-name" placeholder="الاسم الكامل"></div>
-        <div class="fld"><label>الوظيفة</label><select id="em-role"><option>سائق</option><option>محاسب</option><option>مشرف</option><option>أخرى</option></select></div>
-      </div>
-      <div class="form-row">
-        <div class="fld"><label>رقم السيارة (اختياري)</label><input type="text" id="em-car" placeholder="TC-01 أو اتركها فارغة"></div>
-        <div class="fld"><label>تاريخ بداية العهدة</label><input type="date" id="em-date"></div>
-      </div>
-      <div class="fld"><label>رصيد بداية العهدة (ريال)</label><input type="number" id="em-balance" placeholder="0"></div>
-      <div class="fld"><label>ملاحظات</label><textarea id="em-notes"></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('employee')">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveEmployee()">حفظ الموظف</button>
-    </div>
-  </div>
-</div>
-
-<!-- CUSTODY ENTRY MODAL -->
-<div class="modal-overlay" id="modal-custodyEntry">
-  <div class="modal-box">
-    <div class="modal-hdr"><div class="modal-title">💸 قيد مصروف على العهدة</div><button class="modal-close" onclick="closeModal('custodyEntry')">×</button></div>
-    <div class="form-grid">
-      <div class="form-row">
-        <div class="fld"><label>الموظف</label><select id="ce-emp"><option>جاري التحميل...</option></select></div>
-        <div class="fld"><label>رقم السيارة</label><input type="text" id="ce-car" placeholder="TC-01 أو اتركها فارغة"></div>
-      </div>
-      <div class="form-row">
-        <div class="fld"><label>التاريخ</label><input type="date" id="ce-date"></div>
-        <div class="fld"><label>البند</label><select id="ce-item"><option>وقود</option><option>صيانة</option><option>غسيل</option><option>مستلزمات</option><option>نثريات</option><option>بدل انتقال</option><option>أخرى</option></select></div>
-      </div>
-      <div class="fld"><label>تفاصيل البند</label><input type="text" id="ce-desc" placeholder="وصف دقيق للمصروف"></div>
-      <div class="fld"><label>المبلغ شامل الضريبة؟</label>
-        <select id="ce-vat" onchange="calcModalVat()"><option value="inc">نعم — شامل ض.ق.م 15%</option><option value="exc">لا — خارج الضريبة</option></select>
-      </div>
-      <div class="fld"><label id="ce-amt-label">المبلغ الإجمالي (شامل الضريبة)</label><input type="number" id="ce-amount" placeholder="0" oninput="calcModalVat()"></div>
-      <div class="vat-calc" id="ce-vat-result" style="display:none">
-        <div class="vat-row"><span>قبل الضريبة</span><span id="ce-pre">—</span></div>
-        <div class="vat-row"><span>ض.ق.م 15%</span><span id="ce-vat-amt" style="color:var(--warning)">—</span></div>
-        <div class="vat-row"><span>الإجمالي</span><span id="ce-total" style="color:var(--royal)">—</span></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('custodyEntry')">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveCustodyEntry()">حفظ القيد</button>
-    </div>
-  </div>
-</div>
-
-<!-- CLAIM MODAL -->
-<div class="modal-overlay" id="modal-claim">
-  <div class="modal-box">
-    <div class="modal-hdr"><div class="modal-title">🛡️ مطالبة تأمينية جديدة</div><button class="modal-close" onclick="closeModal('claim')">×</button></div>
-    <div class="form-grid">
-      <div class="form-section">بيانات الحادث — موظف نجم</div>
-      <div class="form-row">
-        <div class="fld"><label>رقم اللوحة</label><input type="text" id="cl-plate" placeholder="ب ص س 5514"></div>
-        <div class="fld"><label>تاريخ الحادث</label><input type="date" id="cl-date"></div>
-      </div>
-      <div class="fld"><label>موقع الحادث</label><input type="text" id="cl-location" placeholder="طريق الملك فهد"></div>
-      <div class="fld"><label>وصف الأضرار</label><textarea id="cl-damage" placeholder="خسارة جزئية / كلية — تفاصيل الأضرار"></textarea></div>
-      <div class="form-row">
-        <div class="fld"><label>رقم التقدير (DA)</label><input type="text" id="cl-da" placeholder="DA2303256672"></div>
-        <div class="fld"><label>شركة التأمين</label>
-          <select id="cl-company">
-            <option>ميد غلف (Med Gulf)</option><option>الوطنية للتكافل</option><option>ملاذ التأمين</option>
-            <option>التعاونية العربية</option><option>الجزيرة تكافل</option><option>SAICO</option>
-            <option>AICO</option><option>التعاونية سالكو</option><option>الراجحي للتأمين</option>
-            <option>اتحاد الخليج</option><option>تكافل الراجحي</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row-3">
-        <div class="fld"><label>مبلغ التقدير (ريال)</label><input type="number" id="cl-estimate" placeholder="0"></div>
-        <div class="fld"><label>نسبة الخطأ %</label><input type="number" id="cl-fault" placeholder="100" min="0" max="100"></div>
-        <div class="fld"><label>المبلغ المحوَّل</label><input type="number" id="cl-transferred" placeholder="0"></div>
-      </div>
-      <div class="fld"><label>المبلغ بدون ضريبة</label><input type="number" id="cl-pretax" placeholder="0"></div>
-      <div class="form-section">بيانات المطالبة — موظف التأمين</div>
-      <div class="form-row">
-        <div class="fld"><label>رقم المطالبة (RD)</label><input type="text" id="cl-rd" placeholder="RD1603252985"></div>
-        <div class="fld"><label>رقم المطالبة الداخلي</label><input type="text" id="cl-internal" placeholder="271845"></div>
-      </div>
-      <div class="fld"><label>تاريخ تقديم المطالبة</label><input type="date" id="cl-submit-date"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('claim')">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveClaim()">حفظ المطالبة</button>
-    </div>
-  </div>
-</div>
-
-<!-- FOLLOWUP MODAL -->
-<div class="modal-overlay" id="modal-followup">
-  <div class="modal-box">
-    <div class="modal-hdr"><div class="modal-title">📞 تسجيل متابعة تأمين</div><button class="modal-close" onclick="closeModal('followup')">×</button></div>
-    <div class="form-grid">
-      <div class="form-row">
-        <div class="fld"><label>تاريخ التواصل</label><input type="date" id="fu-date"></div>
-        <div class="fld"><label>طريقة التواصل</label><select id="fu-method"><option>هاتف</option><option>بريد إلكتروني</option><option>زيارة</option><option>واتساب</option></select></div>
-      </div>
-      <div class="fld"><label>اسم الموظف لدى التأمين</label><input type="text" id="fu-contact" placeholder="الاسم والمسمى"></div>
-      <div class="fld"><label>نتيجة التواصل</label>
-        <select id="fu-result">
-          <option>قيد المراجعة</option><option>طلب مستندات</option><option>اعتماد مالي</option>
-          <option>تم تحويل المبلغ</option><option>رُفضت المطالبة</option><option>لا يوجد رد</option>
-        </select>
-      </div>
-      <div class="fld"><label>ملاحظات</label><textarea id="fu-notes" placeholder="تفاصيل المحادثة..."></textarea></div>
-      <div class="fld"><label>الإجراء التالي</label><input type="text" id="fu-next" placeholder="مثال: إعادة الاتصال بعد أسبوع"></div>
-      <div class="form-row">
-        <div class="fld"><label>المبلغ المحصَّل (إن وُجد)</label><input type="number" id="fu-collected" placeholder="0 — اتركه فارغاً"></div>
-        <div class="fld"><label>تاريخ الاستلام</label><input type="date" id="fu-collect-date"></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('followup')">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveFollowup()">حفظ المتابعة</button>
-    </div>
-  </div>
-</div>
-
-<!-- FIREBASE + APP LOGIC -->
+<!-- MODALS -->
+<div class="mo" id="modal-trip"><div class="mb"><div class="mh"><div class="mt2">&#x1F69B; تسجيل رحلة</div><button class="mc" onclick="closeModal('trip')">×</button></div><div class="fg"><div class="fr"><div class="fld"><label>التاريخ</label><input type="date" id="t-d"></div><div class="fld"><label>السيارة</label><select id="t-c"><option>TC-01</option><option>TC-02</option><option>TC-03</option><option>TC-04</option><option>TC-05</option></select></div></div><div class="fld"><label>السائق</label><select id="t-dr"><option>محمد العتيبي</option><option>أحمد الشمري</option><option>خالد الدوسري</option><option>عبدالله القحطاني</option><option>سعد الحربي</option></select></div><div class="fld"><label>الوجهة</label><input type="text" id="t-ds" placeholder="حي النزهة — الرياض"></div><div class="fr"><div class="fld"><label>وقت الخروج</label><input type="time" id="t-o"></div><div class="fld"><label>وقت العودة</label><input type="time" id="t-r"></div></div><div class="fr"><div class="fld"><label>عدد الوجبات</label><input type="number" id="t-m" placeholder="0" min="0"></div><div class="fld"><label>قيمة الرحلة (ريال)</label><input type="number" id="t-a" placeholder="0" min="0"></div></div><div class="fld"><label>الحالة</label><select id="t-s"><option value="مكتملة">مكتملة</option><option value="جارية">جارية</option><option value="مجدولة">مجدولة</option></select></div><div class="fld"><label>ملاحظات</label><textarea id="t-n"></textarea></div></div><div class="mf"><button class="btn" onclick="closeModal('trip')">إلغاء</button><button class="btn bp2" onclick="saveTrip()">حفظ الرحلة</button></div></div></div>
+<div class="mo" id="modal-income"><div class="mb"><div class="mh"><div class="mt2">&#x1F4E5; إضافة وارد</div><button class="mc" onclick="closeModal('income')">×</button></div><div class="fg"><div class="fr"><div class="fld"><label>التاريخ</label><input type="date" id="i-d"></div><div class="fld"><label>المبلغ (ريال)</label><input type="number" id="i-a" placeholder="0"></div></div><div class="fld"><label>البيان</label><input type="text" id="i-ds" placeholder="إيراد رحلات اليوم"></div><div class="fld"><label>القناة</label><select id="i-ch"><option>بنك</option><option>نقدي</option></select></div><div class="fld"><label>ملاحظات</label><textarea id="i-n"></textarea></div></div><div class="mf"><button class="btn" onclick="closeModal('income')">إلغاء</button><button class="btn bs" onclick="saveIncome()">إضافة للخزينة</button></div></div></div>
+<div class="mo" id="modal-expense"><div class="mb"><div class="mh"><div class="mt2">&#x1F4E4; طلب صرف</div><button class="mc" onclick="closeModal('expense')">×</button></div><div class="ib">&#x1F512; سيُرسل للمدير للاعتماد قبل الصرف</div><div class="fg"><div class="fr"><div class="fld"><label>التاريخ</label><input type="date" id="e-d"></div><div class="fld"><label>الفئة</label><select id="e-c"><option>وقود</option><option>صيانة</option><option>رواتب</option><option>مستلزمات</option><option>أخرى</option></select></div></div><div class="fld"><label>البيان</label><input type="text" id="e-ds" placeholder="وصف واضح"></div><div class="fr"><div class="fld"><label>المبلغ (ريال)</label><input type="number" id="e-a" placeholder="0"></div><div class="fld"><label>القناة</label><select id="e-ch"><option>بنك</option><option>نقدي</option></select></div></div><div class="fld"><label>ملاحظات</label><textarea id="e-n"></textarea></div></div><div class="mf"><button class="btn" onclick="closeModal('expense')">إلغاء</button><button class="btn bg2" onclick="saveExpense()">إرسال للاعتماد</button></div></div></div>
+<div class="mo" id="modal-employee"><div class="mb"><div class="mh"><div class="mt2">&#x1F464; إضافة موظف</div><button class="mc" onclick="closeModal('employee')">×</button></div><div class="fg"><div class="fr"><div class="fld"><label>اسم الموظف</label><input type="text" id="em-n" placeholder="الاسم الكامل"></div><div class="fld"><label>الوظيفة</label><select id="em-r"><option>سائق</option><option>محاسب</option><option>مشرف</option><option>أخرى</option></select></div></div><div class="fr"><div class="fld"><label>رقم السيارة (اختياري)</label><input type="text" id="em-c" placeholder="TC-01 أو اتركها فارغة"></div><div class="fld"><label>تاريخ بداية العهدة</label><input type="date" id="em-d"></div></div><div class="fld"><label>رصيد بداية العهدة (ريال)</label><input type="number" id="em-b" placeholder="0"></div><div class="fld"><label>ملاحظات</label><textarea id="em-nt"></textarea></div></div><div class="mf"><button class="btn" onclick="closeModal('employee')">إلغاء</button><button class="btn bp2" onclick="saveEmployee()">حفظ الموظف</button></div></div></div>
+<div class="mo" id="modal-custodyEntry"><div class="mb"><div class="mh"><div class="mt2">&#x1F4B8; قيد مصروف على العهدة</div><button class="mc" onclick="closeModal('custodyEntry')">×</button></div><div class="fg"><div class="fr"><div class="fld"><label>الموظف</label><select id="ce-e"></select></div><div class="fld"><label>رقم السيارة</label><input type="text" id="ce-c" placeholder="TC-01 أو اتركها فارغة"></div></div><div class="fr"><div class="fld"><label>التاريخ</label><input type="date" id="ce-d"></div><div class="fld"><label>البند</label><select id="ce-i"><option>وقود</option><option>صيانة</option><option>غسيل</option><option>مستلزمات</option><option>نثريات</option><option>بدل انتقال</option><option>أخرى</option></select></div></div><div class="fld"><label>تفاصيل البند</label><input type="text" id="ce-ds" placeholder="وصف دقيق للمصروف"></div><div class="fld"><label>المبلغ شامل الضريبة؟</label><select id="ce-vt" onchange="calcCeV()"><option value="inc">نعم — شامل ض.ق.م 15%</option><option value="exc">لا — خارج الضريبة</option></select></div><div class="fld"><label id="ce-lbl">المبلغ الإجمالي شامل الضريبة</label><input type="number" id="ce-a" placeholder="0" oninput="calcCeV()"></div><div class="vb" id="ce-vb" style="display:none"><div class="vr"><span>قبل الضريبة</span><span id="ce-p">—</span></div><div class="vr"><span>ض.ق.م 15%</span><span id="ce-v" style="color:var(--warning)">—</span></div><div class="vr"><span>الإجمالي</span><span id="ce-t" style="color:var(--royal)">—</span></div></div></div><div class="mf"><button class="btn" onclick="closeModal('custodyEntry')">إلغاء</button><button class="btn bp2" onclick="saveCE()">حفظ القيد</button></div></div></div>
+<div class="mo" id="modal-claim"><div class="mb"><div class="mh"><div class="mt2">&#x1F6E1;&#xFE0F; مطالبة تأمينية جديدة</div><button class="mc" onclick="closeModal('claim')">×</button></div><div class="fg"><div class="fsep">بيانات الحادث — موظف نجم</div><div class="fr"><div class="fld"><label>رقم اللوحة</label><input type="text" id="cl-p" placeholder="ب ص س 5514"></div><div class="fld"><label>تاريخ الحادث</label><input type="date" id="cl-d"></div></div><div class="fld"><label>موقع الحادث</label><input type="text" id="cl-l" placeholder="طريق الملك فهد"></div><div class="fld"><label>وصف الأضرار</label><textarea id="cl-dm" placeholder="خسارة جزئية / كلية"></textarea></div><div class="fr"><div class="fld"><label>رقم التقدير (DA)</label><input type="text" id="cl-da" placeholder="DA2303256672"></div><div class="fld"><label>شركة التأمين</label><select id="cl-co"><option>ميد غلف</option><option>الوطنية للتكافل</option><option>ملاذ التأمين</option><option>التعاونية العربية</option><option>الجزيرة تكافل</option><option>SAICO</option><option>AICO</option><option>التعاونية سالكو</option><option>الراجحي للتأمين</option><option>اتحاد الخليج</option><option>تكافل الراجحي</option></select></div></div><div class="fr3"><div class="fld"><label>مبلغ التقدير</label><input type="number" id="cl-e" placeholder="0"></div><div class="fld"><label>نسبة الخطأ %</label><input type="number" id="cl-f" placeholder="100" min="0" max="100"></div><div class="fld"><label>المبلغ المحوَّل</label><input type="number" id="cl-tr" placeholder="0"></div></div><div class="fld"><label>المبلغ بدون ضريبة</label><input type="number" id="cl-pt" placeholder="0"></div><div class="fsep">بيانات المطالبة — موظف التأمين</div><div class="fr"><div class="fld"><label>رقم المطالبة (RD)</label><input type="text" id="cl-rd" placeholder="RD1603252985"></div><div class="fld"><label>رقم المطالبة الداخلي</label><input type="text" id="cl-in" placeholder="271845"></div></div><div class="fld"><label>تاريخ تقديم المطالبة</label><input type="date" id="cl-sd"></div></div><div class="mf"><button class="btn" onclick="closeModal('claim')">إلغاء</button><button class="btn bp2" onclick="saveClaim()">حفظ المطالبة</button></div></div></div>
+<div class="mo" id="modal-followup"><div class="mb"><div class="mh"><div class="mt2">&#x1F4DE; تسجيل متابعة تأمين</div><button class="mc" onclick="closeModal('followup')">×</button></div><div class="fg"><div class="fr"><div class="fld"><label>تاريخ التواصل</label><input type="date" id="fu-d"></div><div class="fld"><label>طريقة التواصل</label><select id="fu-m"><option>هاتف</option><option>بريد إلكتروني</option><option>زيارة</option><option>واتساب</option></select></div></div><div class="fld"><label>اسم الموظف لدى التأمين</label><input type="text" id="fu-c" placeholder="الاسم والمسمى"></div><div class="fld"><label>نتيجة التواصل</label><select id="fu-r"><option>قيد المراجعة</option><option>طلب مستندات</option><option>اعتماد مالي</option><option>تم تحويل المبلغ</option><option>رُفضت المطالبة</option><option>لا يوجد رد</option></select></div><div class="fld"><label>ملاحظات</label><textarea id="fu-n" placeholder="تفاصيل المحادثة..."></textarea></div><div class="fld"><label>الإجراء التالي</label><input type="text" id="fu-nx" placeholder="إعادة الاتصال بعد أسبوع"></div><div class="fr"><div class="fld"><label>المبلغ المحصَّل (إن وُجد)</label><input type="number" id="fu-col" placeholder="0 — اتركه فارغاً"></div><div class="fld"><label>تاريخ الاستلام</label><input type="date" id="fu-cd"></div></div></div><div class="mf"><button class="btn" onclick="closeModal('followup')">إلغاء</button><button class="btn bp2" onclick="saveFU()">حفظ المتابعة</button></div></div></div>
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, getDocs, query, where,
-  orderBy, limit, updateDoc, doc, onSnapshot, serverTimestamp,
-  Timestamp, getDoc, setDoc
-} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBszDcJMAyTwwSIOWjdzRlFvJCdQipYG-8",
-  authDomain: "caravan-cost-system.firebaseapp.com",
-  projectId: "caravan-cost-system",
-  storageBucket: "caravan-cost-system.firebasestorage.app",
-  messagingSenderId: "618081494939",
-  appId: "1:618081494939:web:8738bb21677e450deea33e",
-  measurementId: "G-9Y676HTGKT"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// ── HELPERS ──
-function fmt(n, dec=0) {
-  if(n === undefined || n === null || isNaN(n)) return '—';
-  return Number(n).toLocaleString('ar-SA', {minimumFractionDigits:dec, maximumFractionDigits:dec});
-}
-function fmtR(n) { return fmt(n) + ' ريال'; }
-function today() { return new Date().toISOString().split('T')[0]; }
-function thisMonth() { return new Date().toISOString().slice(0,7); }
-function ts(dateStr) { return Timestamp.fromDate(new Date(dateStr || Date.now())); }
-function showToast(msg, type='success') {
-  const t = document.getElementById('toast');
-  t.className = 'toast show ' + type;
-  document.getElementById('toast-icon').textContent = type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ';
-  document.getElementById('toast-msg').textContent = msg;
-  setTimeout(() => t.classList.remove('show'), 3500);
-}
-function setSync(ok) {
-  document.getElementById('syncDot').style.background = ok ? '#059669' : '#DC2626';
-  document.getElementById('syncText').textContent = ok ? 'متصل بالسحابة' : 'خطأ في الاتصال';
-}
-
-// ── DATE SETUP ──
-const dateEl = document.getElementById('topDate');
-const now = new Date();
-const days = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-dateEl.textContent = days[now.getDay()] + ' ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
-
-// set default dates on inputs
-document.querySelectorAll('input[type=date]').forEach(i => i.value = today());
-document.querySelectorAll('input[type=month]').forEach(i => i.value = thisMonth());
-
-// ── NAV ──
-window.showPage = function(page, btn) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.sb-link').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  if(btn) btn.classList.add('active');
-  const titles = {dashboard:'لوحة التحكم',trips:'الرحلات اليومية',revenue:'الإيرادات',treasury:'الخزينة',daily:'البيان اليومي',custody:'العهد الشخصية',claims:'مطالبات التأمين'};
-  document.getElementById('pageTitle').textContent = titles[page] || page;
-  const loaders = {trips: loadTrips, revenue: loadRevenue, treasury: loadTreasury, daily: loadDaily, custody: loadCustody, claims: loadClaims};
-  if(loaders[page]) loaders[page]();
-};
-
-window.openModal = function(name) {
-  document.getElementById('modal-' + name).classList.add('open');
-};
-window.closeModal = function(name) {
-  document.getElementById('modal-' + name).classList.remove('open');
-};
-window.openAddModal = function() {
-  const activePage = document.querySelector('.page.active').id.replace('page-','');
-  const map = {trips:'trip', treasury:'expense', custody:'custodyEntry', claims:'claim', revenue:'income', daily:'income'};
-  openModal(map[activePage] || 'trip');
-};
-
-// ── NOTIFICATIONS ──
-let notifications = [];
-window.toggleNotif = function() {
-  document.getElementById('notifPanel').classList.toggle('open');
-  renderNotifications();
-};
-window.markAllRead = function() {
-  notifications.forEach(n => n.read = true);
-  renderNotifications();
-  document.getElementById('notifDot').style.display = 'none';
-};
-function addNotif(icon, title, body, bg) {
-  notifications.unshift({ icon, title, body, bg: bg||'#DBEAFE', time: 'الآن', read: false });
-  const unread = notifications.filter(n=>!n.read).length;
-  document.getElementById('notifDot').style.display = unread > 0 ? 'block' : 'none';
-  renderNotifications();
-}
-function renderNotifications() {
-  const list = document.getElementById('notifList');
-  const notifList2 = document.getElementById('dash-notifs');
-  if(!notifications.length) {
-    list.innerHTML = '<div class="empty" style="padding:30px"><div class="empty-icon">🔔</div><div class="empty-sub">لا توجد إشعارات</div></div>';
-    return;
-  }
-  const html = notifications.slice(0,10).map(n => `
-    <div class="notif-item ${n.read?'':'unread'}">
-      <div class="notif-icon" style="background:${n.bg}">${n.icon}</div>
-      <div class="notif-body"><h5>${n.title}</h5><p>${n.body}</p><div class="notif-time">${n.time}</div></div>
-    </div>`).join('');
-  list.innerHTML = html;
-  if(notifList2) notifList2.innerHTML = html;
-}
-
-// ── DASHBOARD ──
-async function loadDashboard() {
-  try {
-    setSync(true);
-    const mon = thisMonth();
-    const [start, end] = [new Date(mon+'-01'), new Date(mon+'-31')];
-
-    const [tripsSnap, txSnap, pendSnap, clSnap] = await Promise.all([
-      getDocs(query(collection(db,'trips'), orderBy('date','desc'), limit(10))),
-      getDocs(query(collection(db,'transactions'), orderBy('date','desc'), limit(30))),
-      getDocs(collection(db,'transactions')),
-      getDocs(collection(db,'claims'))
-    ]);
-    // filter pending client-side
-    const pendSnap2 = { docs: txSnap.docs.filter(d=>d.data().status==='pending'), size: txSnap.docs.filter(d=>d.data().status==='pending').length };
-
-    let totalRev = 0, tripsCount = 0;
-    const tripsRows = [];
-    tripsSnap.forEach(d => {
-      const x = d.data();
-      totalRev += Number(x.amount||0);
-      tripsCount++;
-      tripsRows.push(`<tr><td>${x.date||'—'}</td><td><span class="badge b-gray">${x.car||'—'}</span></td><td>${x.destination||'—'}</td><td>${fmt(x.meals)}</td><td style="font-family:var(--mono)">${fmt(x.amount)}</td><td><span class="badge ${x.status==='مكتملة'?'b-green':x.status==='جارية'?'b-gold':'b-blue'}">${x.status||'—'}</span></td></tr>`);
-    });
-
-    let balance = 0, income = 0, expense = 0;
-    txSnap.forEach(d => {
-      const x = d.data();
-      if(x.type === 'income' && x.status === 'approved') { balance += Number(x.amount||0); income += Number(x.amount||0); }
-      if(x.type === 'expense' && x.status === 'approved') { balance -= Number(x.amount||0); expense += Number(x.amount||0); }
-    });
-
-    const pending = pendSnap2.size;
-    document.getElementById('d-revenue').textContent = fmtR(totalRev);
-    document.getElementById('d-trips').textContent = tripsCount;
-    document.getElementById('d-balance').textContent = fmtR(balance);
-    document.getElementById('d-pending').textContent = pending;
-    document.getElementById('sb-pending-count').textContent = pending;
-    document.getElementById('sb-pending-count').style.display = pending > 0 ? '' : 'none';
-
-    const tbl = document.getElementById('dash-trips-table');
-    tbl.innerHTML = tripsRows.length ? tripsRows.join('') : '<tr><td colspan="6"><div class="empty"><div class="empty-icon">🚛</div><div class="empty-sub">لا توجد رحلات هذا الشهر</div></div></td></tr>';
-
-    // pending approvals in dashboard
-    const apprList = document.getElementById('dash-approvals');
-    if(pendSnap2.docs.length===0) {
-      apprList.innerHTML = '<div class="empty" style="padding:24px"><div class="empty-icon">✅</div><div class="empty-sub">لا توجد طلبات معلقة</div></div>';
-    } else {
-      let html = '';
-      pendSnap2.docs.forEach(d => {
-        const x = d.data();
-        html += `<div class="appr-card"><div class="appr-hdr">⚠️ ${x.description||x.category||'طلب صرف'}</div>
-          <div class="appr-row"><span class="appr-key">المبلغ</span><span class="appr-val">${fmtR(x.amount)}</span></div>
-          <div class="appr-row"><span class="appr-key">التاريخ</span><span class="appr-val">${x.date||'—'}</span></div>
-          <div class="appr-btns">
-            <button class="btn btn-success btn-sm" onclick="approveTransaction('${d.id}')">✓ اعتماد</button>
-            <button class="btn btn-danger btn-sm" onclick="rejectTransaction('${d.id}')">✗ رفض</button>
-          </div></div>`;
-      });
-      apprList.innerHTML = html;
+import{initializeApp}from"https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import{getFirestore,collection,addDoc,getDocs,updateDoc,deleteDoc,doc,query,orderBy,limit,serverTimestamp,onSnapshot}from"https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+const app=initializeApp({apiKey:"AIzaSyBszDcJMAyTwwSIOWjdzRlFvJCdQipYG-8",authDomain:"caravan-cost-system.firebaseapp.com",projectId:"caravan-cost-system",storageBucket:"caravan-cost-system.firebasestorage.app",messagingSenderId:"618081494939",appId:"1:618081494939:web:8738bb21677e450deea33e"});
+const db=getFirestore(app);
+const G=id=>document.getElementById(id);
+const V=id=>(G(id)||{}).value||'';
+const N=id=>parseFloat(V(id))||0;
+const td=()=>new Date().toISOString().split('T')[0];
+const ym=()=>new Date().toISOString().slice(0,7);
+const fmt=(n,d=0)=>isNaN(n)||n==null?'—':Number(n).toLocaleString('ar-SA',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fR=n=>fmt(n)+' ريال';
+function toast(msg,t='s'){const el=G('toast');el.className='toast show t'+t;G('ti').textContent=t==='s'?'✓':t==='e'?'✗':'ℹ';G('tm').textContent=msg;setTimeout(()=>el.classList.remove('show'),3500);}
+function sync(ok){G('sdot').style.background=ok?'#059669':'#DC2626';G('stxt').textContent=ok?'متصل بالسحابة':'خطأ في الاتصال';}
+function ld(id){G(id).innerHTML='<div class="lbox"><div class="spin"></div></div>';}
+function emp(id,ic,ti,sb){G(id).innerHTML=`<div class="ebox"><div class="ei">${ic}</div><div class="et">${ti}</div><div class="es">${sb}</div></div>`;}
+async function FD(col,...args){try{const q=args.length?query(collection(db,col),...args):collection(db,col);const snap=await getDocs(q);return snap.docs;}catch(e){if(e.code==='permission-denied'){toast('⚠️ يرجى تفعيل Firebase Rules أولاً — راجع ملف FIREBASE_SETUP.html','e');return[];}throw e;}}
+function calcV(a,t){if(!a)return{p:0,v:0,tt:0};if(t==='inc'){const p=a/1.15,v=a-p;return{p,v,tt:a};}return{p:a,v:a*0.15,tt:a+a*0.15};}
+window.calcCeV=function(){const a=N('ce-a'),t=V('ce-vt');G('ce-lbl').textContent=t==='inc'?'المبلغ الإجمالي شامل الضريبة':'المبلغ قبل الضريبة';if(!a){G('ce-vb').style.display='none';return;}const{p,v,tt}=calcV(a,t);G('ce-p').textContent=fR(p);G('ce-v').textContent=fR(v);G('ce-t').textContent=fR(tt);G('ce-vb').style.display='block';};
+window.calcVI=function(){const a=parseFloat(G('vc-a').value)||0,t=G('vc-t').value;if(!a){G('vc-r').textContent='';return;}const{p,v,tt}=calcV(a,t);G('vc-r').textContent=`قبل: ${fmt(p,2)} | ض: ${fmt(v,2)} | إجمالي: ${fmt(tt,2)}`;};
+const sbBadge=s=>{const m={'مكتملة':'bn','جارية':'bo','مجدولة':'bb','approved':'bn','pending':'bo','rejected':'br'};return`<span class="badge ${m[s]||'bg'}">${s==='approved'?'معتمد':s==='pending'?'معلق':s==='rejected'?'مرفوض':s||'—'}</span>`;};
+const stgBadge=n=>{const s=['رفع الحادث','رفع التقدير','تقديم للتأمين','متابعة','تم التحصيل'],c=['bb','bp','bo','br','bn'];return`<span class="badge ${c[n]||'bg'}">${s[n]||'—'}</span>`;};
+const pageTitles={dashboard:'لوحة التحكم',trips:'الرحلات',revenue:'الإيرادات',treasury:'الخزينة',daily:'البيان اليومي',custody:'العهد الشخصية',claims:'المطالبات'};
+window.nav=function(pg,btn){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.sb-link').forEach(b=>b.classList.remove('active'));G('page-'+pg).classList.add('active');if(btn)btn.classList.add('active');G('ptitle').textContent=pageTitles[pg]||pg;const L={trips:loadTrips,revenue:loadRevenue,treasury:loadTreasury,daily:loadDaily,custody:loadCustody,claims:loadClaims};if(L[pg])L[pg]();};
+window.openModal=n=>G('modal-'+n).classList.add('open');
+window.closeModal=n=>G('modal-'+n).classList.remove('open');
+window.openAdd=function(){const a=document.querySelector('.page.active')?.id?.replace('page-','');const m={trips:'trip',revenue:'income',treasury:'expense',custody:'custodyEntry',claims:'claim',daily:'income',dashboard:'trip'};openModal(m[a]||'trip');};
+{const d=new Date();const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];const months=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];G('tdate').textContent=`${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;document.querySelectorAll('input[type=date]').forEach(i=>i.value=td());document.querySelectorAll('input[type=month]').forEach(i=>i.value=ym());}
+async function loadDashboard(){sync(true);try{const[tD,xD]=await Promise.all([FD('trips',orderBy('date','desc'),limit(200)),FD('transactions',orderBy('date','desc'),limit(200))]);const mon=ym();const mT=tD.filter(d=>(d.data().date||'').startsWith(mon));const mR=mT.reduce((s,d)=>s+Number(d.data().amount||0),0);let bal=0,pC=0;xD.forEach(d=>{const x=d.data();if(x.status==='approved')bal+=x.type==='income'?Number(x.amount||0):-Number(x.amount||0);if(x.status==='pending')pC++;});G('d-rev').textContent=fR(mR);G('d-tr').textContent=mT.length;G('d-bal').textContent=fR(bal);G('d-pnd').textContent=pC;G('pbadge').textContent=pC;G('pbadge').style.display=pC>0?'':'none';const pnd=xD.filter(d=>d.data().status==='pending');if(!pnd.length){emp('d-appr','✅','لا توجد طلبات معلقة','جميع الطلبات معتمدة');}else{G('d-appr').innerHTML=pnd.slice(0,3).map(d=>{const x=d.data();return`<div class="ac"><div class="ah">⚠️ ${x.description||x.category||'طلب صرف'}</div><div class="ar"><span class="ak">المبلغ</span><span class="av">${fR(x.amount)}</span></div><div class="ar"><span class="ak">التاريخ</span><span class="av">${x.date||'—'}</span></div><div class="ab"><button class="btn bs bsm" onclick="appTx('${d.id}')">✓ اعتماد</button><button class="btn bd bsm" onclick="rejTx('${d.id}')">✗ رفض</button></div></div>`;}).join('');}if(!tD.length){emp('d-trps','🚛','لا توجد رحلات','أضف رحلتك الأولى');}else{G('d-trps').innerHTML=`<div class="tw"><table><thead><tr><th>التاريخ</th><th>السيارة</th><th>الوجهة</th><th>الإيراد</th><th>الحالة</th></tr></thead><tbody>${tD.slice(0,6).map(d=>{const x=d.data();return`<tr><td>${x.date||'—'}</td><td><span class="badge bg">${x.car||'—'}</span></td><td>${x.destination||'—'}</td><td style="font-family:var(--mono)">${fR(x.amount)}</td><td>${sbBadge(x.status)}</td></tr>`;}).join('')}</tbody></table></div>`;}}catch(e){sync(false);toast('خطأ في التحميل: '+e.message,'e');}}
+async function loadTrips(){ld('trb');try{const mon=V('tr-mon')||ym();const docs=await FD('trips',orderBy('date','desc'),limit(300));const f=docs.filter(d=>(d.data().date||'').startsWith(mon));let c=0,r=0,m=0;const rows=f.map(d=>{const x=d.data();c++;r+=Number(x.amount||0);m+=Number(x.meals||0);return`<tr><td>${x.date||'—'}</td><td><span class="badge bg">${x.car||'—'}</span></td><td>${x.driver||'—'}</td><td>${x.destination||'—'}</td><td>${x.timeOut||'—'}</td><td>${x.timeIn||'—'}</td><td>${fmt(x.meals)}</td><td style="font-family:var(--mono);font-weight:600">${fR(x.amount)}</td><td>${sbBadge(x.status)}</td><td><button class="btn bd bsm" onclick="delD('trips','${d.id}',loadTrips)">حذف</button></td></tr>`;});G('tc').textContent=c;G('tr2').textContent=fR(r);G('ta').textContent=fR(c?r/c:0);G('tm').textContent=fmt(m);G('trb').innerHTML=rows.join('')||'<tr><td colspan="10"><div class="ebox"><div class="ei">🚛</div><div class="et">لا توجد رحلات</div></div></td></tr>';}catch(e){toast('خطأ: '+e.message,'e');}}
+window.saveTrip=async function(){const ds=V('t-ds'),a=N('t-a');if(!ds)return toast('أدخل الوجهة','e');if(!a)return toast('أدخل قيمة الرحلة','e');try{const data={date:V('t-d')||td(),car:V('t-c'),driver:V('t-dr'),destination:ds,timeOut:V('t-o'),timeIn:V('t-r'),meals:N('t-m'),amount:a,status:V('t-s'),notes:V('t-n'),createdAt:serverTimestamp()};await addDoc(collection(db,'trips'),data);await addDoc(collection(db,'transactions'),{type:'income',status:'approved',date:data.date,amount:a,description:`إيراد رحلة — ${data.car} — ${ds}`,channel:'نقدي',createdAt:serverTimestamp()});closeModal('trip');toast('تم حفظ الرحلة والإيراد');loadTrips();loadDashboard();}catch(e){toast('خطأ: '+e.message,'e');}};
+async function loadRevenue(){try{const mon=V('rv-mon')||ym();const docs=await FD('trips',orderBy('date','desc'),limit(300));const f=docs.filter(d=>(d.data().date||'').startsWith(mon));let tot=0;const byD={},byC={};f.forEach(d=>{const x=d.data();tot+=Number(x.amount||0);byD[x.date]=(byD[x.date]||0)+Number(x.amount||0);if(!byC[x.car])byC[x.car]={t:0,a:0};byC[x.car].t++;byC[x.car].a+=Number(x.amount||0);});const mx=Math.max(...Object.values(byD),1);G('rv1').textContent=fR(tot);G('rv2').textContent=fR(Object.keys(byD).length?tot/Object.keys(byD).length:0);G('rv3').textContent=fR(mx);G('rv4').textContent=f.length;G('rv-cars').innerHTML=Object.entries(byC).sort((a,b)=>b[1].a-a[1].a).map(([car,v])=>{const p=tot?Math.round(v.a/tot*100):0;return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="font-weight:600">${car}</span><span style="font-family:var(--mono)">${fR(v.a)} <span style="color:var(--gray);font-size:11px">(${v.t} رحلة)</span></span></div><div class="pb"><div class="pf" style="width:${p}%;background:var(--royal)"></div></div><div style="font-size:11px;color:var(--gray);margin-top:2px">${p}% من الإجمالي</div></div>`;}).join('')||'<div class="ebox"><div class="es">لا بيانات</div></div>';G('rv-days').innerHTML=Object.entries(byD).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,7).reverse().map(([dt,a])=>{const p=Math.round(a/mx*100);return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:12px;color:var(--gray);width:65px;flex-shrink:0">${dt.slice(5)}</span><div style="flex:1"><div class="pb"><div class="pf" style="width:${p}%;background:#3B82F6"></div></div></div><span style="font-size:12px;font-family:var(--mono);font-weight:600;width:90px;text-align:left">${fR(a)}</span></div>`;}).join('')||'<div class="ebox"><div class="es">لا بيانات</div></div>';}catch(e){toast('خطأ: '+e.message,'e');}}
+async function loadTreasury(){try{const docs=await FD('transactions',orderBy('date','desc'),limit(200));let bal=0,inc=0,exp=0,pAmt=0;const pnd=[],rows=[];docs.forEach(d=>{const x=d.data();if(x.status==='approved'){bal+=x.type==='income'?Number(x.amount||0):-Number(x.amount||0);if(x.type==='income')inc+=Number(x.amount||0);else exp+=Number(x.amount||0);}if(x.status==='pending'){pAmt+=Number(x.amount||0);pnd.push({id:d.id,...x});}rows.push({id:d.id,...x});});G('tn1').textContent=fR(bal);G('tn1').style.color=bal>=0?'var(--navy)':'var(--danger)';G('tn2').textContent=fR(inc);G('tn3').textContent=fR(exp);G('tn4').textContent=fR(pAmt);G('ac').textContent=pnd.length;if(!pnd.length){emp('appr-list','✅','لا توجد طلبات','');}else{G('appr-list').innerHTML=pnd.map(x=>`<div class="ac"><div class="ah">⚠️ ${x.description||x.category||'طلب صرف'}</div><div class="ar"><span class="ak">المبلغ</span><span class="av">${fR(x.amount)}</span></div><div class="ar"><span class="ak">التاريخ</span><span class="av">${x.date||'—'}</span></div><div class="ar"><span class="ak">الفئة</span><span class="av">${x.category||'—'}</span></div><div class="ar"><span class="ak">القناة</span><span class="av">${x.channel||'—'}</span></div><div class="ab"><button class="btn bs bsm" onclick="appTx('${x.id}')">✓ اعتماد الصرف</button><button class="btn bd bsm" onclick="rejTx('${x.id}')">✗ رفض</button></div></div>`).join('');}G('txb').innerHTML=rows.slice(0,20).map(x=>{const isI=x.type==='income';return`<tr><td>${x.date||'—'}</td><td>${x.description||x.category||'—'}</td><td><span class="badge ${isI?'bn':'br'}">${isI?'وارد':'صادر'}</span></td><td style="font-family:var(--mono);font-weight:600;color:${isI?'var(--success)':'var(--danger)'}">${isI?'+':'-'}${fR(x.amount)}</td><td>${sbBadge(x.status)}</td></tr>`;}).join('')||'<tr><td colspan="5"><div class="ebox"><div class="es">لا توجد حركات</div></div></td></tr>';}catch(e){toast('خطأ: '+e.message,'e');}}
+window.appTx=async function(id){try{await updateDoc(doc(db,'transactions',id),{status:'approved',approvedAt:serverTimestamp()});toast('تم اعتماد الصرف ✓');loadTreasury();loadDashboard();}catch(e){toast('خطأ: '+e.message,'e');}};
+window.rejTx=async function(id){try{await updateDoc(doc(db,'transactions',id),{status:'rejected',rejectedAt:serverTimestamp()});toast('تم رفض الطلب','e');loadTreasury();loadDashboard();}catch(e){toast('خطأ: '+e.message,'e');}};
+window.saveIncome=async function(){const ds=V('i-ds'),a=N('i-a');if(!ds||!a)return toast('أدخل البيان والمبلغ','e');try{await addDoc(collection(db,'transactions'),{type:'income',status:'approved',date:V('i-d')||td(),amount:a,description:ds,channel:V('i-ch'),notes:V('i-n'),createdAt:serverTimestamp()});closeModal('income');toast('تم إضافة الإيراد');loadTreasury();loadDashboard();}catch(e){toast('خطأ: '+e.message,'e');}};
+window.saveExpense=async function(){const ds=V('e-ds'),a=N('e-a');if(!ds||!a)return toast('أدخل البيان والمبلغ','e');try{await addDoc(collection(db,'transactions'),{type:'expense',status:'pending',date:V('e-d')||td(),amount:a,description:ds,category:V('e-c'),channel:V('e-ch'),notes:V('e-n'),createdAt:serverTimestamp()});closeModal('expense');toast('تم إرسال الطلب للاعتماد','i');loadTreasury();loadDashboard();}catch(e){toast('خطأ: '+e.message,'e');}};
+async function loadDaily(){ld('daily-c');try{const date=V('dd')||td();const docs=await FD('transactions',orderBy('date','desc'),limit(300));const dD=docs.filter(d=>d.data().date===date&&d.data().status==='approved');let bI=0,bO=0,cI=0,cO=0;const rows=dD.map(d=>{const x=d.data(),isI=x.type==='income';if(x.channel==='بنك'){isI?bI+=Number(x.amount||0):bO+=Number(x.amount||0);}else{isI?cI+=Number(x.amount||0):cO+=Number(x.amount||0);}return`<tr><td>${x.channel==='بنك'?'🏦 بنك':'💵 نقدي'}</td><td>${x.description||x.category||'—'}</td><td><span class="badge ${isI?'bn':'br'}">${isI?'وارد':'صادر'}</span></td><td style="font-family:var(--mono);font-weight:600;color:${isI?'var(--success)':'var(--danger)'}">${isI?'+':'-'}${fR(x.amount)}</td></tr>`;});G('daily-c').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px"><div class="card"><div class="ct"><span class="ctl">🏦 حركة البنك</span></div><div class="vb"><div class="vr"><span>وارد البنك</span><span style="color:var(--success)">${fR(bI)}</span></div><div class="vr"><span>صادر البنك</span><span style="color:var(--danger)">${fR(bO)}</span></div><div class="vr"><span>صافي البنك</span><span style="color:var(--royal)">${fR(bI-bO)}</span></div></div></div><div class="card"><div class="ct"><span class="ctl">💵 الصندوق النقدي</span></div><div class="vb"><div class="vr"><span>وارد نقدي</span><span style="color:var(--success)">${fR(cI)}</span></div><div class="vr"><span>صادر نقدي</span><span style="color:var(--danger)">${fR(cO)}</span></div><div class="vr"><span>رصيد الصندوق</span><span style="color:var(--royal)">${fR(cI-cO)}</span></div></div></div></div><div class="card" style="margin-bottom:16px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div style="background:var(--light);border-radius:10px;padding:16px"><div style="font-size:12px;color:var(--gray);margin-bottom:4px">إجمالي الموجودات</div><div style="font-size:26px;font-weight:700;font-family:var(--mono)">${fR(bI+cI-bO-cO)}</div></div><div style="background:#D1FAE5;border-radius:10px;padding:16px"><div style="font-size:12px;color:#065F46;margin-bottom:4px">صافي اليوم</div><div style="font-size:26px;font-weight:700;font-family:var(--mono);color:var(--success)">${fR(bI+cI-bO-cO)}</div></div></div></div><div class="card"><div class="ct"><span class="ctl">📋 تفاصيل الحركات</span></div><div class="tw"><table><thead><tr><th>القناة</th><th>البيان</th><th>النوع</th><th>المبلغ</th></tr></thead><tbody>${rows.join('')||'<tr><td colspan="4"><div class="ebox"><div class="es">لا توجد حركات لهذا اليوم</div></div></td></tr>'}</tbody></table></div></div>`;}catch(e){G('daily-c').innerHTML='<div class="ebox"><div class="es">خطأ في التحميل</div></div>';toast('خطأ: '+e.message,'e');}}
+let aEmpId=null;
+async function loadCustody(){ld('cub');try{const[eD,nD]=await Promise.all([FD('employees'),FD('custodyEntries')]);const ents={};nD.forEach(d=>{const x=d.data();if(!ents[x.employeeId])ents[x.employeeId]=[];ents[x.employeeId].push({id:d.id,...x});});G('ce-e').innerHTML=eD.map(d=>`<option value="${d.id}">${d.data().name||'—'}</option>`).join('');let tB=0,tS=0,tV=0;const rows=eD.map(d=>{const e=d.data(),eid=d.id;const en=ents[eid]||[];const sp=en.reduce((s,x)=>s+Number(x.totalAmount||0),0);const vt=en.reduce((s,x)=>s+Number(x.vatAmount||0),0);const pr=en.reduce((s,x)=>s+Number(x.preVatAmount||0),0);const rm=Number(e.openingBalance||0)-sp;tB+=Number(e.openingBalance||0);tS+=sp;tV+=vt;const rc=rm>500?'var(--success)':rm>0?'var(--warning)':'var(--danger)';return`<tr onclick="selEmp('${eid}','${(e.name||'').replace(/'/g,"")}')" style="cursor:pointer"><td><div style="display:flex;align-items:center;gap:8px"><div style="width:30px;height:30px;border-radius:50%;background:var(--light);color:var(--royal2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${(e.name||'؟').slice(0,2)}</div><span style="font-weight:600">${e.name||'—'}</span></div></td><td><span class="badge bg">${e.role||'—'}</span></td><td>${e.car?`<span class="badge bb">${e.car}</span>`:'—'}</td><td style="font-family:var(--mono)">${fR(e.openingBalance)}</td><td style="font-family:var(--mono);color:var(--danger)">${fR(sp)}</td><td style="font-family:var(--mono);color:var(--warning);font-size:12px">${fR(vt)}</td><td style="font-family:var(--mono);font-size:12px;color:var(--gray)">${fR(pr)}</td><td style="font-family:var(--mono);font-weight:700;color:${rc}">${fR(rm)}</td><td><span class="badge ${rm>0?'bn':'br'}">${rm>0?'نشطة':'منتهية'}</span></td><td><button class="btn bsm" onclick="event.stopPropagation();selEmp('${eid}','${(e.name||'').replace(/'/g,'')}')">تفاصيل</button></td></tr>`;});G('cu1').textContent=fR(tB);G('cu2').textContent=fR(tS);G('cu3').textContent=fR(tV);G('cu4').textContent=fR(tB-tS);G('cub').innerHTML=rows.join('')||'<tr><td colspan="10"><div class="ebox"><div class="ei">👛</div><div class="et">لا يوجد موظفون</div><div class="es">أضف موظفاً أولاً</div></div></td></tr>';}catch(e){toast('خطأ: '+e.message,'e');}}
+window.selEmp=async function(eid,name){aEmpId=eid;G('cudn').textContent='تفاصيل عهدة — '+name;G('cud').style.display='block';G('cue').innerHTML='<tr><td colspan="8"><div class="lbox"><div class="spin"></div></div></td></tr>';try{const docs=await FD('custodyEntries');const f=docs.filter(d=>d.data().employeeId===eid).sort((a,b)=>(b.data().date||'').localeCompare(a.data().date||''));G('cue').innerHTML=f.map(d=>{const x=d.data();return`<tr><td>${x.date||'—'}</td><td>${x.car?`<span class="badge bg">${x.car}</span>`:'—'}</td><td style="font-weight:600">${x.item||'—'}</td><td style="font-size:12px;color:var(--gray)">${x.description||'—'}</td><td><span class="badge ${x.vatType==='inc'?'bo':'bn'}">${x.vatType==='inc'?'شامل':'خارج'}</span></td><td style="font-family:var(--mono);font-size:12px">${fmt(x.preVatAmount,2)}</td><td style="font-family:var(--mono);font-size:12px;color:var(--warning)">${fmt(x.vatAmount,2)}</td><td style="font-family:var(--mono);font-weight:600;color:var(--danger)">${fR(x.totalAmount)}</td></tr>`;}).join('')||'<tr><td colspan="8"><div class="ebox"><div class="es">لا توجد قيود</div></div></td></tr>';}catch(e){toast('خطأ: '+e.message,'e');}};
+window.saveEmployee=async function(){const n=V('em-n');if(!n)return toast('أدخل اسم الموظف','e');try{await addDoc(collection(db,'employees'),{name:n,role:V('em-r'),car:V('em-c'),startDate:V('em-d')||td(),openingBalance:N('em-b'),notes:V('em-nt'),createdAt:serverTimestamp()});closeModal('employee');toast('تم إضافة الموظف');loadCustody();}catch(e){toast('خطأ: '+e.message,'e');}};
+window.saveCE=async function(){const eid=V('ce-e'),ds=V('ce-ds'),a=N('ce-a');if(!eid||!ds||!a)return toast('أدخل جميع البيانات','e');const vt=V('ce-vt');const{p,v,tt}=calcV(a,vt);try{await addDoc(collection(db,'custodyEntries'),{employeeId:eid,car:V('ce-c'),date:V('ce-d')||td(),item:V('ce-i'),description:ds,vatType:vt,preVatAmount:p,vatAmount:v,totalAmount:tt,createdAt:serverTimestamp()});closeModal('custodyEntry');toast('تم حفظ القيد');loadCustody();if(aEmpId)selEmp(aEmpId,'');}catch(e){toast('خطأ: '+e.message,'e');}};
+let aClaimId=null;
+async function loadClaims(){ld('clb');try{const docs=await FD('claims');docs.sort((a,b)=>(b.data().incidentDate||'').localeCompare(a.data().incidentDate||''));let tot=0,act=0,tA=0,col=0;const rows=docs.map(d=>{const x=d.data();tot++;tA+=Number(x.estimateAmount||0);if(x.collectedAmount)col+=Number(x.collectedAmount);const st=Number(x.stage||0);if(st<4)act++;const days=x.submissionDate?Math.round((Date.now()-new Date(x.submissionDate))/86400000):'—';const dc=typeof days==='number'?(days>90?'var(--danger)':days>45?'var(--warning)':'var(--gray)'):'var(--gray)';return`<tr onclick="selClaim('${d.id}','${(x.plateNumber||'').replace(/'/g,'')}','${(x.company||'').replace(/'/g,'')}')" style="cursor:pointer"><td style="font-weight:700">${x.plateNumber||'—'}</td><td>${x.incidentDate||'—'}</td><td style="font-size:11px;color:var(--gray)">${x.daNumber||'—'}</td><td style="font-size:11px;color:var(--royal)">${x.rdNumber||'—'}</td><td>${x.company||'—'}</td><td style="font-family:var(--mono)">${fR(x.estimateAmount)}</td><td><span class="badge ${Number(x.faultPercent)===100?'bn':'bo'}">${x.faultPercent||'—'}%</span></td><td style="font-family:var(--mono)">${fR(x.transferredAmount)}</td><td style="font-family:var(--mono);color:${dc}">${days}</td><td>${stgBadge(st)}</td><td><button class="btn bp2 bsm" onclick="event.stopPropagation();openFU('${d.id}')">متابعة</button></td></tr>`;});G('cl1').textContent=tot;G('cl2').textContent=act;G('cl3').textContent=fR(tA);G('cl4').textContent=fR(col);G('clb').innerHTML=rows.join('')||'<tr><td colspan="11"><div class="ebox"><div class="ei">🛡️</div><div class="et">لا توجد مطالبات</div></div></td></tr>';}catch(e){toast('خطأ: '+e.message,'e');}}
+window.saveClaim=async function(){if(!V('cl-p'))return toast('أدخل رقم اللوحة','e');try{await addDoc(collection(db,'claims'),{plateNumber:V('cl-p'),incidentDate:V('cl-d')||td(),location:V('cl-l'),damage:V('cl-dm'),daNumber:V('cl-da'),company:V('cl-co'),estimateAmount:N('cl-e'),faultPercent:N('cl-f'),transferredAmount:N('cl-tr'),preTaxAmount:N('cl-pt'),rdNumber:V('cl-rd'),internalNumber:V('cl-in'),submissionDate:V('cl-sd')||td(),stage:V('cl-rd')?2:1,createdAt:serverTimestamp()});closeModal('claim');toast('تم حفظ المطالبة');loadClaims();}catch(e){toast('خطأ: '+e.message,'e');}};
+window.openFU=function(id){aClaimId=id;openModal('followup');};
+window.selClaim=async function(id,plate,company){aClaimId=id;G('fut').textContent=`سجل متابعة — ${plate} (${company})`;G('fuc').style.display='block';G('futl').innerHTML='<div class="lbox"><div class="spin"></div></div>';try{const docs=await FD('followups');const f=docs.filter(d=>d.data().claimId===id).sort((a,b)=>(b.data().date||'').localeCompare(a.data().date||''));const sc={'تم تحويل المبلغ':'#059669','طلب مستندات':'#D97706','رُفضت المطالبة':'#DC2626','قيد المراجعة':'#3B82F6','اعتماد مالي':'#7C3AED','لا يوجد رد':'#9CA3AF'};G('futl').innerHTML=f.map(d=>{const x=d.data();return`<div class="tl"><div class="tll"><div class="tld" style="background:${sc[x.result]||'#9CA3AF'}"></div><div class="tlc"></div></div><div class="tlb"><div style="font-size:13px;font-weight:600">${x.result||'—'} <span style="font-size:11px;color:var(--gray);font-weight:400">— ${x.method||''}</span></div><div style="font-size:12px;color:var(--gray);margin-top:2px;line-height:1.6">${x.notes||'—'}${x.contactPerson?'<br>مع: '+x.contactPerson:''}</div><div style="font-size:11px;color:var(--gray2);margin-top:3px">${x.date||'—'}${x.nextAction?' | التالي: '+x.nextAction:''}</div>${x.collectedAmount?`<div style="margin-top:6px"><span class="badge bn">تم التحصيل: ${fR(x.collectedAmount)}</span></div>`:''}</div></div>`;}).join('')||'<div class="ebox"><div class="ei">📞</div><div class="es">لا توجد متابعات</div></div>';}catch(e){toast('خطأ: '+e.message,'e');}};
+window.saveFU=async function(){if(!aClaimId)return toast('حدد مطالبة أولاً','e');const col=N('fu-col');try{await addDoc(collection(db,'followups'),{claimId:aClaimId,date:V('fu-d')||td(),method:V('fu-m'),contactPerson:V('fu-c'),result:V('fu-r'),notes:V('fu-n'),nextAction:V('fu-nx'),collectedAmount:col,collectDate:V('fu-cd'),createdAt:serverTimestamp()});if(col>0)await updateDoc(doc(db,'claims',aClaimId),{stage:4,collectedAmount:col});closeModal('followup');toast('تم حفظ المتابعة');loadClaims();selClaim(aClaimId,'','');}catch(e){toast('خطأ: '+e.message,'e');}};
+window.delD=async function(col,id,reload){if(!confirm('هل تريد حذف هذا السجل؟'))return;try{await deleteDoc(doc(db,col,id));toast('تم الحذف');if(reload)reload();}catch(e){toast('خطأ: '+e.message,'e');}};
+onSnapshot(collection(db,'transactions'),snap=>{try{const p=(snap.docs||[]).filter(d=>d.data().status==='pending').length;G('pbadge').textContent=p;G('pbadge').style.display=p>0?'':'none';}catch(e){console.warn('onSnapshot err',e);}},err=>{console.warn('onSnapshot denied',err.message);});
+// Check Firebase connection
+async function checkFirebaseConnection(){
+  try{
+    await getDocs(collection(db,'_ping_test_'));
+    // success - hide banner
+    const b=document.getElementById('setup-banner');
+    if(b)b.style.display='none';
+    sync(true);
+    loadDashboard();
+  }catch(e){
+    if(e.code==='permission-denied'||e.message.includes('permission')){
+      sync(false);
+      document.getElementById('setup-banner').style.display='flex';
+    }else{
+      sync(true);
+      loadDashboard();
     }
-
-  } catch(e) {
-    console.error(e);
-    setSync(false);
-    showToast('خطأ في تحميل البيانات: ' + e.message, 'error');
   }
 }
-
-// ── TRIPS ──
-window.loadTrips = async function() {
-  const mon = document.getElementById('tripsMonth').value || thisMonth();
-  const [s, e] = [mon+'-01', mon+'-31'];
-  try {
-    const snap = await getDocs(query(collection(db,'trips'), orderBy('date','desc'), limit(200)));
-    let count=0, rev=0, meals=0, rows='';
-    snap.forEach(d => {
-      const x = d.data(); count++; rev += Number(x.amount||0); meals += Number(x.meals||0);
-      rows += `<tr>
-        <td>${x.date||'—'}</td>
-        <td><span class="badge b-gray">${x.car||'—'}</span></td>
-        <td>${x.driver||'—'}</td>
-        <td>${x.destination||'—'}</td>
-        <td>${x.timeOut||'—'}</td>
-        <td>${x.timeIn||'—'}</td>
-        <td>${fmt(x.meals)}</td>
-        <td style="font-family:var(--mono);font-weight:600">${fmtR(x.amount)}</td>
-        <td><span class="badge ${x.status==='مكتملة'?'b-green':x.status==='جارية'?'b-gold':'b-blue'}">${x.status||'—'}</span></td>
-        <td><button class="btn btn-sm btn-danger" onclick="deleteDoc2('trips','${d.id}', loadTrips)">حذف</button></td>
-      </tr>`;
-    });
-    document.getElementById('trips-count').textContent = count;
-    document.getElementById('trips-revenue').textContent = fmtR(rev);
-    document.getElementById('trips-avg').textContent = fmtR(count ? rev/count : 0);
-    document.getElementById('trips-meals').textContent = fmt(meals);
-    document.getElementById('trips-table').innerHTML = rows || '<tr><td colspan="10"><div class="empty"><div class="empty-icon">🚛</div><div class="empty-title">لا توجد رحلات</div><div class="empty-sub">أضف رحلتك الأولى بالضغط على "تسجيل رحلة"</div></div></td></tr>';
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-window.saveTrip = async function() {
-  const data = {
-    date: document.getElementById('t-date').value || today(),
-    car: document.getElementById('t-car').value,
-    driver: document.getElementById('t-driver').value,
-    destination: document.getElementById('t-dest').value,
-    timeOut: document.getElementById('t-out').value,
-    timeIn: document.getElementById('t-in').value,
-    meals: Number(document.getElementById('t-meals').value)||0,
-    amount: Number(document.getElementById('t-amount').value)||0,
-    status: document.getElementById('t-status').value,
-    notes: document.getElementById('t-notes').value,
-    createdAt: serverTimestamp()
-  };
-  if(!data.destination || !data.amount){ showToast('أدخل الوجهة والمبلغ','error'); return; }
-  try {
-    await addDoc(collection(db,'trips'), data);
-    // auto-add income transaction
-    await addDoc(collection(db,'transactions'), {
-      date: data.date, type:'income', status:'approved',
-      description: `إيراد رحلة — ${data.car} — ${data.destination}`,
-      amount: data.amount, channel:'نقدي', createdAt: serverTimestamp()
-    });
-    closeModal('trip');
-    showToast('تم حفظ الرحلة وإضافة الإيراد');
-    addNotif('🚛', 'رحلة جديدة', `${data.car} — ${data.destination} — ${fmtR(data.amount)}`, '#DBEAFE');
-    loadTrips(); loadDashboard();
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-// ── REVENUE ──
-window.loadRevenue = async function() {
-  const mon = document.getElementById('revMonth').value || thisMonth();
-  try {
-    const allR = await getDocs(query(collection(db,'trips'), orderBy('date','desc'), limit(300)));
-    const snap = { docs: allR.docs.filter(d => { const dt = d.data().date||''; return dt >= mon+'-01' && dt <= mon+'-31'; }) };
-    let total=0, count=0, byDay={}, byCar={}, maxDay=0;
-    snap.forEach(d => {
-      const x = d.data(); total += Number(x.amount||0); count++;
-      byDay[x.date] = (byDay[x.date]||0) + Number(x.amount||0);
-      byCar[x.car] = (byCar[x.car]||{trips:0,amount:0});
-      byCar[x.car].trips++; byCar[x.car].amount += Number(x.amount||0);
-    });
-    maxDay = Math.max(...Object.values(byDay),0);
-    document.getElementById('rev-total').textContent = fmtR(total);
-    document.getElementById('rev-daily').textContent = fmtR(count ? total/Object.keys(byDay).length : 0);
-    document.getElementById('rev-max').textContent = fmtR(maxDay);
-    document.getElementById('rev-count').textContent = count;
-
-    // by car
-    let carHtml = '';
-    Object.entries(byCar).sort((a,b)=>b[1].amount-a[1].amount).forEach(([car,v]) => {
-      const pct = total ? Math.round(v.amount/total*100) : 0;
-      carHtml += `<div style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-          <span style="font-weight:600">${car}</span>
-          <span style="font-family:var(--mono)">${fmtR(v.amount)} <span style="color:var(--gray);font-size:11px">(${v.trips} رحلة)</span></span>
-        </div>
-        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:var(--royal)"></div></div>
-        <div style="font-size:11px;color:var(--gray);margin-top:2px">${pct}% من الإجمالي</div>
-      </div>`;
-    });
-    document.getElementById('rev-by-car').innerHTML = carHtml || '<div class="empty"><div class="empty-sub">لا بيانات</div></div>';
-
-    // by day (last 7)
-    const days7 = Object.entries(byDay).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,7).reverse();
-    let dayHtml = '';
-    days7.forEach(([date,amt]) => {
-      const pct = maxDay ? Math.round(amt/maxDay*100) : 0;
-      dayHtml += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-size:12px;color:var(--gray);width:80px;flex-shrink:0">${date.slice(5)}</span>
-        <div style="flex:1"><div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:var(--sky)"></div></div></div>
-        <span style="font-size:12px;font-family:var(--mono);font-weight:600;width:80px;text-align:left">${fmtR(amt)}</span>
-      </div>`;
-    });
-    document.getElementById('rev-by-day').innerHTML = dayHtml || '<div class="empty"><div class="empty-sub">لا بيانات</div></div>';
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-// ── TREASURY ──
-window.loadTreasury = async function() {
-  try {
-    const snap = await getDocs(collection(db,'transactions'));
-    snap.docs.sort((a,b)=>(b.data().date||'').localeCompare(a.data().date||''));
-    let balance=0, income=0, expense=0, pending=0, rows='', apprHtml='';
-    snap.forEach(d => {
-      const x = d.data();
-      if(x.status === 'pending') {
-        pending += Number(x.amount||0);
-        apprHtml += `<div class="appr-card"><div class="appr-hdr">⚠️ ${x.description||x.category}</div>
-          <div class="appr-row"><span class="appr-key">المبلغ</span><span class="appr-val">${fmtR(x.amount)}</span></div>
-          <div class="appr-row"><span class="appr-key">التاريخ</span><span class="appr-val">${x.date||'—'}</span></div>
-          <div class="appr-row"><span class="appr-key">القناة</span><span class="appr-val">${x.channel||'—'}</span></div>
-          <div class="appr-btns">
-            <button class="btn btn-success btn-sm" onclick="approveTransaction('${d.id}')">✓ اعتماد الصرف</button>
-            <button class="btn btn-danger btn-sm" onclick="rejectTransaction('${d.id}')">✗ رفض</button>
-          </div></div>`;
-      }
-      if(x.type === 'income' && x.status === 'approved') { balance += Number(x.amount||0); income += Number(x.amount||0); }
-      if(x.type === 'expense' && x.status === 'approved') { balance -= Number(x.amount||0); expense += Number(x.amount||0); }
-      const isIn = x.type === 'income';
-      rows += `<tr>
-        <td>${x.date||'—'}</td>
-        <td>${x.description||x.category||'—'}</td>
-        <td><span class="badge ${isIn?'b-green':'b-red'}">${isIn?'وارد':'صادر'}</span></td>
-        <td style="font-family:var(--mono);font-weight:600;color:${isIn?'var(--success)':'var(--danger)'}">${isIn?'+':'-'}${fmtR(x.amount)}</td>
-        <td style="font-family:var(--mono)">—</td>
-        <td><span class="badge ${x.status==='approved'?'b-green':x.status==='pending'?'b-gold':'b-red'}">${x.status==='approved'?'معتمد':x.status==='pending'?'معلق':'مرفوض'}</span></td>
-      </tr>`;
-    });
-    document.getElementById('tr-balance').textContent = fmtR(balance);
-    document.getElementById('tr-income').textContent = fmtR(income);
-    document.getElementById('tr-expense').textContent = fmtR(expense);
-    document.getElementById('tr-pending').textContent = fmtR(pending);
-    document.getElementById('pending-badge').textContent = snap.docs.filter(d=>d.data().status==='pending').length;
-    document.getElementById('approvals-list').innerHTML = apprHtml || '<div class="empty" style="padding:24px"><div class="empty-icon">✅</div><div class="empty-sub">لا توجد طلبات معلقة</div></div>';
-    document.getElementById('treasury-table').innerHTML = rows || '<tr><td colspan="6"><div class="empty"><div class="empty-sub">لا توجد حركات</div></div></td></tr>';
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-window.approveTransaction = async function(id) {
-  try {
-    await updateDoc(doc(db,'transactions',id), {status:'approved', approvedAt: serverTimestamp()});
-    showToast('تم اعتماد الصرف ✓');
-    addNotif('✅','تم اعتماد صرف','تمت الموافقة على طلب الصرف','#D1FAE5');
-    loadTreasury(); loadDashboard();
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-window.rejectTransaction = async function(id) {
-  try {
-    await updateDoc(doc(db,'transactions',id), {status:'rejected', rejectedAt: serverTimestamp()});
-    showToast('تم رفض الطلب', 'error');
-    addNotif('✗','تم رفض طلب صرف','رُفض طلب الصرف من المدير','#FEE2E2');
-    loadTreasury(); loadDashboard();
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-window.saveIncome = async function() {
-  const data = {
-    type:'income', status:'approved',
-    date: document.getElementById('i-date').value || today(),
-    amount: Number(document.getElementById('i-amount').value)||0,
-    description: document.getElementById('i-desc').value,
-    channel: document.getElementById('i-channel').value,
-    notes: document.getElementById('i-notes').value,
-    createdAt: serverTimestamp()
-  };
-  if(!data.description || !data.amount){ showToast('أدخل البيان والمبلغ','error'); return; }
-  try {
-    await addDoc(collection(db,'transactions'), data);
-    closeModal('income'); showToast('تم إضافة الإيراد للخزينة');
-    addNotif('📥','وارد جديد',`${data.description} — ${fmtR(data.amount)}`,'#D1FAE5');
-    loadTreasury(); loadDashboard();
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-window.saveExpense = async function() {
-  const data = {
-    type:'expense', status:'pending',
-    date: document.getElementById('e-date').value || today(),
-    amount: Number(document.getElementById('e-amount').value)||0,
-    description: document.getElementById('e-desc').value,
-    category: document.getElementById('e-cat').value,
-    channel: document.getElementById('e-channel').value,
-    notes: document.getElementById('e-notes').value,
-    createdAt: serverTimestamp()
-  };
-  if(!data.description || !data.amount){ showToast('أدخل البيان والمبلغ','error'); return; }
-  try {
-    await addDoc(collection(db,'transactions'), data);
-    closeModal('expense'); showToast('تم إرسال الطلب للاعتماد — بانتظار موافقة المدير', 'info');
-    addNotif('⚠️','طلب صرف جديد',`${data.description} — ${fmtR(data.amount)} — يحتاج اعتمادك`,'#FEF3C7');
-    loadTreasury(); loadDashboard();
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-// ── DAILY REPORT ──
-window.loadDaily = async function() {
-  const date = document.getElementById('dailyDate').value || today();
-  document.getElementById('daily-content').innerHTML = '<div class="loading"><div class="spinner"></div> جاري التحميل...</div>';
-  try {
-    const allTx = await getDocs(collection(db,'transactions'));
-    const snap = { docs: allTx.docs.filter(d=>d.data().date===date) };
-    let bankIn=0,bankOut=0,cashIn=0,cashOut=0,rows='';
-    snap.forEach(d => {
-      const x = d.data();
-      const isIn = x.type === 'income';
-      const isApproved = x.status === 'approved';
-      if(!isApproved) return;
-      if(x.channel === 'بنك') { isIn ? bankIn+=Number(x.amount) : bankOut+=Number(x.amount); }
-      else { isIn ? cashIn+=Number(x.amount) : cashOut+=Number(x.amount); }
-      rows += `<tr>
-        <td>${x.channel==='بنك'?'🏦 بنك':'💵 نقدي'}</td>
-        <td>${x.description||x.category||'—'}</td>
-        <td><span class="badge ${isIn?'b-green':'b-red'}">${isIn?'وارد':'صادر'}</span></td>
-        <td style="font-family:var(--mono);font-weight:600;color:${isIn?'var(--success)':'var(--danger)'}">${isIn?'+':'-'}${fmtR(x.amount)}</td>
-      </tr>`;
-    });
-    const bankEnd = bankIn - bankOut;
-    const cashEnd = cashIn - cashOut;
-    document.getElementById('daily-content').innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-        <div class="card">
-          <div class="card-title"><span class="card-title-l">🏦 حركة البنك</span></div>
-          <div class="vat-calc">
-            <div class="vat-row"><span>وارد البنك</span><span style="color:var(--success);font-family:var(--mono)">+${fmtR(bankIn)}</span></div>
-            <div class="vat-row"><span>صادر البنك</span><span style="color:var(--danger);font-family:var(--mono)">-${fmtR(bankOut)}</span></div>
-            <div class="vat-row"><span>صافي حركة البنك</span><span style="color:var(--royal);font-family:var(--mono)">${fmtR(bankEnd)}</span></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title"><span class="card-title-l">💵 الصندوق النقدي</span></div>
-          <div class="vat-calc">
-            <div class="vat-row"><span>وارد نقدي</span><span style="color:var(--success);font-family:var(--mono)">+${fmtR(cashIn)}</span></div>
-            <div class="vat-row"><span>صادر نقدي</span><span style="color:var(--danger);font-family:var(--mono)">-${fmtR(cashOut)}</span></div>
-            <div class="vat-row"><span>رصيد الصندوق</span><span style="color:var(--royal);font-family:var(--mono)">${fmtR(cashEnd)}</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="card" style="margin-bottom:16px">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div style="background:var(--light);border-radius:10px;padding:16px">
-            <div style="font-size:12px;color:var(--gray);margin-bottom:4px">إجمالي الموجودات (بنك + صندوق)</div>
-            <div style="font-size:26px;font-weight:700;font-family:var(--mono);color:var(--navy)">${fmtR(bankEnd + cashEnd)}</div>
-          </div>
-          <div style="background:#D1FAE5;border-radius:10px;padding:16px">
-            <div style="font-size:12px;color:#065F46;margin-bottom:4px">صافي حركة اليوم</div>
-            <div style="font-size:26px;font-weight:700;font-family:var(--mono);color:var(--success)">${fmtR(bankIn+cashIn-bankOut-cashOut)}</div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span class="card-title-l">📋 تفاصيل الحركات</span></div>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>القناة</th><th>البيان</th><th>النوع</th><th>المبلغ</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="4"><div class="empty"><div class="empty-sub">لا توجد حركات لهذا اليوم</div></div></td></tr>'}</tbody>
-        </table></div>
-      </div>`;
-  } catch(err){ showToast('خطأ: '+err.message,'error'); document.getElementById('daily-content').innerHTML='<div class="empty"><div class="empty-sub">خطأ في التحميل</div></div>'; }
-};
-
-window.printDaily = function() { window.print(); };
-
-// ── CUSTODY ──
-let selectedEmployee = null;
-window.loadCustody = async function() {
-  try {
-    const [empSnap, entSnap] = await Promise.all([
-      getDocs(collection(db,'employees')),
-      getDocs(collection(db,'custodyEntries'))
-    ]);
-    const entries = {};
-    entSnap.forEach(d => {
-      const x = d.data();
-      if(!entries[x.employeeId]) entries[x.employeeId] = [];
-      entries[x.employeeId].push({id:d.id,...x});
-    });
-    let totalBalance=0, totalSpent=0, totalVat=0, rows='';
-    const empList = [];
-    empSnap.forEach(d => {
-      const e = d.data(); const eid = d.id;
-      empList.push({id:eid,...e});
-      const ents = entries[eid]||[];
-      const spent = ents.reduce((s,x)=>s+Number(x.totalAmount||0),0);
-      const vat = ents.reduce((s,x)=>s+Number(x.vatAmount||0),0);
-      const pre = ents.reduce((s,x)=>s+Number(x.preVatAmount||0),0);
-      const rem = Number(e.openingBalance||0) - spent;
-      totalBalance += Number(e.openingBalance||0); totalSpent += spent; totalVat += vat;
-      const pct = e.openingBalance ? Math.round(spent/e.openingBalance*100) : 0;
-      const color = pct > 80 ? 'var(--danger)' : pct > 50 ? 'var(--warning)' : 'var(--success)';
-      rows += `<tr onclick="selectEmployee('${eid}','${e.name||''}')" style="cursor:pointer">
-        <td><div style="display:flex;align-items:center;gap:8px"><div style="width:30px;height:30px;border-radius:50%;background:var(--light);color:var(--royal2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${(e.name||'؟').slice(0,2)}</div><span style="font-weight:600">${e.name||'—'}</span></div></td>
-        <td><span class="badge b-gray">${e.role||'—'}</span></td>
-        <td>${e.car ? `<span class="badge b-blue">${e.car}</span>` : '<span style="color:var(--gray2)">—</span>'}</td>
-        <td style="font-family:var(--mono)">${fmtR(e.openingBalance)}</td>
-        <td style="font-family:var(--mono);color:var(--danger)">${fmtR(spent)}</td>
-        <td style="font-family:var(--mono);color:var(--warning);font-size:12px">${fmtR(vat)}</td>
-        <td style="font-family:var(--mono);font-size:12px;color:var(--gray)">${fmtR(pre)}</td>
-        <td style="font-family:var(--mono);font-weight:700;color:${color}">${fmtR(rem)}</td>
-        <td><span class="badge ${rem > 0 ? 'b-green' : 'b-red'}">${rem > 0 ? 'نشطة' : 'منتهية'}</span></td>
-        <td><button class="btn btn-sm" onclick="event.stopPropagation();selectEmployee('${eid}','${e.name||''}')">تفاصيل</button></td>
-      </tr>`;
-    });
-    document.getElementById('cus-total').textContent = fmtR(totalBalance);
-    document.getElementById('cus-spent').textContent = fmtR(totalSpent);
-    document.getElementById('cus-vat').textContent = fmtR(totalVat);
-    document.getElementById('cus-rem').textContent = fmtR(totalBalance-totalSpent);
-    document.getElementById('custody-table').innerHTML = rows || '<tr><td colspan="10"><div class="empty"><div class="empty-icon">👛</div><div class="empty-title">لا يوجد موظفون</div><div class="empty-sub">أضف موظفاً أولاً</div></div></td></tr>';
-
-    // populate employee select in modal
-    const sel = document.getElementById('ce-emp');
-    sel.innerHTML = empList.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-window.selectEmployee = async function(eid, name) {
-  selectedEmployee = eid;
-  document.getElementById('cus-det-name').textContent = 'تفاصيل عهدة — ' + name;
-  document.getElementById('custody-detail').style.display = 'block';
-  const snap = await getDocs(query(collection(db,'custodyEntries'), where('employeeId','==',eid), orderBy('date','desc')));
-  let rows = '';
-  snap.forEach(d => {
-    const x = d.data();
-    rows += `<tr>
-      <td>${x.date||'—'}</td>
-      <td>${x.car ? `<span class="badge b-gray">${x.car}</span>` : '—'}</td>
-      <td style="font-weight:600">${x.item||'—'}</td>
-      <td style="font-size:12px;color:var(--gray)">${x.description||'—'}</td>
-      <td><span class="badge ${x.vatType==='inc'?'b-gold':'b-green'}">${x.vatType==='inc'?'شامل':'خارج'}</span></td>
-      <td style="font-family:var(--mono);font-size:12px">${fmtR(x.preVatAmount,2)}</td>
-      <td style="font-family:var(--mono);font-size:12px;color:var(--warning)">${fmtR(x.vatAmount,2)}</td>
-      <td style="font-family:var(--mono);font-weight:600;color:var(--danger)">${fmtR(x.totalAmount)}</td>
-      <td>${x.hasDoc?'<span class="badge b-blue">مرفق</span>':'—'}</td>
-    </tr>`;
-  });
-  document.getElementById('cus-entries-table').innerHTML = rows || '<tr><td colspan="9"><div class="empty"><div class="empty-sub">لا توجد قيود</div></div></td></tr>';
-};
-
-window.saveEmployee = async function() {
-  const data = {
-    name: document.getElementById('em-name').value,
-    role: document.getElementById('em-role').value,
-    car: document.getElementById('em-car').value,
-    startDate: document.getElementById('em-date').value || today(),
-    openingBalance: Number(document.getElementById('em-balance').value)||0,
-    notes: document.getElementById('em-notes').value,
-    createdAt: serverTimestamp()
-  };
-  if(!data.name){ showToast('أدخل اسم الموظف','error'); return; }
-  try {
-    await addDoc(collection(db,'employees'), data);
-    closeModal('employee'); showToast('تم إضافة الموظف');
-    addNotif('👤','موظف جديد',`${data.name} — رصيد بداية ${fmtR(data.openingBalance)}`,'#EDE9FE');
-    loadCustody();
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-window.saveCustodyEntry = async function() {
-  const empId = document.getElementById('ce-emp').value;
-  const amt = Number(document.getElementById('ce-amount').value)||0;
-  const vatType = document.getElementById('ce-vat').value;
-  let pre, vat, total;
-  if(vatType==='inc'){ pre=amt/1.15; vat=amt-pre; total=amt; }
-  else { pre=amt; vat=amt*0.15; total=amt+vat; }
-  const data = {
-    employeeId: empId,
-    car: document.getElementById('ce-car').value,
-    date: document.getElementById('ce-date').value || today(),
-    item: document.getElementById('ce-item').value,
-    description: document.getElementById('ce-desc').value,
-    vatType, preVatAmount: pre, vatAmount: vat, totalAmount: total,
-    createdAt: serverTimestamp()
-  };
-  if(!data.description || !amt){ showToast('أدخل التفاصيل والمبلغ','error'); return; }
-  try {
-    await addDoc(collection(db,'custodyEntries'), data);
-    closeModal('custodyEntry'); showToast('تم حفظ القيد');
-    loadCustody();
-    if(selectedEmployee) selectEmployee(selectedEmployee, '');
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-// VAT inline calcs
-window.calcModalVat = function() {
-  const amt = Number(document.getElementById('ce-amount').value)||0;
-  const t = document.getElementById('ce-vat').value;
-  if(!amt){ document.getElementById('ce-vat-result').style.display='none'; return; }
-  let pre, vat, total;
-  if(t==='inc'){ pre=amt/1.15; vat=amt-pre; total=amt; }
-  else { pre=amt; vat=amt*0.15; total=amt+vat; }
-  document.getElementById('ce-pre').textContent = fmtR(pre,2);
-  document.getElementById('ce-vat-amt').textContent = fmtR(vat,2);
-  document.getElementById('ce-total').textContent = fmtR(total,2);
-  document.getElementById('ce-vat-result').style.display = 'block';
-};
-window.calcVatInline = function() {
-  const amt = Number(document.getElementById('vatCalcAmt').value)||0;
-  const t = document.getElementById('vatCalcType').value;
-  if(!amt){ document.getElementById('vatCalcResult').style.display='none'; return; }
-  let pre, vat, total;
-  if(t==='inc'){ pre=amt/1.15; vat=amt-pre; total=amt; }
-  else { pre=amt; vat=amt*0.15; total=amt+vat; }
-  document.getElementById('vc-pre').textContent = fmtR(pre,2);
-  document.getElementById('vc-vat').textContent = fmtR(vat,2);
-  document.getElementById('vc-total').textContent = fmtR(total,2);
-  document.getElementById('vatCalcResult').style.display = 'block';
-};
-
-// ── CLAIMS ──
-let selectedClaim = null;
-window.loadClaims = async function() {
-  try {
-    const snap = await getDocs(collection(db,'claims'));
-    snap.docs.sort((a,b)=>(b.data().incidentDate||'').localeCompare(a.data().incidentDate||''));
-    let total=0, active=0, totalAmt=0, collected=0, rows='';
-    snap.forEach(d => {
-      const x = d.data(); total++;
-      totalAmt += Number(x.estimateAmount||0);
-      if(x.collectedAmount) collected += Number(x.collectedAmount);
-      const stages = ['رفع الحادث','رفع التقدير','تقديم للتأمين','متابعة','تم التحصيل'];
-      const stage = x.stage || 0;
-      if(stage < 4) active++;
-      const days = x.submissionDate ? Math.round((Date.now()-new Date(x.submissionDate))/86400000) : '—';
-      const stageColors = ['b-blue','b-purple','b-gold','b-red','b-green'];
-      rows += `<tr onclick="selectClaim('${d.id}','${x.plateNumber||''}')" style="cursor:pointer">
-        <td style="font-weight:700">${x.plateNumber||'—'}</td>
-        <td>${x.incidentDate||'—'}</td>
-        <td style="font-size:11px;color:var(--gray)">${x.daNumber||'—'}</td>
-        <td style="font-size:11px;color:var(--royal)">${x.rdNumber||'—'}</td>
-        <td>${x.company||'—'}</td>
-        <td style="font-family:var(--mono)">${fmtR(x.estimateAmount)}</td>
-        <td><span class="badge ${Number(x.faultPercent)===100?'b-green':'b-gold'}">${x.faultPercent||'—'}%</span></td>
-        <td style="font-family:var(--mono)">${fmtR(x.transferredAmount)}</td>
-        <td style="font-family:var(--mono);color:${days>90?'var(--danger)':days>45?'var(--warning)':'var(--gray)'}">${days}</td>
-        <td><span class="badge ${stageColors[stage]||'b-gray'}">${stages[stage]||'—'}</span></td>
-        <td><button class="btn btn-sm" onclick="event.stopPropagation();openFollowupFor('${d.id}')">متابعة</button></td>
-      </tr>`;
-    });
-    document.getElementById('cl-total').textContent = total;
-    document.getElementById('cl-active').textContent = active;
-    document.getElementById('cl-amount').textContent = fmtR(totalAmt);
-    document.getElementById('cl-collected').textContent = fmtR(collected);
-    document.getElementById('claims-table').innerHTML = rows || '<tr><td colspan="11"><div class="empty"><div class="empty-icon">🛡️</div><div class="empty-title">لا توجد مطالبات</div></div></td></tr>';
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-window.saveClaim = async function() {
-  const data = {
-    plateNumber: document.getElementById('cl-plate').value,
-    incidentDate: document.getElementById('cl-date').value || today(),
-    location: document.getElementById('cl-location').value,
-    damage: document.getElementById('cl-damage').value,
-    daNumber: document.getElementById('cl-da').value,
-    company: document.getElementById('cl-company').value,
-    estimateAmount: Number(document.getElementById('cl-estimate').value)||0,
-    faultPercent: Number(document.getElementById('cl-fault').value)||100,
-    transferredAmount: Number(document.getElementById('cl-transferred').value)||0,
-    preTaxAmount: Number(document.getElementById('cl-pretax').value)||0,
-    rdNumber: document.getElementById('cl-rd').value,
-    internalNumber: document.getElementById('cl-internal').value,
-    submissionDate: document.getElementById('cl-submit-date').value || today(),
-    stage: document.getElementById('cl-rd').value ? 2 : 1,
-    createdAt: serverTimestamp()
-  };
-  if(!data.plateNumber){ showToast('أدخل رقم اللوحة','error'); return; }
-  try {
-    await addDoc(collection(db,'claims'), data);
-    closeModal('claim'); showToast('تم حفظ المطالبة');
-    addNotif('🛡️','مطالبة جديدة',`${data.plateNumber} — ${data.company} — ${fmtR(data.estimateAmount)}`,'#FEE2E2');
-    loadClaims();
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-window.openFollowupFor = function(claimId) {
-  selectedClaim = claimId;
-  openModal('followup');
-};
-window.selectClaim = async function(claimId, plate) {
-  selectedClaim = claimId;
-  document.getElementById('fu-claim-id').textContent = 'سجل متابعة — ' + plate;
-  document.getElementById('followup-section').style.display = 'block';
-  const snap = await getDocs(query(collection(db,'followups'), where('claimId','==',claimId), orderBy('date','desc')));
-  let html = '';
-  snap.forEach(d => {
-    const x = d.data();
-    const colors = {'تم تحويل المبلغ':'#1D9E75','طلب مستندات':'#D97706','رُفضت المطالبة':'#DC2626','قيد المراجعة':'#3B82F6','اعتماد مالي':'#7C3AED','لا يوجد رد':'#9CA3AF'};
-    html += `<div class="tl-item">
-      <div class="tl-line"><div class="tl-dot" style="background:${colors[x.result]||'#9CA3AF'}"></div><div class="tl-conn"></div></div>
-      <div class="tl-body">
-        <div class="tl-title">${x.result||'—'} <span style="font-size:11px;color:var(--gray);font-weight:400">— ${x.method||''}</span></div>
-        <div class="tl-sub">${x.notes||'—'}<br>${x.contactPerson ? 'مع: '+x.contactPerson : ''}</div>
-        <div class="tl-date">${x.date||'—'} ${x.nextAction ? '| التالي: '+x.nextAction : ''}</div>
-        ${x.collectedAmount ? `<div style="margin-top:6px"><span class="badge b-green">تم التحصيل: ${fmtR(x.collectedAmount)}</span></div>` : ''}
-      </div>
-    </div>`;
-  });
-  document.getElementById('followup-timeline').innerHTML = html || '<div class="empty" style="padding:24px"><div class="empty-icon">📞</div><div class="empty-sub">لا توجد متابعات مسجَّلة</div></div>';
-};
-
-window.saveFollowup = async function() {
-  if(!selectedClaim){ showToast('حدد مطالبة أولاً','error'); return; }
-  const collected = Number(document.getElementById('fu-collected').value)||0;
-  const data = {
-    claimId: selectedClaim,
-    date: document.getElementById('fu-date').value || today(),
-    method: document.getElementById('fu-method').value,
-    contactPerson: document.getElementById('fu-contact').value,
-    result: document.getElementById('fu-result').value,
-    notes: document.getElementById('fu-notes').value,
-    nextAction: document.getElementById('fu-next').value,
-    collectedAmount: collected,
-    collectDate: document.getElementById('fu-collect-date').value,
-    createdAt: serverTimestamp()
-  };
-  try {
-    await addDoc(collection(db,'followups'), data);
-    if(collected > 0) {
-      await updateDoc(doc(db,'claims',selectedClaim), {stage:4, collectedAmount: collected, collectedDate: data.collectDate});
-    }
-    closeModal('followup'); showToast('تم حفظ المتابعة');
-    addNotif('📞','متابعة مطالبة',`${data.result} — ${data.method}`,'#FEE2E2');
-    loadClaims();
-    if(selectedClaim) selectClaim(selectedClaim,'');
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-// ── DELETE ──
-window.deleteDoc2 = async function(col, id, reload) {
-  if(!confirm('هل تريد حذف هذا السجل؟')) return;
-  try {
-    const { deleteDoc: del } = await import("https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js");
-    await del(doc(db, col, id));
-    showToast('تم الحذف');
-    if(reload) reload();
-  } catch(err){ showToast('خطأ: '+err.message,'error'); }
-};
-
-// ── REAL-TIME LISTENER for pending ──
-onSnapshot(collection(db,'transactions'), allSnap => {
-  const pendingDocs = allSnap.docs.filter(d=>d.data().status==='pending');
-  const count = pendingDocs.length;
-  document.getElementById('sb-pending-count').textContent = count;
-  document.getElementById('sb-pending-count').style.display = count > 0 ? '' : 'none';
-  if(count > 0) {
-    document.getElementById('notifDot').style.display = 'block';
-  }
-});
-
-// ── INIT ──
-setSync(true);
-loadDashboard();
-renderNotifications();
-</script>
-</body>
-</html>
+checkFirebaseConnection();
+window.copyRules=function(el){navigator.clipboard.writeText("rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if true;\n    }\n  }\n}").then(()=>{el.querySelector('span').textContent='[✓ تم النسخ! الآن الصق في Firebase]';});};
+window.retryConnection=function(){checkFirebaseConnection();};
+</script></body></html>
