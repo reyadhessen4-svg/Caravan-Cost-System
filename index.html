@@ -153,9 +153,11 @@ tbody tr:hover td{background:var(--ltr)}
   <button class="sbi" onclick="N('prices',this)" data-pg="prices">&#x1F3F7;&#xFE0F; إدارة الأسعار</button>
   <div class="sbs">المالية</div>
   <button class="sbi" onclick="N('tr',this)" data-pg="tr">&#x1F3E6; الخزينة</button>
+  <button class="sbi" onclick="N('cc',this)" data-pg="cc">&#x1F3F7;&#xFE0F; مراكز التكلفة</button>
   <button class="sbi" onclick="N('bk',this)" data-pg="bk">&#x1F3DB;&#xFE0F; البنك</button>
   <button class="sbi" id="apNav" onclick="N('ap',this)" style="display:none">&#x2705; الاعتمادات <span class="sbdg" id="apCnt">0</span></button>
   <div class="sbs">العهد والمطالبات</div>
+  <button class="sbi" onclick="N('emps',this)" data-pg="emps">&#x1F464; سجل الموظفين</button>
   <button class="sbi" onclick="N('cu',this)" data-pg="cu">&#x1F45B; العهد الشخصية</button>
   <button class="sbi" onclick="N('cl',this)" data-pg="cl">&#x1F6E1;&#xFE0F; مطالبات التأمين</button>
   <div class="sbs">إدارة النظام</div>
@@ -354,6 +356,57 @@ tbody tr:hover td{background:var(--ltr)}
   <div class="al aw">&#x26A0;&#xFE0F; المصروفات التالية تنتظر اعتمادك. بعد الاعتماد فقط يتم ترحيلها للخزينة وتأثيرها على الرصيد.</div>
   <div id="apList"><div class="lb"><div class="sp"></div></div></div>
 </div>
+
+
+<!-- ═══ COST CENTERS ═══ -->
+<div class="pg" id="pg-cc">
+  <div class="page-hdr"><h2>مراكز التكلفة</h2>
+    <button class="btn bp" onclick="OM('ccM')">&#x2795; مركز جديد</button>
+  </div>
+  <div class="al ai">&#x1F4A1; مراكز التكلفة تُستخدم لتصنيف المصروفات وتحليلها في التقارير. يمكنك إضافة وتعديل وإلغاء تفعيل أي مركز.</div>
+  <div class="mets">
+    <div class="met mb"><div class="mi2">&#x1F3F7;&#xFE0F;</div><div class="ml2">إجمالي المراكز</div><div class="mv2" id="cc-total">—</div></div>
+    <div class="met mg"><div class="mi2">&#x2705;</div><div class="ml2">مراكز نشطة</div><div class="mv2" id="cc-active">—</div></div>
+    <div class="met mr"><div class="mi2">&#x1F4B8;</div><div class="ml2">إجمالي المصروفات (معتمدة)</div><div class="mv2" id="cc-spent">—</div></div>
+    <div class="met mo"><div class="mi2">&#x1F4CA;</div><div class="ml2">أكثر مركز صرفاً</div><div class="mv2" id="cc-top">—</div></div>
+  </div>
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="cht">&#x1F3F7;&#xFE0F; قائمة مراكز التكلفة</div>
+      <div id="cc-list"></div>
+    </div>
+    <div class="card">
+      <div class="cht">&#x1F4CA; توزيع المصروفات حسب المركز</div>
+      <div id="cc-chart-area"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EMPLOYEES ═══ -->
+<div class="pg" id="pg-emps">
+  <div class="page-hdr"><h2>سجل الموظفين</h2>
+    <button class="btn bp" onclick="OM('empM')">&#x2795; إضافة موظف</button>
+  </div>
+  <div class="mets">
+    <div class="met mb"><div class="mi2">&#x1F464;</div><div class="ml2">إجمالي الموظفين</div><div class="mv2" id="emp-total">—</div></div>
+    <div class="met mg"><div class="mi2">&#x1F45B;</div><div class="ml2">لديهم عهدة مفتوحة</div><div class="mv2" id="emp-with-custody">—</div></div>
+    <div class="met mo"><div class="mi2">&#x1F4CB;</div><div class="ml2">بدون عهدة</div><div class="mv2" id="emp-no-custody">—</div></div>
+    <div class="met mr"><div class="mi2">&#x1F4B8;</div><div class="ml2">إجمالي العهد المفتوحة</div><div class="mv2" id="emp-custody-total">—</div></div>
+  </div>
+  <div class="card">
+    <div class="cht">&#x1F4CB; قائمة الموظفين
+      <div style="display:flex;gap:8px">
+        <input class="srch-inp" placeholder="بحث بالاسم أو الرقم أو الوظيفة..." oninput="FT('empTbl',this.value)" style="width:200px">
+        <button class="btn bsm" onclick="ET('empTbl')">&#x1F4E5; تصدير</button>
+      </div>
+    </div>
+    <div class="tw"><table id="empTbl">
+      <thead><tr><th>اسم الموظف</th><th>رقم الموظف</th><th>الوظيفة</th><th>القسم</th><th>رقم الهاتف</th><th>حالة العهدة</th><th>رصيد العهدة</th><th>تاريخ الإضافة</th><th>إجراء</th></tr></thead>
+      <tbody id="empTbd"></tbody>
+    </table></div>
+  </div>
+</div>
+
 <!-- ═══ CUSTODY ═══ -->
 <div class="pg" id="pg-cu">
   <div class="page-hdr"><h2>العهد الشخصية</h2>
@@ -527,9 +580,23 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="al aw">&#x26A0;&#xFE0F; سيُرسل للمدير المالي للاعتماد. لن يُرحَّل للخزينة قبل الموافقة.</div>
 <div class="fg">
   <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="ex-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ex-a" placeholder="0"></div></div>
-  <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="ex-t" placeholder="اسم المستفيد"></div>
+  <div class="fld"><label>المستفيد <span class="req">*</span></label>
+    <div style="display:flex;gap:8px">
+      <select id="ex-emp-sel" onchange="fillExFromEmp()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none">
+        <option value="">— اختر من سجل الموظفين (اختياري) —</option>
+      </select>
+    </div>
+    <input type="text" id="ex-t" placeholder="اسم المستفيد" style="margin-top:6px">
+  </div>
+  <div class="fld" id="ex-custody-link-row" style="display:none">
+    <label>ربط بعهدة موظف (اختياري)</label>
+    <select id="ex-custody-link" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— لا تربط بعهدة —</option>
+    </select>
+    <div class="hint" style="font-size:11px;color:var(--sc);margin-top:3px">✓ عند الاعتماد سيُضاف المبلغ تلقائياً كمصروف على عهدة الموظف</div>
+  </div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="ex-ds" placeholder="وصف واضح للمصروف"></div>
-  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="ex-cc"><option>عمومي</option><option>تشغيل</option><option>صيانة</option><option>رواتب</option><option>إداري</option><option>وقود</option><option>تأمين</option><option>متنوعات</option></select></div><div class="fld"><label>طريقة الصرف</label><select id="ex-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="ex-cc" style="font-family:var(--fn)"></select></div><div class="fld"><label>طريقة الصرف</label><select id="ex-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
   <div class="fld"><label>ملاحظات</label><textarea id="ex-nt" style="min-height:55px"></textarea></div>
 </div>
 <div class="mft"><button class="btn" onclick="CM('exM')">إلغاء</button><button class="btn bg3" onclick="saveEx()">&#x1F4E4; إرسال للاعتماد</button></div></div></div>
@@ -548,7 +615,19 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="fg">
   <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="bo-d"></div>
   <div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="bo-a" placeholder="0"></div>
-  <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="bo-t" placeholder="اسم المستفيد"></div>
+  <div class="fld"><label>المستفيد <span class="req">*</span></label>
+    <select id="bo-emp-sel" onchange="fillBoFromEmp()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none;margin-bottom:6px">
+      <option value="">— اختر من سجل الموظفين (اختياري) —</option>
+    </select>
+    <input type="text" id="bo-t" placeholder="اسم المستفيد">
+  </div>
+  <div class="fld" id="bo-custody-link-row" style="display:none">
+    <label>ربط بعهدة موظف (اختياري)</label>
+    <select id="bo-custody-link" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— لا تربط بعهدة —</option>
+    </select>
+    <div class="hint" style="font-size:11px;color:var(--sc);margin-top:3px">✓ عند الحفظ سيُضاف المبلغ تلقائياً كمصروف على عهدة الموظف</div>
+  </div>
   <div class="fld"><label>رقم العملية</label><input type="text" id="bo-rf" placeholder="رقم المرجع"></div>
   <div class="fld"><label>البيان</label><input type="text" id="bo-ds" placeholder="بيان التحويل"></div>
 </div>
@@ -556,8 +635,16 @@ tbody tr:hover td{background:var(--ltr)}
 
 <div class="mo2" id="cuM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F45B; إنشاء عهدة جديدة</div><button class="mcl" onclick="CM('cuM')">×</button></div>
 <div class="fg">
-  <div class="fld"><label>اسم الموظف <span class="req">*</span></label><input type="text" id="cu-nm" placeholder="الاسم الكامل"></div>
-  <div class="fld"><label>رقم الموظف</label><input type="text" id="cu-id" placeholder="الرقم الوظيفي"></div>
+  <div class="fld"><label>الموظف <span class="req">*</span></label>
+    <select id="cu-emp-sel" onchange="fillCuFromEmp()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— اختر الموظف من السجل —</option>
+    </select>
+    <div class="hint" style="font-size:11px;color:var(--gr2);margin-top:3px">أضف الموظف من صفحة "سجل الموظفين" أولاً ثم اختره هنا</div>
+  </div>
+  <div class="fr">
+    <div class="fld"><label>الاسم</label><input type="text" id="cu-nm" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr)"></div>
+    <div class="fld"><label>رقم الموظف</label><input type="text" id="cu-id" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr)"></div>
+  </div>
   <div class="fld"><label>تاريخ إنشاء العهدة <span class="req">*</span></label><input type="date" id="cu-d"></div>
   <div class="fld"><label>الرصيد الابتدائي (ريال) <span class="req">*</span></label><input type="number" id="cu-op" placeholder="0"></div>
   <div class="fld"><label>ملاحظات</label><textarea id="cu-nt" style="min-height:55px"></textarea></div>
@@ -610,8 +697,8 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],clients:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
-var BK_KEY='qawafil_v4';
+var S={cu:null,data:{users:[],employees:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
+var BK_KEY='qawafil_v6';
 function sv(){try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){toast('تعذّر الحفظ في المتصفح','e');}}
 function ld(){try{var d=localStorage.getItem(BK_KEY);if(d)S.data=Object.assign({},S.data,JSON.parse(d));}catch(e){}if(!S.data.users.length)seed();}
 function seed(){
@@ -639,17 +726,28 @@ function seed(){
   en.forEach(function(nm,i){var cid='cu'+i;S.data.custodies.push({id:cid,name:nm,num:'EMP-00'+(i+1),date:'2024-01-01',opening:(i+1)*6000,status:'open',notes:'',by:'admin',at:new Date().toISOString()});for(var j=0;j<5;j++)S.data.custodyEntries.push({id:'ce'+i+'_'+j,cid:cid,empName:nm,date:'2024-0'+(j%9+1)+'-'+(10+j*3),item:['وقود','غسيل','نثريات','صيانة','مستلزمات'][j],amount:(j+1)*350+100,desc:'مصروف رقم '+(j+1),car:j%2===0?'س-'+(100+i*100):'',plate:j%2===0?'أ ب ج '+(100+i*100):'',by:'treasury',at:new Date().toISOString()});});
   var stgs=['حادث جديد','تم رفع المستندات','تم تقديم المطالبة','تحت المراجعة','تمت الموافقة','تم استلام التعويض'],ics=['الوطنية للتأمين','ميد غلف','تاكافول الراجحي','TAWUNIYA','وثبة'];
   for(var i=0;i<10;i++){var d=new Date(td);d.setDate(d.getDate()-i*18);S.data.ctr.cl++;S.data.claims.push({id:'cl'+i,num:'CLM-'+S.data.ctr.cl,idate:d.toISOString().split('T')[0],subDate:d.toISOString().split('T')[0],car:'س-'+(100+i*100),plate:'أ ب ج '+(100+i*100),driver:['محمد العمري','أحمد الحربي','خالد الشمري','علي الدوسري','سعد العتيبي'][i%5],drid:'10'+(i+1)+'000000',najm:'NJM-'+(10000+i),fault:i%3===0?100:i%3===1?75:50,atFault:i%3===0?'الطرف الآخر':i%3===1?'مشترك':'الطرف الآخر',desc:'حادث مروري في طريق الملك فهد — '+(i+1),estBy:'ورشة التميز للسيارات',estNum:'EST-'+(200+i),estVal:(i+1)*7500+2000,insC:ics[i%5],insN:'INS-'+(500+i),stage:stgs[i%stgs.length],comp:i===5?(i+1)*5500:0,hist:[{s:stgs[0],date:d.toISOString().split('T')[0],by:'claims',note:''}],by:'claims',at:d.toISOString()});}
+  // Default cost centers
+  S.data.costCenters=[
+    {id:'cc1',name:'عمومي',desc:'المصروفات العامة غير المصنفة',color:'#6B7280',active:true},
+    {id:'cc2',name:'تشغيل',desc:'مصروفات تشغيل السيارات والأسطول',color:'#1A56DB',active:true},
+    {id:'cc3',name:'صيانة',desc:'إصلاح وصيانة السيارات والمعدات',color:'#D97706',active:true},
+    {id:'cc4',name:'رواتب',desc:'رواتب الموظفين والسائقين',color:'#059669',active:true},
+    {id:'cc5',name:'إداري',desc:'مصروفات إدارية ومكتبية',color:'#7C3AED',active:true},
+    {id:'cc6',name:'وقود',desc:'وقود السيارات والمعدات',color:'#DC2626',active:true},
+    {id:'cc7',name:'تأمين',desc:'أقساط التأمين على السيارات',color:'#0891B2',active:true},
+    {id:'cc8',name:'متنوعات',desc:'مصروفات متنوعة أخرى',color:'#9CA3AF',active:true}
+  ];
   sv();
 }
 var ROLES={
   admin:   {lbl:'مدير النظام',    c:'bpu', all:true,
-            pages:['dash','ops','rev','prices','tr','bk','ap','cu','cl','rp','us','au'],
+            pages:['dash','ops','rev','prices','tr','bk','ap','emps','cc','cu','cl','rp','us','au'],
             canDel:true, canEdit:true, ap:true, bkRev:true, rc:true, ex:true, ops:true, claims:true},
   finance: {lbl:'المدير المالي',  c:'bb',  ap:true, bkRev:true,
-            pages:['dash','rev','tr','bk','ap','cu','cl','rp','au'],
+            pages:['dash','rev','tr','bk','ap','emps','cc','cu','cl','rp','au'],
             canDel:false, canEdit:false},
   treasury:{lbl:'أمين الخزينة',   c:'bn',  rc:true, ex:true,
-            pages:['dash','tr','cu'],
+            pages:['dash','tr','emps','cc','cu'],
             canDel:false, canEdit:true},
   ops:     {lbl:'موظف التشغيل',  c:'bo',  ops:true,
             pages:['dash','ops','rev'],
@@ -705,7 +803,7 @@ function initApp(){
   var fm=new Date();fm.setDate(1);
   ['stF','bkStF'].forEach(id=>{var el=G(id);if(el)el.value=fm.toISOString().split('T')[0];});
   ['stT','bkStT'].forEach(id=>{var el=G(id);if(el)el.value=td2();});
-  fillDrops();updApCnt();checkAlerts();
+  fillDrops();fillAllEmpDropdowns();fillCCDropdowns();fillCustodyLinkDropdown('ex-custody-link');fillCustodyLinkDropdown('bo-custody-link');updApCnt();checkAlerts();
   N('dash',document.querySelector('.sbi.on'));
   if(window.innerWidth<=768)G('menuBtn').style.display='';
 }
@@ -719,8 +817,15 @@ function N(pg,btn){
   if(pg!=='dash'&&!canPage(pg)){toast('ليس لديك صلاحية الوصول لهذه الصفحة','e');return;}
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
-  var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
-function OM(id){G(id).classList.add('on');}function CM(id){G(id).classList.remove('on');}
+  var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',emps:'سجل الموظفين',cc:'مراكز التكلفة',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
+function OM(id){
+  if(id==='empM'){G('emp-id').value='';G('emp-name').value='';G('emp-num').value='';G('emp-job').value='';G('emp-dept').value='';G('emp-phone').value='';G('emp-idnum').value='';G('emp-notes').value='';}
+  if(id==='cuM'){fillAllEmpDropdowns();}
+  if(id==='exM'){fillAllEmpDropdowns();G('ex-custody-link-row').style.display='none';}
+  if(id==='boM'){fillAllEmpDropdowns();G('bo-custody-link-row').style.display='none';}
+  if(id==='ccM'){G('cc-id').value='';G('cc-name').value='';G('cc-desc').value='';G('cc-color').value='#1A56DB';}
+  G(id).classList.add('on');
+}function CM(id){G(id).classList.remove('on');}
 function FT(tid,q){var t=G(tid);if(!t)return;var rows=t.querySelectorAll('tbody tr');q=q.toLowerCase();rows.forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';});}
 function ET(tid){var t=G(tid);if(!t){toast('لا يوجد بيانات','w');return;}var csv='';t.querySelectorAll('tr').forEach(r=>{csv+=Array.from(r.querySelectorAll('th,td')).map(c=>'"'+c.textContent.trim().replace(/"/g,'""')+'"').join(',')+'\n';});var b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=tid+'_'+td2()+'.csv';a.click();toast('تم التصدير بنجاح');}
 function ST(cid,tid,btn){var c=G(cid);if(!c)return;c.querySelectorAll('.tabc').forEach(t=>t.classList.remove('on'));var t=G(tid);if(t)t.classList.add('on');var tabs=btn?btn.closest('.tabs'):null;if(tabs)tabs.querySelectorAll('.tabb').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');}
@@ -1078,6 +1183,432 @@ function reviewEx(id){
   sv();loadTr();
 }
 
+
+/* ═══════════════════════════════════════════
+   EMPLOYEES MODULE
+═══════════════════════════════════════════ */
+function fillAllEmpDropdowns(){
+  var emps=S.data.employees||[];
+  var opts='<option value="">— اختر الموظف من السجل —</option>'+
+    emps.filter(e=>e.active).map(function(e){
+      return '<option value="'+e.id+'">'+e.name+' — '+e.jobTitle+' ('+e.num+')</option>';
+    }).join('');
+  // custody modal select
+  var cuSel=G('cu-emp-sel');if(cuSel)cuSel.innerHTML=opts;
+  // expense modal select
+  var exSel=G('ex-emp-sel');
+  if(exSel)exSel.innerHTML='<option value="">— اختر من سجل الموظفين (اختياري) —</option>'+
+    emps.filter(e=>e.active).map(function(e){
+      return '<option value="'+e.id+'">'+e.name+' — '+e.jobTitle+'</option>';
+    }).join('');
+  // bank out select
+  var boSel=G('bo-emp-sel');
+  if(boSel)boSel.innerHTML='<option value="">— اختر من سجل الموظفين (اختياري) —</option>'+
+    emps.filter(e=>e.active).map(function(e){
+      return '<option value="'+e.id+'">'+e.name+' — '+e.jobTitle+'</option>';
+    }).join('');
+}
+
+function fillCustodyLinkDropdown(selId){
+  var custodies=S.data.custodies.filter(c=>c.status==='open');
+  var sel=G(selId);if(!sel)return;
+  sel.innerHTML='<option value="">— لا تربط بعهدة —</option>'+
+    custodies.map(function(c){
+      var sp=S.data.custodyEnts.filter(e=>e.cid===c.id).reduce(function(s,e){return s+e.amount;},0);
+      var rem=c.opening-sp;
+      return '<option value="'+c.id+'">'+c.name+' — متبقي: '+fR(rem)+'</option>';
+    }).join('');
+}
+
+function fillCuFromEmp(){
+  var eid=V('cu-emp-sel');
+  if(!eid){G('cu-nm').value='';G('cu-id').value='';return;}
+  var emp=S.data.employees.find(function(e){return e.id===eid;});
+  if(!emp)return;
+  G('cu-nm').value=emp.name;
+  G('cu-id').value=emp.num;
+}
+
+function fillExFromEmp(){
+  var eid=V('ex-emp-sel');
+  var row=G('ex-custody-link-row');
+  if(!eid){G('ex-t').value='';if(row)row.style.display='none';return;}
+  var emp=S.data.employees.find(function(e){return e.id===eid;});
+  if(!emp)return;
+  G('ex-t').value=emp.name;
+  // Show custody link dropdown and populate it with this employee's custodies
+  var custodies=S.data.custodies.filter(function(c){return c.status==='open'&&c.empId===eid;});
+  var allOpen=S.data.custodies.filter(function(c){return c.status==='open';});
+  if(row&&(custodies.length>0||allOpen.length>0)){
+    row.style.display='';
+    fillCustodyLinkDropdown('ex-custody-link');
+    // Pre-select if employee has an open custody
+    var empCu=custodies[0];
+    if(empCu)G('ex-custody-link').value=empCu.id;
+  }
+}
+
+function fillBoFromEmp(){
+  var eid=V('bo-emp-sel');
+  var row=G('bo-custody-link-row');
+  if(!eid){G('bo-t').value='';if(row)row.style.display='none';return;}
+  var emp=S.data.employees.find(function(e){return e.id===eid;});
+  if(!emp)return;
+  G('bo-t').value=emp.name;
+  var custodies=S.data.custodies.filter(function(c){return c.status==='open';});
+  if(row&&custodies.length>0){
+    row.style.display='';
+    fillCustodyLinkDropdown('bo-custody-link');
+    var empCu=S.data.custodies.find(function(c){return c.status==='open'&&c.empId===eid;});
+    if(empCu)G('bo-custody-link').value=empCu.id;
+  }
+}
+
+function addCustodyEntry(custodyId,amount,desc,source){
+  if(!custodyId||!amount)return;
+  var cu=S.data.custodies.find(function(c){return c.id===custodyId;});
+  if(!cu)return;
+  S.data.custodyEnts.push({
+    id:uid(),cid:custodyId,empName:cu.name,
+    date:td2(),item:'صرف '+source,amount:amount,
+    desc:desc,car:'',plate:'',
+    autoLinked:true,linkSource:source,
+    by:S.cu?S.cu.u:'system',at:new Date().toISOString()
+  });
+  alog('إضافة تلقائية لعهدة',cu.name+' — '+fR(amount)+' من '+source);
+}
+
+function loadEmps(){
+  var emps=S.data.employees||[];
+  var withCu=emps.filter(function(e){
+    return S.data.custodies.some(function(c){return c.empId===e.id&&c.status==='open';});
+  }).length;
+  var cuTotal=S.data.custodies.filter(function(c){return c.status==='open';}).reduce(function(s,c){
+    var sp=S.data.custodyEnts.filter(function(e){return e.cid===c.id;}).reduce(function(ss,e){return ss+e.amount;},0);
+    return s+(c.opening-sp);
+  },0);
+  G('emp-total').textContent=emps.length;
+  G('emp-with-custody').textContent=withCu;
+  G('emp-no-custody').textContent=emps.length-withCu;
+  G('emp-custody-total').textContent=fR(cuTotal);
+
+  G('empTbd').innerHTML=emps.length?emps.map(function(e){
+    var cu=S.data.custodies.find(function(c){return c.empId===e.id&&c.status==='open';});
+    var rem=0;
+    if(cu){var sp=S.data.custodyEnts.filter(function(x){return x.cid===cu.id;}).reduce(function(s,x){return s+x.amount;},0);rem=cu.opening-sp;}
+    return '<tr>'+
+      '<td><div style="display:flex;align-items:center;gap:8px">'+
+        '<div style="width:34px;height:34px;border-radius:50%;background:var(--'+(e.active?'ry':'gr2')+');display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0">'+e.name[0]+'</div>'+
+        '<div><div style="font-weight:600">'+e.name+'</div>'+
+        '<div style="font-size:11px;color:var(--gr)">'+e.jobTitle+'</div></div></div></td>'+
+      '<td style="font-family:monospace;font-size:12px">'+e.num+'</td>'+
+      '<td>'+e.jobTitle+'</td>'+
+      '<td style="font-size:12px;color:var(--gr)">'+(e.dept||'—')+'</td>'+
+      '<td style="font-size:12px">'+(e.phone||'—')+'</td>'+
+      '<td>'+(cu?'<span class="bdg bn">&#x1F45B; عهدة مفتوحة</span>':'<span class="bdg bg2">بدون عهدة</span>')+'</td>'+
+      '<td style="font-weight:700;color:'+(cu?(rem<500?'var(--dn)':rem<2000?'var(--wn)':'var(--sc)'):'var(--gr2)')+'">'+(cu?fR(rem):'—')+'</td>'+
+      '<td style="font-size:11px;color:var(--gr2)">'+new Date(e.at).toLocaleDateString('ar-SA')+'</td>'+
+      '<td><div style="display:flex;gap:4px">'+
+        '<button class="btn bxs" onclick="editEmp(this.dataset.id)" data-id="'+e.id+'" title="تعديل">&#x270F;&#xFE0F;</button>'+
+        (cu?'<button class="btn bxs bp" onclick="N(\'cu\',null)" title="عهدته">&#x1F45B;</button>':'')+
+        (can('all')?'<button class="btn bd2 bxs" onclick="delEmp(this.dataset.id)" data-id="'+e.id+'" title="حذف">&#x1F5D1;&#xFE0F;</button>':'')+
+      '</div></td>'+
+    '</tr>';
+  }).join(''):'<tr><td colspan="9"><div class="es"><div class="esic">&#x1F464;</div><div class="esti">لا يوجد موظفون</div><div class="essb">أضف أول موظف بالضغط على الزر أعلاه</div></div></td></tr>';
+}
+
+function saveEmp(){
+  var name=V('emp-name'),num=V('emp-num'),job=V('emp-job');
+  if(!name||!num||!job){toast('يرجى تعبئة الاسم والرقم والوظيفة','e');return;}
+  var id=V('emp-id');
+  if(id){
+    // Edit mode
+    var emp=S.data.employees.find(function(e){return e.id===id;});
+    if(!emp)return;
+    if(S.data.employees.find(function(e){return e.num===num&&e.id!==id;})){toast('رقم الموظف مستخدم مسبقاً','e');return;}
+    emp.name=name;emp.num=num;emp.jobTitle=job;emp.dept=V('emp-dept');emp.phone=V('emp-phone');emp.idNum=V('emp-idnum');emp.notes=V('emp-notes');
+    alog('تعديل موظف',name+' — '+job);
+    toast('تم حفظ التعديلات');
+  } else {
+    // Add mode
+    if(S.data.employees.find(function(e){return e.num===num;})){toast('رقم الموظف مستخدم مسبقاً','e');return;}
+    if(!S.data.employees)S.data.employees=[];
+    S.data.employees.push({id:uid(),name:name,num:num,jobTitle:job,dept:V('emp-dept'),phone:V('emp-phone'),idNum:V('emp-idnum'),notes:V('emp-notes'),active:true,at:new Date().toISOString(),by:S.cu?S.cu.u:''});
+    alog('إضافة موظف جديد',name+' — '+num+' — '+job);
+    toast('تم إضافة الموظف بنجاح');
+  }
+  sv();CM('empM');loadEmps();fillAllEmpDropdowns();
+}
+
+function editEmp(id){
+  var emp=S.data.employees.find(function(e){return e.id===id;});
+  if(!emp)return;
+  G('emp-id').value=id;
+  G('emp-name').value=emp.name;
+  G('emp-num').value=emp.num;
+  G('emp-job').value=emp.jobTitle||'';
+  G('emp-dept').value=emp.dept||'';
+  G('emp-phone').value=emp.phone||'';
+  G('emp-idnum').value=emp.idNum||'';
+  G('emp-notes').value=emp.notes||'';
+  OM('empM');
+}
+
+function delEmp(id){
+  var emp=S.data.employees.find(function(e){return e.id===id;});
+  if(!emp)return;
+  var hasCu=S.data.custodies.some(function(c){return c.empId===id&&c.status==='open';});
+  if(hasCu){toast('لا يمكن حذف موظف لديه عهدة مفتوحة','e');return;}
+  if(!confirm('حذف الموظف "'+emp.name+'"؟'))return;
+  S.data.employees=S.data.employees.filter(function(e){return e.id!==id;});
+  alog('حذف موظف',emp.name);sv();loadEmps();toast('تم الحذف','w');
+}
+
+/* ── Override saveCu to link with employee ── */
+function saveCu(){
+  var eid=V('cu-emp-sel'),n=V('cu-nm'),op=Nv('cu-op');
+  if(!n||!op){toast('يرجى اختيار الموظف وتحديد الرصيد الابتدائي','e');return;}
+  // Check no open custody for this employee already
+  if(eid&&S.data.custodies.find(function(c){return c.empId===eid&&c.status==='open';})){
+    toast('هذا الموظف لديه عهدة مفتوحة بالفعل','e');return;
+  }
+  S.data.custodies.push({
+    id:uid(),empId:eid||'',name:n,num:V('cu-id'),
+    date:V('cu-d')||td2(),opening:op,status:'open',
+    notes:V('cu-nt'),settHist:[],by:S.cu?S.cu.u:'',at:new Date().toISOString()
+  });
+  alog('إنشاء عهدة',n+' — رصيد ابتدائي: '+fR(op));
+  sv();CM('cuM');loadCu();fillAllEmpDropdowns();
+  toast('تم إنشاء العهدة');
+}
+
+/* ── Override saveEx to auto-link custody ── */
+var _origSaveEx=null;
+function saveEx(){
+  var a=Nv('ex-a'),t=V('ex-t'),d=V('ex-ds');
+  if(!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  S.data.ctr.ex++;
+  var rec={id:uid(),num:S.data.ctr.ex,date:V('ex-d')||td2(),to:t,desc:d,amount:a,
+    cc:V('ex-cc'),method:V('ex-m'),notes:V('ex-nt'),status:'pending',
+    apBy:'',apAt:'',reviewed:false,reviewedBy:'',reviewedAt:'',
+    custodyLink:V('ex-custody-link')||'',empId:V('ex-emp-sel')||'',
+    by:S.cu?S.cu.u:'',at:new Date().toISOString()};
+  S.data.expenses.unshift(rec);
+  alog('طلب صرف','لـ '+t+' — '+fR(a)+' — معلق للاعتماد');
+  sv();CM('exM');loadTr();updApCnt();
+  toast('تم إرسال طلب الصرف للمدير المالي للاعتماد','i');
+}
+
+/* ── Override apEx to auto-add to custody when approved ── */
+function apEx(id){
+  if(!can('all')&&!can('ap')){toast('ليس لديك صلاحية اعتماد المصروفات','e');return;}
+  var e=S.data.expenses.find(function(x){return x.id===id;});
+  if(!e||e.status!=='pending')return;
+  e.status='approved';e.apBy=S.cu?S.cu.u:'';e.apAt=new Date().toISOString();
+  if(!e.hasOwnProperty('reviewed')){e.reviewed=false;e.reviewedBy='';e.reviewedAt='';}
+  // Auto-link to custody if set
+  if(e.custodyLink){
+    addCustodyEntry(e.custodyLink,e.amount,e.desc,'طلب صرف #'+e.num);
+    sv();
+    toast('✅ تم الاعتماد — رُحِّل للخزينة وأُضيف لعهدة الموظف تلقائياً');
+  } else {
+    sv();
+    toast('✅ تم الاعتماد — رُحِّل المصروف للخزينة');
+  }
+  loadTr();loadAp();updApCnt();loadDash();checkAlerts();
+}
+
+/* ── Override saveBo to auto-link custody ── */
+function saveBo(){
+  var a=Nv('bo-a'),t=V('bo-t');
+  if(!a||!t){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  var cuLink=V('bo-custody-link')||'';
+  S.data.bankOut.unshift({id:uid(),date:V('bo-d')||td2(),amount:a,to:t,
+    ref:V('bo-rf'),desc:V('bo-ds'),custodyLink:cuLink,
+    empId:V('bo-emp-sel')||'',by:S.cu?S.cu.u:'',at:new Date().toISOString()});
+  if(cuLink){
+    addCustodyEntry(cuLink,a,V('bo-ds')||('صرف بنكي لـ '+t),'صادر بنكي');
+    toast('تم تسجيل الصادر البنكي وإضافته لعهدة الموظف تلقائياً');
+  } else {
+    toast('تم تسجيل الصادر البنكي');
+  }
+  alog('صادر بنكي','لـ '+t+' — '+fR(a)+(cuLink?' — ربط بعهدة':''));
+  sv();CM('boM');loadBk();
+}
+
+
+/* ═══════════════════════════════════════════
+   COST CENTERS MODULE
+═══════════════════════════════════════════ */
+
+function getCCs(){
+  // Initialize if missing
+  if(!S.data.costCenters||!S.data.costCenters.length){
+    S.data.costCenters=[
+      {id:'cc1',name:'عمومي',desc:'المصروفات العامة غير المصنفة',color:'#6B7280',active:true},
+      {id:'cc2',name:'تشغيل',desc:'مصروفات تشغيل السيارات والأسطول',color:'#1A56DB',active:true},
+      {id:'cc3',name:'صيانة',desc:'إصلاح وصيانة السيارات والمعدات',color:'#D97706',active:true},
+      {id:'cc4',name:'رواتب',desc:'رواتب الموظفين والسائقين',color:'#059669',active:true},
+      {id:'cc5',name:'إداري',desc:'مصروفات إدارية ومكتبية',color:'#7C3AED',active:true},
+      {id:'cc6',name:'وقود',desc:'وقود السيارات والمعدات',color:'#DC2626',active:true},
+      {id:'cc7',name:'تأمين',desc:'أقساط التأمين على السيارات',color:'#0891B2',active:true},
+      {id:'cc8',name:'متنوعات',desc:'مصروفات متنوعة أخرى',color:'#9CA3AF',active:true}
+    ];
+    sv();
+  }
+  return S.data.costCenters;
+}
+
+function fillCCDropdowns(){
+  var ccs=getCCs().filter(function(c){return c.active;});
+  var opts=ccs.map(function(c){
+    return '<option value="'+c.name+'">'+c.name+'</option>';
+  }).join('');
+  ['ex-cc','exe-cc'].forEach(function(id){
+    var sel=G(id);
+    if(!sel)return;
+    var cur=sel.value;
+    sel.innerHTML=opts;
+    // Restore selection if still valid
+    var match=Array.from(sel.options).find(function(o){return o.value===cur;});
+    if(match)sel.value=cur;
+  });
+}
+
+function loadCC(){
+  var ccs=getCCs();
+  var expenses=S.data.expenses.filter(function(e){return e.status==='approved';});
+  var totalSpent=expenses.reduce(function(s,e){return s+e.amount;},0);
+  
+  // Metrics
+  G('cc-total').textContent=ccs.length;
+  G('cc-active').textContent=ccs.filter(function(c){return c.active;}).length;
+  G('cc-spent').textContent=fR(totalSpent);
+  
+  // Find top center
+  var byCC={};
+  expenses.forEach(function(e){byCC[e.cc]=(byCC[e.cc]||0)+e.amount;});
+  var topEntry=Object.entries(byCC).sort(function(a,b){return b[1]-a[1];})[0];
+  G('cc-top').textContent=topEntry?topEntry[0]:'—';
+
+  // Build cards list
+  var listEl=G('cc-list');
+  if(!listEl)return;
+  listEl.innerHTML=ccs.map(function(cc){
+    var spent=byCC[cc.name]||0;
+    var count=expenses.filter(function(e){return e.cc===cc.name;}).length;
+    var pct=totalSpent?Math.round(spent/totalSpent*100):0;
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd)">' +
+      '<div style="width:40px;height:40px;border-radius:10px;background:'+cc.color+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0">&#x1F3F7;&#xFE0F;</div>'+
+      '<div style="flex:1">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">' +
+          '<span style="font-weight:700;font-size:14px">'+cc.name+'</span>'+
+          (cc.active?'<span class="bdg bn" style="font-size:10px">نشط</span>':'<span class="bdg bg2" style="font-size:10px">موقوف</span>')+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--gr);margin-bottom:6px">'+(cc.desc||'—')+'</div>'+
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<div style="flex:1;height:5px;background:var(--bd);border-radius:3px;overflow:hidden">'+
+            '<div style="height:100%;width:'+pct+'%;background:'+cc.color+';border-radius:3px"></div>'+
+          '</div>'+
+          '<span style="font-size:12px;font-family:monospace;font-weight:600;color:'+cc.color+'">'+fR(spent)+'</span>'+
+          '<span style="font-size:11px;color:var(--gr2)">('+count+' سند)</span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:4px">' +
+        '<button class="btn bxs" onclick="editCC(this.dataset.id)" data-id="'+cc.id+'" title="تعديل">&#x270F;&#xFE0F;</button>'+
+        '<button class="btn bxs '+(cc.active?'bg3':'')+'" onclick="toggleCC(this.dataset.id)" data-id="'+cc.id+'" title="'+(cc.active?'إيقاف':'تفعيل')+'">'+(cc.active?'&#x23F8;&#xFE0F;':'&#x25B6;&#xFE0F;')+'</button>'+
+        (can('all')&&count===0?'<button class="btn bd2 bxs" onclick="delCC(this.dataset.id)" data-id="'+cc.id+'" title="حذف">&#x1F5D1;&#xFE0F;</button>':'')+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  // Chart area — bar chart
+  var chartEl=G('cc-chart-area');
+  if(!chartEl)return;
+  if(!ccs.length||!totalSpent){chartEl.innerHTML='<div class="es"><div class="essb">لا توجد مصروفات بعد</div></div>';return;}
+  var bars=ccs.filter(function(c){return (byCC[c.name]||0)>0;}).sort(function(a,b){return (byCC[b.name]||0)-(byCC[a.name]||0);});
+  var maxVal=bars.length?Math.max.apply(null,bars.map(function(c){return byCC[c.name]||0;})):1;
+  chartEl.innerHTML='<div style="display:flex;flex-direction:column;gap:10px">'+
+    bars.map(function(cc){
+      var val=byCC[cc.name]||0;
+      var pct=Math.round(val/maxVal*100);
+      return '<div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">'+
+          '<span style="font-weight:600;display:flex;align-items:center;gap:6px">'+
+            '<span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:'+cc.color+'"></span>'+
+            cc.name+
+          '</span>'+
+          '<span style="font-family:monospace">'+fR(val)+'</span>'+
+        '</div>'+
+        '<div style="height:8px;background:var(--bd);border-radius:4px;overflow:hidden">'+
+          '<div style="height:100%;width:'+pct+'%;background:'+cc.color+';border-radius:4px;transition:width .5s"></div>'+
+        '</div>'+
+      '</div>';
+    }).join('')+
+  '</div>';
+}
+
+function saveCC(){
+  var name=V('cc-name'),id=V('cc-id');
+  if(!name){toast('يرجى إدخال اسم المركز','e');return;}
+  var ccs=getCCs();
+  // Check duplicate name (ignore self when editing)
+  if(ccs.find(function(c){return c.name===name&&c.id!==id;})){
+    toast('اسم المركز موجود مسبقاً','e');return;
+  }
+  if(id){
+    // Edit
+    var cc=ccs.find(function(c){return c.id===id;});
+    if(!cc)return;
+    var oldName=cc.name;
+    cc.name=name;cc.desc=V('cc-desc');cc.color=V('cc-color')||'#6B7280';
+    // Update existing expenses that used old name
+    if(oldName!==name){
+      S.data.expenses.forEach(function(e){if(e.cc===oldName)e.cc=name;});
+      toast('تم تعديل المركز وتحديثه في جميع المصروفات');
+    } else {
+      toast('تم حفظ التعديلات');
+    }
+    alog('تعديل مركز تكلفة',oldName+(oldName!==name?' → '+name:''));
+  } else {
+    // Add
+    ccs.push({id:uid(),name:name,desc:V('cc-desc'),color:V('cc-color')||'#6B7280',active:true});
+    alog('إضافة مركز تكلفة',name);
+    toast('تم إضافة مركز التكلفة');
+  }
+  sv();CM('ccM');loadCC();fillCCDropdowns();
+}
+
+function editCC(id){
+  var cc=getCCs().find(function(c){return c.id===id;});
+  if(!cc)return;
+  G('cc-id').value=id;
+  G('cc-name').value=cc.name;
+  G('cc-desc').value=cc.desc||'';
+  G('cc-color').value=cc.color||'#1A56DB';
+  OM('ccM');
+}
+
+function toggleCC(id){
+  var cc=getCCs().find(function(c){return c.id===id;});
+  if(!cc)return;
+  cc.active=!cc.active;
+  alog(cc.active?'تفعيل مركز تكلفة':'إيقاف مركز تكلفة',cc.name);
+  sv();loadCC();fillCCDropdowns();
+  toast(cc.active?'تم تفعيل المركز':'تم إيقاف المركز — لن يظهر في قوائم الاختيار',cc.active?'s':'w');
+}
+
+function delCC(id){
+  var cc=getCCs().find(function(c){return c.id===id;});
+  if(!cc)return;
+  var usedIn=S.data.expenses.filter(function(e){return e.cc===cc.name;}).length;
+  if(usedIn>0){toast('لا يمكن حذف مركز يحتوي على مصروفات ('+usedIn+' سند). يمكنك إيقاف تفعيله بدلاً من الحذف.','e');return;}
+  if(!confirm('حذف مركز التكلفة "'+cc.name+'"؟'))return;
+  S.data.costCenters=S.data.costCenters.filter(function(c){return c.id!==id;});
+  alog('حذف مركز تكلفة',cc.name);sv();loadCC();fillCCDropdowns();
+  toast('تم حذف المركز','w');
+}
+
 /* ─── KEYBOARD & EVENTS ─── */
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo2.on').forEach(m=>m.classList.remove('on'));});
 document.addEventListener('click',e=>{if(e.target.classList.contains('mo2'))e.target.classList.remove('on');if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
@@ -1105,7 +1636,7 @@ ld();
   <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="exe-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="exe-a" placeholder="0"></div></div>
   <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="exe-t" placeholder="اسم المستفيد"></div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="exe-ds" placeholder="وصف واضح للمصروف"></div>
-  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc"><option>عمومي</option><option>تشغيل</option><option>صيانة</option><option>رواتب</option><option>إداري</option><option>وقود</option><option>تأمين</option><option>متنوعات</option></select></div><div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc" style="font-family:var(--fn)"></select></div><div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
   <div class="fld"><label>ملاحظات</label><textarea id="exe-nt" style="min-height:55px"></textarea></div>
 </div>
 <input type="hidden" id="exe-id">
@@ -1134,5 +1665,48 @@ ld();
 </div>
 <input type="hidden" id="use-id">
 <div class="mft"><button class="btn" onclick="CM('usEM')">إلغاء</button><button class="btn bp" onclick="saveEditUs()">&#x1F4BE; حفظ التعديلات</button></div></div></div>
+
+
+<!-- EMPLOYEE MODAL -->
+<div class="mo2" id="empM"><div class="mb2">
+  <div class="mhd"><div class="mtt">&#x1F464; إضافة / تعديل موظف</div><button class="mcl" onclick="CM('empM')">×</button></div>
+  <div class="fg">
+    <div class="fr"><div class="fld"><label>اسم الموظف <span class="req">*</span></label><input type="text" id="emp-name" placeholder="الاسم الكامل"></div><div class="fld"><label>رقم الموظف <span class="req">*</span></label><input type="text" id="emp-num" placeholder="مثال: EMP-001"></div></div>
+    <div class="fr"><div class="fld"><label>الوظيفة <span class="req">*</span></label><input type="text" id="emp-job" placeholder="مثال: سائق، مشرف، محاسب"></div><div class="fld"><label>القسم</label><input type="text" id="emp-dept" placeholder="مثال: التشغيل، المالية"></div></div>
+    <div class="fr"><div class="fld"><label>رقم الهاتف</label><input type="tel" id="emp-phone" placeholder="05xxxxxxxx"></div><div class="fld"><label>رقم الهوية</label><input type="text" id="emp-idnum" placeholder="رقم الهوية الوطنية"></div></div>
+    <div class="fld"><label>ملاحظات</label><textarea id="emp-notes" style="min-height:55px" placeholder="أي ملاحظات إضافية..."></textarea></div>
+  </div>
+  <input type="hidden" id="emp-id">
+  <div class="mft"><button class="btn" onclick="CM('empM')">إلغاء</button><button class="btn bp" onclick="saveEmp()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+<!-- EXPENSE WITH CUSTODY LINK OPTION (upgrade existing expense modal) -->
+
+
+<!-- COST CENTER MODAL -->
+<div class="mo2" id="ccM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">&#x1F3F7;&#xFE0F; مركز تكلفة</div><button class="mcl" onclick="CM('ccM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>اسم المركز <span class="req">*</span></label><input type="text" id="cc-name" placeholder="مثال: تشغيل الأسطول"></div>
+    <div class="fld"><label>الوصف</label><textarea id="cc-desc" style="min-height:60px" placeholder="وصف مختصر لهذا المركز وما يشمله..."></textarea></div>
+    <div class="fld"><label>اللون (للتمييز البصري)</label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="color" id="cc-color" value="#1A56DB" style="width:50px;height:38px;border:1.5px solid var(--bd);border-radius:9px;cursor:pointer;padding:2px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="cc-preset-colors">
+          <div onclick="G('cc-color').value='#1A56DB'" style="width:28px;height:28px;border-radius:6px;background:#1A56DB;cursor:pointer;border:2px solid transparent" title="أزرق"></div>
+          <div onclick="G('cc-color').value='#059669'" style="width:28px;height:28px;border-radius:6px;background:#059669;cursor:pointer" title="أخضر"></div>
+          <div onclick="G('cc-color').value='#DC2626'" style="width:28px;height:28px;border-radius:6px;background:#DC2626;cursor:pointer" title="أحمر"></div>
+          <div onclick="G('cc-color').value='#D97706'" style="width:28px;height:28px;border-radius:6px;background:#D97706;cursor:pointer" title="برتقالي"></div>
+          <div onclick="G('cc-color').value='#7C3AED'" style="width:28px;height:28px;border-radius:6px;background:#7C3AED;cursor:pointer" title="بنفسجي"></div>
+          <div onclick="G('cc-color').value='#0891B2'" style="width:28px;height:28px;border-radius:6px;background:#0891B2;cursor:pointer" title="سماوي"></div>
+          <div onclick="G('cc-color').value='#BE185D'" style="width:28px;height:28px;border-radius:6px;background:#BE185D;cursor:pointer" title="وردي"></div>
+          <div onclick="G('cc-color').value='#6B7280'" style="width:28px;height:28px;border-radius:6px;background:#6B7280;cursor:pointer" title="رمادي"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <input type="hidden" id="cc-id">
+  <div class="mft"><button class="btn" onclick="CM('ccM')">إلغاء</button><button class="btn bp" onclick="saveCC()">&#x1F4BE; حفظ</button></div>
+</div></div>
 
 </body></html>
