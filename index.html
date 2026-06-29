@@ -287,7 +287,7 @@ tbody tr:hover td{background:var(--ltr)}
       <div class="card"><div class="cht">&#x1F4E5; سجل المقبوضات
         <div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('rcTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('rcTbl')">&#x1F4E5;</button></div>
       </div>
-      <div class="tw"><table id="rcTbl"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>الجهة</th><th>البيان</th><th>المبلغ</th><th>طريقة السداد</th><th>المرجع</th><th>المسجِّل</th></tr></thead><tbody id="rcTbd"></tbody></table></div>
+      <div class="tw"><table id="rcTbl"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>الجهة</th><th>البيان</th><th>المبلغ</th><th>طريقة السداد</th><th>المرجع</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="rcTbd"></tbody></table></div>
     </div></div>
     <div class="tabc" id="trEx">
       <div class="card"><div class="cht">&#x1F4E4; سجل المصروفات
@@ -611,7 +611,7 @@ tbody tr:hover td{background:var(--ltr)}
 <script>
 "use strict";
 var S={cu:null,data:{users:[],clients:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
-var BK_KEY='qawafil_v3';
+var BK_KEY='qawafil_v4';
 function sv(){try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){toast('تعذّر الحفظ في المتصفح','e');}}
 function ld(){try{var d=localStorage.getItem(BK_KEY);if(d)S.data=Object.assign({},S.data,JSON.parse(d));}catch(e){}if(!S.data.users.length)seed();}
 function seed(){
@@ -634,9 +634,6 @@ function seed(){
   ];
   var td=new Date();
   for(var i=0;i<75;i++){var d=new Date(td);d.setDate(d.getDate()-i);if(d.getDay()===5)continue;var ci=S.data.clients[i%3],pr=S.data.prices[i%3].price,ca=Math.floor(Math.random()*8)+3;S.data.ops.push({id:'op'+i,date:d.toISOString().split('T')[0],cid:ci.id,cn:ci.name,contract:ci.contract,cars:ca,price:pr,rev:ca*pr,notes:'',by:'ops',at:d.toISOString()});}
-  for(var i=0;i<12;i++){var d=new Date(td);d.setDate(d.getDate()-i*5);S.data.ctr.rc++;S.data.receipts.push({id:'rc'+i,num:S.data.ctr.rc,date:d.toISOString().split('T')[0],from:S.data.clients[i%3].name,desc:'إيراد توصيل — فاتورة شهرية',amount:(i+1)*12000,method:'تحويل بنكي',ref:'TRF'+(1000+i),notes:'',by:'treasury',at:d.toISOString()});}
-  var eit=['وقود','صيانة','رواتب','نثريات','مستلزمات','وقود','صيانة'];
-  for(var i=0;i<15;i++){var d=new Date(td);d.setDate(d.getDate()-i*3);S.data.ctr.ex++;S.data.expenses.push({id:'ex'+i,num:S.data.ctr.ex,date:d.toISOString().split('T')[0],to:['محطة الوقود الرئيسية','ورشة صيانة الأسطول','طاقم السائقين','مستلزمات التشغيل','إيجار المخزن'][i%5],desc:eit[i%7]+' — '+(i+1),amount:(i+1)*2800+500,cc:['تشغيل','صيانة','رواتب','عمومي'][i%4],method:'نقدي',notes:'',status:i%3===0?'pending':i%3===1?'approved':'rejected',apBy:i%3===1?'finance':'',apAt:'',by:'treasury',at:d.toISOString()});}
   for(var i=0;i<10;i++){var d=new Date(td);d.setDate(d.getDate()-i*6);S.data.bankIn.push({id:'bi'+i,date:d.toISOString().split('T')[0],amount:(i+1)*30000,from:'عميل '+(i+1),ref:'WIRE-'+(10000+i),desc:'إيرادات توصيل — فاتورة '+(i+1),by:'finance',at:d.toISOString()});S.data.bankOut.push({id:'bo'+i,date:d.toISOString().split('T')[0],amount:(i+1)*9500,to:'مورد '+(i+1),ref:'PMT-'+(500+i),desc:'دفع مستحقات — '+(i+1),by:'finance',at:d.toISOString()});}
   var en=['خالد المطيري','عبدالله العتيبي','سلطان الحربي','راشد العنزي'];
   en.forEach(function(nm,i){var cid='cu'+i;S.data.custodies.push({id:cid,name:nm,num:'EMP-00'+(i+1),date:'2024-01-01',opening:(i+1)*6000,status:'open',notes:'',by:'admin',at:new Date().toISOString()});for(var j=0;j<5;j++)S.data.custodyEntries.push({id:'ce'+i+'_'+j,cid:cid,empName:nm,date:'2024-0'+(j%9+1)+'-'+(10+j*3),item:['وقود','غسيل','نثريات','صيانة','مستلزمات'][j],amount:(j+1)*350+100,desc:'مصروف رقم '+(j+1),car:j%2===0?'س-'+(100+i*100):'',plate:j%2===0?'أ ب ج '+(100+i*100):'',by:'treasury',at:new Date().toISOString()});});
@@ -761,8 +758,8 @@ function loadTr(){
   G('trBal').textContent=fR(bal);G('trBal').style.color=bal>=0?'var(--sc)':'var(--dn)';
   G('trIn').textContent=fR(tIn);G('trOut').textContent=fR(tOut);G('trPen').textContent=pnd;
   var stF=V('exStF');var exps=stF?S.data.expenses.filter(e=>e.status===stF):S.data.expenses;
-  G('rcTbd').innerHTML=S.data.receipts.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>'<tr><td style="font-family:monospace;font-weight:600">'+r.num+'</td><td>'+r.date+'</td><td>'+r.from+'</td><td>'+r.desc+'</td><td style="font-weight:700;color:var(--sc)">'+fR(r.amount)+'</td><td>'+r.method+'</td><td style="font-size:12px;color:var(--gr)">'+(r.ref||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+r.by+'</td></tr>').join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد مقبوضات</div></div></td></tr>';
-  G('exTbd').innerHTML=exps.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>'<tr><td style="font-family:monospace;font-weight:600">'+e.num+'</td><td>'+e.date+'</td><td>'+e.to+'</td><td>'+e.desc+'</td><td style="font-weight:700;color:var(--dn)">'+fR(e.amount)+'</td><td>'+e.cc+'</td><td>'+e.method+'</td><td>'+sBadge(e.status)+'</td><td style="font-size:11px;color:var(--gr2)">'+e.by+'</td><td>'+((can('all')||can('ap'))&&e.status==='pending'?'<div style="display:flex;gap:4px"><button class="btn bss bxs" onclick="apEx(\''+e.id+'\')">✓</button><button class="btn bd2 bxs" onclick="rjEx(\''+e.id+'\')">✗</button></div>':'')+'</td></tr>').join('')||'<tr><td colspan="10"><div class="es"><div class="essb">لا توجد مصروفات</div></div></td></tr>';
+  G('rcTbd').innerHTML=S.data.receipts.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>'<tr><td style="font-family:monospace;font-weight:600">'+r.num+'</td><td>'+r.date+'</td><td>'+r.from+'</td><td>'+r.desc+'</td><td style="font-weight:700;color:var(--sc)">'+fR(r.amount)+'</td><td>'+r.method+'</td><td style="font-size:12px;color:var(--gr)">'+(r.ref||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+r.by+'</td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="editRc(\''+r.id+'\')" title="تعديل">&#x270F;&#xFE0F;</button><button class="btn bd2 bxs" onclick="delRc(\''+r.id+'\'" title="حذف">&#x1F5D1;&#xFE0F;</button></div></td></tr>').join('')||'<tr><td colspan="9"><div class="es"><div class="esic">&#x1F4E5;</div><div class="esti">لا توجد مقبوضات</div><div class="essb">استخدم زر "تسجيل مقبوض" لإضافة بيانات</div></div></td></tr>';
+  G('exTbd').innerHTML=exps.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>'<tr><td style="font-family:monospace;font-weight:600">'+e.num+'</td><td>'+e.date+'</td><td>'+e.to+'</td><td>'+e.desc+'</td><td style="font-weight:700;color:var(--dn)">'+fR(e.amount)+'</td><td>'+e.cc+'</td><td>'+e.method+'</td><td>'+sBadge(e.status)+'</td><td style="font-size:11px;color:var(--gr2)">'+e.by+'</td><td><div style="display:flex;gap:3px;flex-wrap:nowrap">'+((can('all')||can('ap'))&&e.status==='pending'?'<button class="btn bss bxs" onclick="apEx(\''+e.id+'\')" title="اعتماد">✓</button><button class="btn bd2 bxs" onclick="rjEx(\''+e.id+'\')" title="رفض">✗</button>':'')+(e.status!=='approved'?'<button class="btn bxs" onclick="editEx(\''+e.id+'\')" title="تعديل">✏️</button><button class="btn bd2 bxs" onclick="delEx(\''+e.id+'\')" title="حذف">🗑️</button>':'<span style="font-size:11px;color:var(--gr2);padding:3px 6px">مؤمَّن</span>')+'</div></td></tr>').join('')||'<tr><td colspan="10"><div class="es"><div class="esic">📤</div><div class="esti">لا توجد مصروفات</div><div class="essb">استخدم زر "طلب صرف" لإضافة بيانات</div></div></td></tr>';
   var byCC={};S.data.expenses.filter(e=>e.status==='approved').forEach(e=>{byCC[e.cc]=(byCC[e.cc]||0)+e.amount;});var tCC=Object.values(byCC).reduce((s,v)=>s+v,0);
   G('trCCC').innerHTML=Object.entries(byCC).sort((a,b)=>b[1]-a[1]).map(([k,v])=>'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+k+'</span><span style="font-weight:600">'+fR(v)+'</span></div><div class="stb"><div class="stf" style="width:'+(tCC?Math.round(v/tCC*100):0)+'%;background:var(--dn)"></div></div></div>').join('')||'<div class="es"><div class="essb">لا بيانات</div></div>';
 }
@@ -864,6 +861,17 @@ function saveUs(){var n=V('us-n'),u=V('us-u'),p=V('us-p'),r=V('us-r');if(!n||!u|
 function togUs(id){var u=S.data.users.find(x=>x.id===id);if(!u)return;if(u.id===S.cu.id){toast('لا يمكن إيقاف حسابك الخاص','e');return;}u.active=!u.active;alog(u.active?'تفعيل مستخدم':'إيقاف مستخدم',u.name);sv();loadUs();toast(u.active?'تم تفعيل الحساب':'تم إيقاف الحساب',u.active?'s':'w');}
 /* ─── AUDIT ─── */
 function loadAudit(){var df=V('auDt'),uf=V('auUsr');var logs=S.data.audit;if(df)logs=logs.filter(a=>a.dt.startsWith(df));if(uf)logs=logs.filter(a=>a.user===uf);G('auTbd').innerHTML=logs.slice(0,200).map(a=>'<tr><td style="font-family:monospace;font-size:12px;white-space:nowrap">'+new Date(a.dt).toLocaleString('ar-SA')+'</td><td style="font-weight:600">'+a.user+'</td><td><span class="bdg '+(ROLES[S.data.users.find(u=>u.name===a.user)?.r]?.c||'bg2')+'">'+a.role+'</span></td><td>'+a.action+'</td><td style="color:var(--gr);font-size:12px">'+a.details+'</td><td><span class="bdg bn">'+a.res+'</span></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا توجد سجلات</div></div></td></tr>';}
+
+/* ─── RECEIPT EDIT / DELETE ─── */
+function editRc(id){var r=S.data.receipts.find(x=>x.id===id);if(!r)return;G('rce-id').value=id;G('rce-d').value=r.date;G('rce-a').value=r.amount;G('rce-f').value=r.from;G('rce-ds').value=r.desc;var ms=G('rce-m');for(var i=0;i<ms.options.length;i++){if(ms.options[i].value===r.method||ms.options[i].text===r.method)ms.selectedIndex=i;}G('rce-rf').value=r.ref||'';G('rce-nt').value=r.notes||'';OM('rcEM');}
+function saveEditRc(){var id=V('rce-id'),a=Nv('rce-a'),f=V('rce-f'),d=V('rce-ds');if(!id||!a||!f||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;var old=fR(r.amount);r.date=V('rce-d')||td2();r.amount=a;r.from=f;r.desc=d;r.method=V('rce-m');r.ref=V('rce-rf');r.notes=V('rce-nt');r.editedBy=S.cu.u;r.editedAt=new Date().toISOString();alog('تعديل مقبوض','سند '+r.num+' — تغيير من '+old+' إلى '+fR(a));sv();CM('rcEM');loadTr();loadDash();toast('تم حفظ التعديل بنجاح');}
+function delRc(id){var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(!confirm('حذف مقبوض رقم '+r.num+' بقيمة '+fR(r.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.receipts=S.data.receipts.filter(x=>x.id!==id);alog('حذف مقبوض','سند '+r.num+' — '+fR(r.amount)+' — من '+r.from);sv();loadTr();loadDash();toast('تم حذف المقبوض','w');}
+
+/* ─── EXPENSE EDIT / DELETE ─── */
+function editEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.status==='approved'){toast('لا يمكن تعديل مصروف معتمد','e');return;}G('exe-id').value=id;G('exe-d').value=e.date;G('exe-a').value=e.amount;G('exe-t').value=e.to;G('exe-ds').value=e.desc;var cc=G('exe-cc');for(var i=0;i<cc.options.length;i++){if(cc.options[i].value===e.cc||cc.options[i].text===e.cc)cc.selectedIndex=i;}var em=G('exe-m');for(var i=0;i<em.options.length;i++){if(em.options[i].value===e.method||em.options[i].text===e.method)em.selectedIndex=i;}G('exe-nt').value=e.notes||'';OM('exEM');}
+function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.status==='approved'){toast('لا يمكن تعديل مصروف معتمد','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.desc=d;e.cc=V('exe-cc');e.method=V('exe-m');e.notes=V('exe-nt');e.status='pending';e.apBy='';e.apAt='';e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
+function delEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.status==='approved'){toast('لا يمكن حذف مصروف معتمد — محمي من الحذف','e');return;}if(!confirm('حذف طلب صرف رقم '+e.num+' بقيمة '+fR(e.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.expenses=S.data.expenses.filter(x=>x.id!==id);alog('حذف مصروف','سند '+e.num+' — '+fR(e.amount)+' — لـ '+e.to);sv();loadTr();updApCnt();loadDash();toast('تم حذف المصروف','w');}
+
 /* ─── KEYBOARD & EVENTS ─── */
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo2.on').forEach(m=>m.classList.remove('on'));});
 document.addEventListener('click',e=>{if(e.target.classList.contains('mo2'))e.target.classList.remove('on');if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
@@ -871,4 +879,30 @@ G('lgp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 G('lgu').addEventListener('keydown',e=>{if(e.key==='Enter')G('lgp').focus();});
 window.addEventListener('resize',()=>{if(window.innerWidth>768)G('SB').classList.remove('open');G('menuBtn').style.display=window.innerWidth<=768?'':'none';});
 ld();
-</script></body></html>
+</script>
+<!-- EDIT RECEIPT MODAL -->
+<div class="mo2" id="rcEM"><div class="mb2"><div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل مقبوض</div><button class="mcl" onclick="CM('rcEM')">×</button></div>
+<div class="fg">
+  <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="rce-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="rce-a" placeholder="0"></div></div>
+  <div class="fld"><label>الجهة الدافعة <span class="req">*</span></label><input type="text" id="rce-f" placeholder="اسم الجهة أو الشركة"></div>
+  <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="rce-ds" placeholder="بيان المقبوض"></div>
+  <div class="fr"><div class="fld"><label>طريقة السداد</label><select id="rce-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option><option>بطاقة</option></select></div><div class="fld"><label>رقم مرجعي</label><input type="text" id="rce-rf" placeholder="رقم الشيك / التحويل"></div></div>
+  <div class="fld"><label>ملاحظات</label><textarea id="rce-nt" style="min-height:55px"></textarea></div>
+</div>
+<input type="hidden" id="rce-id">
+<div class="mft"><button class="btn" onclick="CM('rcEM')">إلغاء</button><button class="btn bss" onclick="saveEditRc()">&#x1F4BE; حفظ التعديل</button></div></div></div>
+
+<!-- EDIT EXPENSE MODAL -->
+<div class="mo2" id="exEM"><div class="mb2"><div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل مصروف</div><button class="mcl" onclick="CM('exEM')">×</button></div>
+<div class="al aw">&#x26A0;&#xFE0F; يمكن تعديل المصروفات المعلقة والمرفوضة فقط. المعتمدة لا تُعدَّل.</div>
+<div class="fg">
+  <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="exe-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="exe-a" placeholder="0"></div></div>
+  <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="exe-t" placeholder="اسم المستفيد"></div>
+  <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="exe-ds" placeholder="وصف واضح للمصروف"></div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc"><option>عمومي</option><option>تشغيل</option><option>صيانة</option><option>رواتب</option><option>إداري</option><option>وقود</option><option>تأمين</option><option>متنوعات</option></select></div><div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fld"><label>ملاحظات</label><textarea id="exe-nt" style="min-height:55px"></textarea></div>
+</div>
+<input type="hidden" id="exe-id">
+<div class="mft"><button class="btn" onclick="CM('exEM')">إلغاء</button><button class="btn bg3" onclick="saveEditEx()">&#x1F4BE; حفظ التعديل</button></div></div></div>
+
+</body></html>
