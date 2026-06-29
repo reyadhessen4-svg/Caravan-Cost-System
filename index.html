@@ -796,8 +796,56 @@ function loadTr(){
   G('trBal').textContent=fR(bal);G('trBal').style.color=bal>=0?'var(--sc)':'var(--dn)';
   G('trIn').textContent=fR(tIn);G('trOut').textContent=fR(tOut);G('trPen').textContent=pnd;
   var stF=V('exStF');var exps=stF?S.data.expenses.filter(e=>e.status===stF):S.data.expenses;
-  G('rcTbd').innerHTML=S.data.receipts.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>'<tr style="background:'+(r.reviewed?'rgba(5,150,105,.04)':'')+'"><td style="font-family:monospace;font-weight:600">'+r.num+(r.reviewed?'<span title="تمت المراجعة بواسطة '+r.reviewedBy+'" style="margin-right:4px;font-size:14px">🔒</span>':'')+'</td><td>'+r.date+'</td><td>'+r.from+'</td><td>'+r.desc+'</td><td style="font-weight:700;color:var(--sc)">'+fR(r.amount)+'</td><td>'+r.method+'</td><td style="font-size:12px;color:var(--gr)">'+(r.ref||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+r.by+'</td><td style="font-size:11px;color:'+(r.reviewed?'var(--sc)':'var(--gr2)')+'">'+( r.reviewed?('✅ '+r.reviewedBy+'<br><span style="font-size:10px">'+new Date(r.reviewedAt).toLocaleDateString('ar-SA')+'</span>'):'—')+'</td><td><div style="display:flex;gap:3px;flex-wrap:nowrap">'+(can('all')?'<button class="btn bxs '+(r.reviewed?'bg3':'')+'" onclick="reviewRc(\''+r.id+'\'" title="'+(r.reviewed?'فتح القفل':'مراجعة وقفل')+'">'+(r.reviewed?'🔓':'✅')+'</button>':'')+(!r.reviewed||can('all')?'<button class="btn bxs" onclick="editRc(\''+r.id+'\'" title="تعديل">✏️</button>':'')+(can('all')?'<button class="btn bd2 bxs" onclick="delRc(\''+r.id+'\'" title="حذف">🗑️</button>':'')+'</div></td></tr>').join('')||'<tr><td colspan="10"><div class="es"><div class="esic">📥</div><div class="esti">لا توجد مقبوضات</div><div class="essb">استخدم زر "تسجيل مقبوض" لإضافة بيانات</div></div></td></tr>';
-  G('exTbd').innerHTML=exps.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>'<tr style="background:'+(e.reviewed?'rgba(5,150,105,.04)':e.status==='pending'?'rgba(217,119,6,.04)':'')+'"><td style="font-family:monospace;font-weight:600">'+e.num+(e.reviewed?'<span title="مراجَع بواسطة '+e.reviewedBy+'" style="margin-right:4px;font-size:14px">🔒</span>':'')+'</td><td>'+e.date+'</td><td>'+e.to+'</td><td>'+e.desc+'</td><td style="font-weight:700;color:var(--dn)">'+fR(e.amount)+'</td><td>'+e.cc+'</td><td>'+e.method+'</td><td>'+sBadge(e.status)+'</td><td style="font-size:11px;color:var(--gr2)">'+e.by+'</td><td style="font-size:11px;color:'+(e.reviewed?'var(--sc)':'var(--gr2)')+'">'+( e.reviewed?('✅ '+e.reviewedBy+'<br><span style="font-size:10px">'+new Date(e.reviewedAt).toLocaleDateString('ar-SA')+'</span>'):'—')+'</td><td><div style="display:flex;gap:3px;flex-wrap:nowrap">'+((can('all')||can('ap'))&&e.status==='pending'?'<button class="btn bss bxs" onclick="apEx(\''+e.id+'\')" title="اعتماد">✓</button><button class="btn bd2 bxs" onclick="rjEx(\''+e.id+'\')" title="رفض">✗</button>':'')+(e.status==='approved'&&can('all')?'<button class="btn bxs '+(e.reviewed?'bg3':'')+'" onclick="reviewEx(\''+e.id+'\")" title="'+(e.reviewed?'فتح القفل':'مراجعة وقفل')+'">'+(e.reviewed?'🔓':'✅ مراجعة')+'</button>':'')+((!e.reviewed||can('all'))&&e.status!=='approved'?'<button class="btn bxs" onclick="editEx(\''+e.id+'\')" title="تعديل">✏️</button>':'')+(can('all')?'<button class="btn bd2 bxs" onclick="delEx(\''+e.id+'\')" title="حذف">🗑️</button>':'')+(e.reviewed&&!can('all')?'<span style="font-size:11px;color:var(--sc);padding:3px 6px">🔒 مراجَع</span>':'')+(e.status==='approved'&&!e.reviewed&&!can('all')?'<span style="font-size:11px;color:var(--gr2);padding:3px 6px">معتمد</span>':'')+'</div></td></tr>').join('')||'<tr><td colspan="11"><div class="es"><div class="esic">📤</div><div class="esti">لا توجد مصروفات</div><div class="essb">استخدم زر "طلب صرف" لإضافة بيانات</div></div></td></tr>';
+  G('rcTbd').innerHTML=S.data.receipts.sort((a,b)=>b.date.localeCompare(a.date)).map(function(r){
+  var lid=r.id;
+  var lockIco=r.reviewed?'<span title="مراجَع: '+r.reviewedBy+'" style="margin-right:4px">&#x1F512;</span>':'';
+  var revTxt=r.reviewed?'&#x2705; '+r.reviewedBy+'<br><small>'+new Date(r.reviewedAt).toLocaleDateString('ar-SA')+'</small>':'&#x2014;';
+  var btns='<div style="display:flex;gap:4px">';
+  if(can('all'))btns+='<button class="btn bxs '+(r.reviewed?'bg3':'')+'" onclick="reviewRc(this.dataset.id)" data-id="'+lid+'" title="'+(r.reviewed?'فتح القفل':'مراجعة وقفل')+'">'+(r.reviewed?'&#x1F513;':'&#x2705;')+'</button>';
+  if(!r.reviewed||can('all'))btns+='<button class="btn bxs" onclick="editRc(this.dataset.id)" data-id="'+lid+'" title="تعديل">&#x270F;&#xFE0F;</button>';
+  if(can('all'))btns+='<button class="btn bd2 bxs" onclick="delRc(this.dataset.id)" data-id="'+lid+'" title="حذف">&#x1F5D1;&#xFE0F;</button>';
+  btns+='</div>';
+  return '<tr style="'+(r.reviewed?'background:rgba(5,150,105,.05)':'')+'">'+
+    '<td style="font-family:monospace;font-weight:600">'+r.num+lockIco+'</td>'+
+    '<td>'+r.date+'</td><td>'+r.from+'</td><td>'+r.desc+'</td>'+
+    '<td style="font-weight:700;color:var(--sc)">'+fR(r.amount)+'</td>'+
+    '<td>'+r.method+'</td>'+
+    '<td style="font-size:12px;color:var(--gr)">'+(r.ref||'&#x2014;')+'</td>'+
+    '<td style="font-size:11px;color:var(--gr2)">'+r.by+'</td>'+
+    '<td style="font-size:11px;color:'+(r.reviewed?'var(--sc)':'var(--gr2)')+'">'+revTxt+'</td>'+
+    '<td>'+btns+'</td></tr>';
+}).join('')||'<tr><td colspan="10"><div class="es"><div class="esic">&#x1F4E5;</div><div class="esti">&#x644;&#x627; &#x62A;&#x648;&#x62C;&#x62F; &#x645;&#x642;&#x628;&#x648;&#x636;&#x627;&#x62A;</div><div class="essb">&#x627;&#x633;&#x62A;&#x62E;&#x62F;&#x645; &#x632;&#x631; &#x62A;&#x633;&#x62C;&#x64A;&#x644; &#x645;&#x642;&#x628;&#x648;&#x636;</div></div></td></tr>';
+G('exTbd').innerHTML=exps.sort((a,b)=>b.date.localeCompare(a.date)).map(function(e){
+  var lid=e.id;
+  var lockIco=e.reviewed?'<span title="مراجَع: '+e.reviewedBy+'" style="margin-right:4px">&#x1F512;</span>':'';
+  var revTxt=e.reviewed?'&#x2705; '+e.reviewedBy+'<br><small>'+new Date(e.reviewedAt).toLocaleDateString('ar-SA')+'</small>':'&#x2014;';
+  var btns='<div style="display:flex;gap:3px;flex-wrap:nowrap">';
+  if((can('all')||can('ap'))&&e.status==='pending'){
+    btns+='<button class="btn bss bxs" onclick="apEx(this.dataset.id)" data-id="'+lid+'" title="اعتماد">&#x2713;</button>';
+    btns+='<button class="btn bd2 bxs" onclick="rjEx(this.dataset.id)" data-id="'+lid+'" title="رفض">&#x2717;</button>';
+  }
+  if(can('all')&&e.status==='approved')
+    btns+='<button class="btn bxs '+(e.reviewed?'bg3':'')+'" onclick="reviewEx(this.dataset.id)" data-id="'+lid+'" title="'+(e.reviewed?'فتح القفل':'مراجعة وقفل')+'">'+(e.reviewed?'&#x1F513;':'&#x2705; &#x645;&#x631;&#x627;&#x62C;&#x639;&#x629;')+'</button>';
+  var canEdit=!e.reviewed||can('all');
+  if(canEdit&&(e.status!=='approved'||can('all')))
+    btns+='<button class="btn bxs" onclick="editEx(this.dataset.id)" data-id="'+lid+'" title="تعديل">&#x270F;&#xFE0F;</button>';
+  if(can('all'))
+    btns+='<button class="btn bd2 bxs" onclick="delEx(this.dataset.id)" data-id="'+lid+'" title="حذف">&#x1F5D1;&#xFE0F;</button>';
+  if(e.reviewed&&!can('all'))
+    btns+='<span style="font-size:11px;color:var(--sc);padding:2px 5px">&#x1F512; &#x645;&#x631;&#x627;&#x62C;&#x64E;&#x639;</span>';
+  else if(e.status==='approved'&&!can('all')&&!canEdit)
+    btns+='<span style="font-size:11px;color:var(--gr2);padding:2px 5px">&#x645;&#x639;&#x62A;&#x645;&#x62F;</span>';
+  btns+='</div>';
+  return '<tr style="'+(e.reviewed?'background:rgba(5,150,105,.05)':e.status==='pending'?'background:rgba(217,119,6,.04)':'')+'">'+
+    '<td style="font-family:monospace;font-weight:600">'+e.num+lockIco+'</td>'+
+    '<td>'+e.date+'</td><td>'+e.to+'</td><td>'+e.desc+'</td>'+
+    '<td style="font-weight:700;color:var(--dn)">'+fR(e.amount)+'</td>'+
+    '<td>'+e.cc+'</td><td>'+e.method+'</td><td>'+sBadge(e.status)+'</td>'+
+    '<td style="font-size:11px;color:var(--gr2)">'+e.by+'</td>'+
+    '<td style="font-size:11px;color:'+(e.reviewed?'var(--sc)':'var(--gr2)')+'">'+revTxt+'</td>'+
+    '<td>'+btns+'</td></tr>';
+}).join('')||'<tr><td colspan="11"><div class="es"><div class="esic">&#x1F4E4;</div><div class="esti">&#x644;&#x627; &#x62A;&#x648;&#x62C;&#x62F; &#x645;&#x635;&#x631;&#x648;&#x641;&#x627;&#x62A;</div><div class="essb">&#x627;&#x633;&#x62A;&#x62E;&#x62F;&#x645; &#x632;&#x631; &#x637;&#x644;&#x628; &#x635;&#x631;&#x641;</div></div></td></tr>';
+
   var byCC={};S.data.expenses.filter(e=>e.status==='approved').forEach(e=>{byCC[e.cc]=(byCC[e.cc]||0)+e.amount;});var tCC=Object.values(byCC).reduce((s,v)=>s+v,0);
   G('trCCC').innerHTML=Object.entries(byCC).sort((a,b)=>b[1]-a[1]).map(([k,v])=>'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+k+'</span><span style="font-weight:600">'+fR(v)+'</span></div><div class="stb"><div class="stf" style="width:'+(tCC?Math.round(v/tCC*100):0)+'%;background:var(--dn)"></div></div></div>').join('')||'<div class="es"><div class="essb">لا بيانات</div></div>';
 }
