@@ -698,7 +698,7 @@ tbody tr:hover td{background:var(--ltr)}
 <script>
 "use strict";
 var S={cu:null,data:{users:[],employees:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
-var BK_KEY='qawafil_v6';
+var BK_KEY='qawafil_v7';
 function sv(){try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){toast('تعذّر الحفظ في المتصفح','e');}}
 function ld(){try{var d=localStorage.getItem(BK_KEY);if(d)S.data=Object.assign({},S.data,JSON.parse(d));}catch(e){}if(!S.data.users.length)seed();}
 function seed(){
@@ -721,7 +721,6 @@ function seed(){
   ];
   var td=new Date();
   for(var i=0;i<75;i++){var d=new Date(td);d.setDate(d.getDate()-i);if(d.getDay()===5)continue;var ci=S.data.clients[i%3],pr=S.data.prices[i%3].price,ca=Math.floor(Math.random()*8)+3;S.data.ops.push({id:'op'+i,date:d.toISOString().split('T')[0],cid:ci.id,cn:ci.name,contract:ci.contract,cars:ca,price:pr,rev:ca*pr,notes:'',by:'ops',at:d.toISOString()});}
-  for(var i=0;i<10;i++){var d=new Date(td);d.setDate(d.getDate()-i*6);S.data.bankIn.push({id:'bi'+i,date:d.toISOString().split('T')[0],amount:(i+1)*30000,from:'عميل '+(i+1),ref:'WIRE-'+(10000+i),desc:'إيرادات توصيل — فاتورة '+(i+1),by:'finance',at:d.toISOString()});S.data.bankOut.push({id:'bo'+i,date:d.toISOString().split('T')[0],amount:(i+1)*9500,to:'مورد '+(i+1),ref:'PMT-'+(500+i),desc:'دفع مستحقات — '+(i+1),by:'finance',at:d.toISOString()});}
   var en=['خالد المطيري','عبدالله العتيبي','سلطان الحربي','راشد العنزي'];
   en.forEach(function(nm,i){var cid='cu'+i;S.data.custodies.push({id:cid,name:nm,num:'EMP-00'+(i+1),date:'2024-01-01',opening:(i+1)*6000,status:'open',notes:'',by:'admin',at:new Date().toISOString()});for(var j=0;j<5;j++)S.data.custodyEntries.push({id:'ce'+i+'_'+j,cid:cid,empName:nm,date:'2024-0'+(j%9+1)+'-'+(10+j*3),item:['وقود','غسيل','نثريات','صيانة','مستلزمات'][j],amount:(j+1)*350+100,desc:'مصروف رقم '+(j+1),car:j%2===0?'س-'+(100+i*100):'',plate:j%2===0?'أ ب ج '+(100+i*100):'',by:'treasury',at:new Date().toISOString()});});
   var stgs=['حادث جديد','تم رفع المستندات','تم تقديم المطالبة','تحت المراجعة','تمت الموافقة','تم استلام التعويض'],ics=['الوطنية للتأمين','ميد غلف','تاكافول الراجحي','TAWUNIYA','وثبة'];
@@ -1232,35 +1231,75 @@ function fillCuFromEmp(){
 function fillExFromEmp(){
   var eid=V('ex-emp-sel');
   var row=G('ex-custody-link-row');
-  if(!eid){G('ex-t').value='';if(row)row.style.display='none';return;}
+  if(!eid){
+    G('ex-t').value='';
+    if(row)row.style.display='none';
+    return;
+  }
   var emp=S.data.employees.find(function(e){return e.id===eid;});
   if(!emp)return;
   G('ex-t').value=emp.name;
-  // Show custody link dropdown and populate it with this employee's custodies
-  var custodies=S.data.custodies.filter(function(c){return c.status==='open'&&c.empId===eid;});
-  var allOpen=S.data.custodies.filter(function(c){return c.status==='open';});
-  if(row&&(custodies.length>0||allOpen.length>0)){
-    row.style.display='';
-    fillCustodyLinkDropdown('ex-custody-link');
-    // Pre-select if employee has an open custody
-    var empCu=custodies[0];
-    if(empCu)G('ex-custody-link').value=empCu.id;
+  // Find open custody for this employee
+  var empCu=S.data.custodies.find(function(c){return c.empId===eid&&c.status==='open';});
+  if(empCu){
+    // Has open custody — auto-select it
+    if(row){
+      row.style.display='';
+      fillCustodyLinkDropdown('ex-custody-link');
+      G('ex-custody-link').value=empCu.id;
+    }
+  } else {
+    // No open custody — ask to create one
+    if(row)row.style.display='none';
+    if(confirm('الموظف '+emp.name+' لا يملك عهدة مفتوحة.\nهل تريد إنشاء عهدة له الآن؟')){
+      // Pre-fill custody modal and open it
+      G('cu-emp-sel').innerHTML='<option value="'+eid+'">'+emp.name+'</option>';
+      G('cu-emp-sel').value=eid;
+      G('cu-nm').value=emp.name;
+      G('cu-id').value=emp.num||'';
+      G('cu-d').value=td2();
+      G('cu-op').value='';
+      CM('exM');
+      OM('cuM');
+      toast('أدخل الرصيد الابتدائي للعهدة ثم احفظ، ثم عد لطلب الصرف','i');
+    }
   }
 }
 
 function fillBoFromEmp(){
   var eid=V('bo-emp-sel');
   var row=G('bo-custody-link-row');
-  if(!eid){G('bo-t').value='';if(row)row.style.display='none';return;}
+  if(!eid){
+    G('bo-t').value='';
+    if(row)row.style.display='none';
+    return;
+  }
   var emp=S.data.employees.find(function(e){return e.id===eid;});
   if(!emp)return;
   G('bo-t').value=emp.name;
-  var custodies=S.data.custodies.filter(function(c){return c.status==='open';});
-  if(row&&custodies.length>0){
-    row.style.display='';
-    fillCustodyLinkDropdown('bo-custody-link');
-    var empCu=S.data.custodies.find(function(c){return c.status==='open'&&c.empId===eid;});
-    if(empCu)G('bo-custody-link').value=empCu.id;
+  // Find open custody for this employee
+  var empCu=S.data.custodies.find(function(c){return c.empId===eid&&c.status==='open';});
+  if(empCu){
+    // Has open custody — auto-select it
+    if(row){
+      row.style.display='';
+      fillCustodyLinkDropdown('bo-custody-link');
+      G('bo-custody-link').value=empCu.id;
+    }
+  } else {
+    // No open custody — ask to create one
+    if(row)row.style.display='none';
+    if(confirm('الموظف '+emp.name+' لا يملك عهدة مفتوحة.\nهل تريد إنشاء عهدة له الآن؟')){
+      G('cu-emp-sel').innerHTML='<option value="'+eid+'">'+emp.name+'</option>';
+      G('cu-emp-sel').value=eid;
+      G('cu-nm').value=emp.name;
+      G('cu-id').value=emp.num||'';
+      G('cu-d').value=td2();
+      G('cu-op').value='';
+      CM('boM');
+      OM('cuM');
+      toast('أدخل الرصيد الابتدائي للعهدة ثم احفظ، ثم عد للصادر البنكي','i');
+    }
   }
 }
 
@@ -1387,14 +1426,22 @@ var _origSaveEx=null;
 function saveEx(){
   var a=Nv('ex-a'),t=V('ex-t'),d=V('ex-ds');
   if(!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  var eid=V('ex-emp-sel');
+  var cuLink=V('ex-custody-link')||'';
+  // Warn if employee selected but no custody linked
+  if(eid&&!cuLink){
+    var emp=S.data.employees.find(function(e){return e.id===eid;});
+    var hasCu=S.data.custodies.some(function(c){return c.empId===eid&&c.status==='open';});
+    if(hasCu&&!confirm('تنبيه: اخترت موظفاً لكن لم تربط العهدة.\nهل تريد المتابعة بدون ربط بالعهدة؟')){return;}
+  }
   S.data.ctr.ex++;
   var rec={id:uid(),num:S.data.ctr.ex,date:V('ex-d')||td2(),to:t,desc:d,amount:a,
     cc:V('ex-cc'),method:V('ex-m'),notes:V('ex-nt'),status:'pending',
     apBy:'',apAt:'',reviewed:false,reviewedBy:'',reviewedAt:'',
-    custodyLink:V('ex-custody-link')||'',empId:V('ex-emp-sel')||'',
+    custodyLink:cuLink,empId:eid,
     by:S.cu?S.cu.u:'',at:new Date().toISOString()};
   S.data.expenses.unshift(rec);
-  alog('طلب صرف','لـ '+t+' — '+fR(a)+' — معلق للاعتماد');
+  alog('طلب صرف','لـ '+t+' — '+fR(a)+(cuLink?' — مربوط بعهدة':'')+' — معلق للاعتماد');
   sv();CM('exM');loadTr();updApCnt();
   toast('تم إرسال طلب الصرف للمدير المالي للاعتماد','i');
 }
@@ -1422,17 +1469,24 @@ function apEx(id){
 function saveBo(){
   var a=Nv('bo-a'),t=V('bo-t');
   if(!a||!t){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  var eid=V('bo-emp-sel');
   var cuLink=V('bo-custody-link')||'';
+  // Warn if employee selected but no custody linked
+  if(eid&&!cuLink){
+    var hasCu=S.data.custodies.some(function(c){return c.empId===eid&&c.status==='open';});
+    if(hasCu&&!confirm('تنبيه: اخترت موظفاً لكن لم تربط العهدة.\nهل تريد المتابعة بدون ربط بالعهدة؟')){return;}
+  }
   S.data.bankOut.unshift({id:uid(),date:V('bo-d')||td2(),amount:a,to:t,
     ref:V('bo-rf'),desc:V('bo-ds'),custodyLink:cuLink,
-    empId:V('bo-emp-sel')||'',by:S.cu?S.cu.u:'',at:new Date().toISOString()});
+    empId:eid,by:S.cu?S.cu.u:'',at:new Date().toISOString()});
   if(cuLink){
     addCustodyEntry(cuLink,a,V('bo-ds')||('صرف بنكي لـ '+t),'صادر بنكي');
-    toast('تم تسجيل الصادر البنكي وإضافته لعهدة الموظف تلقائياً');
+    alog('صادر بنكي','لـ '+t+' — '+fR(a)+' — أُضيف لعهدة الموظف تلقائياً');
+    toast('✅ تم تسجيل الصادر البنكي وإضافته لعهدة الموظف تلقائياً');
   } else {
+    alog('صادر بنكي','لـ '+t+' — '+fR(a));
     toast('تم تسجيل الصادر البنكي');
   }
-  alog('صادر بنكي','لـ '+t+' — '+fR(a)+(cuLink?' — ربط بعهدة':''));
   sv();CM('boM');loadBk();
 }
 
