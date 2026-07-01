@@ -1,4 +1,20 @@
 <!DOCTYPE html>
+<!--
+  ╔═══════════════════════════════════════════════════════════╗
+  ║  FIREBASE REALTIME DATABASE RULES                        ║
+  ║  Go to Firebase Console → Database → Rules               ║
+  ║  Paste these rules to allow read/write:                  ║
+  ║                                                          ║
+  ║  {                                                       ║
+  ║    "rules": {                                            ║
+  ║      "qawafil": {                                        ║
+  ║        ".read": true,                                    ║
+  ║        ".write": true                                    ║
+  ║      }                                                   ║
+  ║    }                                                     ║
+  ║  }                                                       ║
+  ╚═══════════════════════════════════════════════════════════╝
+-->
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -6,6 +22,9 @@
 <title>القوافل الخمسة &#8212; نظام الإدارة المتكامل</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
 :root{--nv:#0B1F4B;--ry:#1A56DB;--ry2:#1E40AF;--sky:#3B82F6;--lt:#EBF2FF;--ltr:#F5F9FF;--gd:#F0A500;--wh:#fff;--gr:#6B7280;--gr2:#9CA3AF;--bd:#DBEAFE;--sc:#059669;--scb:#D1FAE5;--wn:#D97706;--wnb:#FEF3C7;--dn:#DC2626;--dnb:#FEE2E2;--pu:#7C3AED;--pub:#EDE9FE;--fn:"Cairo",sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
@@ -115,7 +134,14 @@ tbody tr:hover td{background:var(--ltr)}
 <body>
 <div class="tc" id="TC"></div>
 <!-- LOGIN -->
-<div id="LP" class="lp">
+<div id="FBLoad" style="position:fixed;inset:0;background:linear-gradient(135deg,#0B1F4B,#1A56DB);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;color:#fff">
+  <div style="font-size:48px;margin-bottom:20px">&#x1F69B;</div>
+  <div style="font-size:20px;font-weight:700;margin-bottom:8px">القوافل الخمسة</div>
+  <div style="font-size:13px;opacity:.7;margin-bottom:30px">جاري الاتصال بالسيرفر...</div>
+  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite"></div>
+</div>
+</div><!-- /FBLoad -->
+<div id="LP" class="lp" style="display:none">
   <div class="lb2">
     <div class="llo">
       <div class="llic">&#x1F69B;</div>
@@ -161,7 +187,7 @@ tbody tr:hover td{background:var(--ltr)}
       <button class="btn bsm" style="background:rgba(255,255,255,.1);border-color:transparent;color:#fff;font-size:11px;padding:5px 10px" onclick="openChangePass(false)" title="تغيير كلمة المرور">&#x1F512;</button>
       <button class="btn bsm" style="margin-right:auto;background:rgba(255,255,255,.1);border-color:transparent;color:#fff;font-size:11px;padding:5px 10px" onclick="doLogout()">خروج</button>
     </div>
-    <div style="font-size:10px;color:rgba(255,255,255,.2);text-align:center;margin-top:4px">v3.0 — Local Storage</div>
+    <div style="font-size:10px;color:rgba(255,255,255,.2);text-align:center;margin-top:4px">v3.0 — Firebase &#x1F525;</div>
   </div>
 </aside>
 <div class="mn">
@@ -173,6 +199,7 @@ tbody tr:hover td{background:var(--ltr)}
     <div style="display:flex;align-items:center;gap:10px">
       <div id="TPD" style="font-size:12px;color:var(--gr);background:var(--ltr);padding:6px 12px;border-radius:8px;white-space:nowrap"></div>
       <div id="ntfBtn" style="position:relative;cursor:pointer;font-size:20px;padding:4px" title="تنبيهات">&#x1F514;<span id="ntfDt" style="display:none;position:absolute;top:2px;left:2px;width:9px;height:9px;border-radius:50%;background:var(--dn);border:2px solid #fff"></span></div>
+      <div id="syncIcon" style="font-size:14px;padding:4px 8px;background:var(--scb);border-radius:8px;color:var(--sc);cursor:default" title="حالة المزامنة">&#x2601;&#xFE0F;</div>
       <button class="btn bsm" onclick="window.print()" title="طباعة">&#x1F5A8;&#xFE0F;</button>
       <button class="btn bsm" onclick="backupData()" title="نسخ احتياطي">&#x1F4BE;</button>
       <button class="btn bsm bp" onclick="openAddModal()">&#x2795; إضافة</button>
@@ -689,9 +716,134 @@ tbody tr:hover td{background:var(--ltr)}
 <script>
 "use strict";
 var S={cu:null,data:{users:[],employees:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
-var BK_KEY='qawafil_v8';
-function sv(){try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){toast('تعذّر الحفظ في المتصفح','e');}}
-function ld(){try{var d=localStorage.getItem(BK_KEY);if(d)S.data=Object.assign({},S.data,JSON.parse(d));}catch(e){}if(!S.data.users.length)seed();}
+var BK_KEY='qawafil_v8'; // localStorage fallback key
+var DB=null; // Firebase database reference
+var DB_REF='/qawafil'; // Firebase path
+
+/* ── Firebase Init ── */
+(function(){
+  try{
+    var cfg={
+      apiKey:"AIzaSyBszDcJMAyTwwSIOWjdzRlFvJCdQipYG-8",
+      authDomain:"caravan-cost-system.firebaseapp.com",
+      databaseURL:"https://caravan-cost-system-default-rtdb.firebaseio.com",
+      projectId:"caravan-cost-system",
+      appId:"1:618081494939:web:8738bb21677e450deea33e"
+    };
+    firebase.initializeApp(cfg);
+    DB=firebase.database();
+    console.log('✅ Firebase connected');
+  }catch(e){
+    console.warn('Firebase init failed, using localStorage',e);
+    DB=null;
+  }
+})();
+
+/* ── Save: Firebase primary, localStorage backup ── */
+var _saveTimer=null;
+function sv(){
+  // Always save to localStorage as backup
+  try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){}
+  // Save to Firebase (debounced 800ms)
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(function(){
+    if(!DB){return;}
+    setSyncIcon('saving');
+    DB.ref(DB_REF).set(S.data).then(function(){
+      setSyncIcon('ok');
+    }).catch(function(err){
+      console.error('Firebase save error:',err);
+      setSyncIcon('error');
+      toast('تعذّر الحفظ في السيرفر — البيانات محفوظة محلياً','w');
+    });
+  },800);
+}
+
+/* ── Sync status icon ── */
+function setSyncIcon(status){
+  var el=document.getElementById('syncIcon');
+  if(!el)return;
+  var icons={saving:'&#x1F504;',ok:'&#x2601;&#xFE0F; &#x2705;',error:'&#x26A0;&#xFE0F;'};
+  var colors={saving:'var(--wn)',ok:'var(--sc)',error:'var(--dn)'};
+  el.innerHTML=icons[status]||'';
+  el.style.color=colors[status]||'var(--gr)';
+  el.title=status==='saving'?'جاري الحفظ...':status==='ok'?'محفوظ في السيرفر':'خطأ في الحفظ';
+}
+
+/* ── Load: Firebase primary, localStorage fallback ── */
+function ld(){
+  if(DB){
+    setSyncIcon('saving');
+    DB.ref(DB_REF).once('value').then(function(snap){
+      var d=snap.val();
+      if(d&&d.users&&d.users.length){
+        S.data=Object.assign({},S.data,d);
+        setSyncIcon('ok');
+      } else {
+        // No data in Firebase — load from localStorage or seed
+        _loadLocal();
+        // Push seed data to Firebase
+        sv();
+      }
+      _showLoginPage();
+      // Start realtime listener
+      _startListener();
+    }).catch(function(err){
+      console.warn('Firebase read failed, using localStorage:',err);
+      setSyncIcon('error');
+      _loadLocal();  // _loadLocal calls _showLoginPage
+      _startListener();
+    });
+  } else {
+    _loadLocal();
+  }
+}
+
+function _loadLocal(){
+  try{
+    var d=localStorage.getItem(BK_KEY);
+    if(d)S.data=Object.assign({},S.data,JSON.parse(d));
+  }catch(e){}
+  if(!S.data.users.length)seed();
+  _showLoginPage();
+}
+
+function _showLoginPage(){
+  var fb=document.getElementById('FBLoad');
+  var lp=document.getElementById('LP');
+  if(fb)fb.style.display='none';
+  if(lp)lp.style.display='flex';
+}
+
+/* ── Realtime listener: sync changes from other users ── */
+var _listenerActive=false;
+function _startListener(){
+  if(_listenerActive||!DB)return;
+  _listenerActive=true;
+  DB.ref(DB_REF).on('value',function(snap){
+    var d=snap.val();
+    if(!d||!d.users)return;
+    // Only update if not currently saving (avoid echo)
+    clearTimeout(_saveTimer);
+    S.data=Object.assign({},S.data,d);
+    // Refresh current page if app is open
+    if(S.cu){
+      var pg=document.querySelector('.pg.on');
+      if(pg){
+        var pgId=pg.id.replace('pg-','');
+        var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,
+               ap:loadAp,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,
+               rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};
+        if(L[pgId])L[pgId]();
+      }
+      updApCnt();checkAlerts();
+      setSyncIcon('ok');
+    }
+  },function(err){
+    console.error('Firebase listener error:',err);
+    setSyncIcon('error');
+  });
+}
 function seed(){
   S.data.users=[
     {id:'u1',name:'أحمد العدل',u:'admin',p:'123456',r:'admin',active:true,ll:'',lo:'',mustChangePass:true},
@@ -770,8 +922,29 @@ var Nv=id=>parseFloat(V(id))||0;
 function toast(msg,t){t=t||'s';var c=G('TC'),el=document.createElement('div');el.className='tst t'+t;el.innerHTML='<span>'+(t==='s'?'✅':t==='e'?'❌':t==='w'?'⚠️':'ℹ️')+'</span><span>'+msg+'</span>';c.appendChild(el);setTimeout(()=>{if(el.parentNode)el.remove();},3800);}
 function alog(a,det){S.data.audit.unshift({id:uid(),dt:new Date().toISOString(),user:S.cu?S.cu.name:'نظام',role:S.cu?ROLES[S.cu.r].lbl:'',action:a,details:det||'',res:'نجح'});if(S.data.audit.length>1000)S.data.audit=S.data.audit.slice(0,1000);}
 function getPr(cid,date){var p=S.data.prices.filter(x=>x.cid===cid&&x.from<=date&&(!x.to||x.to>=date));p.sort((a,b)=>b.from.localeCompare(a.from));return p.length?p[0].price:0;}
-function doLogin(){var u=V('lgu').trim(),p=V('lgp');var user=S.data.users.find(x=>x.u===u&&x.p===p&&x.active);if(!user){G('lgE').style.display='block';return;}G('lgE').style.display='none';user.ll=new Date().toISOString();user.lo='';S.cu=user;alog('تسجيل الدخول','المستخدم: '+user.name);sv();G('LP').style.display='none';G('APP').style.display='block';initApp();}
-function doLogout(){if(S.cu){S.cu.lo=new Date().toISOString();alog('تسجيل الخروج','المستخدم: '+S.cu.name);sv();}S.cu=null;G('APP').style.display='none';G('LP').style.display='flex';}
+function doLogin(){
+  var u=V('lgu').trim(),p=V('lgp');
+  var user=S.data.users.find(x=>x.u===u&&x.p===p&&x.active);
+  if(!user){G('lgE').style.display='block';return;}
+  G('lgE').style.display='none';
+  user.ll=new Date().toISOString();user.lo='';
+  S.cu=user;
+  alog('تسجيل الدخول','المستخدم: '+user.name);
+  sv();
+  G('LP').style.display='none';
+  G('APP').style.display='block';
+  initApp();
+}
+function doLogout(){
+  if(S.cu){S.cu.lo=new Date().toISOString();alog('تسجيل الخروج','المستخدم: '+S.cu.name);sv();}
+  S.cu=null;
+  G('APP').style.display='none';
+  G('LP').style.display='flex';
+  // Clear login fields
+  if(G('lgu'))G('lgu').value='';
+  if(G('lgp'))G('lgp').value='';
+  if(G('lgE'))G('lgE').style.display='none';
+}
 function initApp(){
   var u=S.cu;G('SBAv').textContent=u.name[0];G('SBNm').textContent=u.name;G('SBRl').textContent=ROLES[u.r].lbl;
   var d=new Date();var days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];var months=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
