@@ -123,20 +123,10 @@ tbody tr:hover td{background:var(--ltr)}
       <div class="llsb">نظام الإدارة المتكامل للخدمات اللوجستية</div>
     </div>
     <div class="fg">
-      <div class="fld"><label>اسم المستخدم</label><input type="text" id="lgu" placeholder="أدخل اسم المستخدم" value="admin" autocomplete="username"></div>
-      <div class="fld"><label>كلمة المرور</label><input type="password" id="lgp" placeholder="أدخل كلمة المرور" value="admin123" autocomplete="current-password"></div>
+      <div class="fld"><label>اسم المستخدم</label><input type="text" id="lgu" placeholder="أدخل اسم المستخدم" autocomplete="username"></div>
+      <div class="fld"><label>كلمة المرور</label><input type="password" id="lgp" placeholder="أدخل كلمة المرور" autocomplete="current-password"></div>
       <div id="lgE" style="display:none" class="al" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">&#x274C; اسم المستخدم أو كلمة المرور غير صحيحة</div>
       <button class="btn bp" style="width:100%;padding:13px;font-size:15px;justify-content:center" onclick="doLogin()">&#x1F511; دخول للنظام</button>
-    </div>
-    <div style="margin-top:18px;background:var(--ltr);border-radius:10px;padding:14px;font-size:12px;color:var(--gr)">
-      <div style="font-weight:700;color:var(--nv);margin-bottom:8px">&#x1F464; حسابات تجريبية:</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
-        <div>&#x1F451; admin / admin123</div><div>مدير النظام</div>
-        <div>&#x1F4BC; finance / finance123</div><div>المدير المالي</div>
-        <div>&#x1F4B0; treasury / treasury123</div><div>أمين الخزينة</div>
-        <div>&#x1F69B; ops / ops123</div><div>موظف التشغيل</div>
-        <div>&#x1F6E1;&#xFE0F; claims / claims123</div><div>مسؤول المطالبات</div>
-      </div>
     </div>
   </div>
 </div>
@@ -168,6 +158,7 @@ tbody tr:hover td{background:var(--ltr)}
     <div style="display:flex;align-items:center;gap:9px;padding:8px">
       <div class="sbav" id="SBAv">م</div>
       <div><div style="font-size:12px;font-weight:600;color:#fff" id="SBNm">—</div><div style="font-size:10px;color:rgba(255,255,255,.4)" id="SBRl">—</div></div>
+      <button class="btn bsm" style="background:rgba(255,255,255,.1);border-color:transparent;color:#fff;font-size:11px;padding:5px 10px" onclick="openChangePass(false)" title="تغيير كلمة المرور">&#x1F512;</button>
       <button class="btn bsm" style="margin-right:auto;background:rgba(255,255,255,.1);border-color:transparent;color:#fff;font-size:11px;padding:5px 10px" onclick="doLogout()">خروج</button>
     </div>
     <div style="font-size:10px;color:rgba(255,255,255,.2);text-align:center;margin-top:4px">v3.0 — Local Storage</div>
@@ -698,16 +689,16 @@ tbody tr:hover td{background:var(--ltr)}
 <script>
 "use strict";
 var S={cu:null,data:{users:[],employees:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
-var BK_KEY='qawafil_v7';
+var BK_KEY='qawafil_v8';
 function sv(){try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){toast('تعذّر الحفظ في المتصفح','e');}}
 function ld(){try{var d=localStorage.getItem(BK_KEY);if(d)S.data=Object.assign({},S.data,JSON.parse(d));}catch(e){}if(!S.data.users.length)seed();}
 function seed(){
   S.data.users=[
-    {id:'u1',name:'أحمد العدل',u:'admin',p:'admin123',r:'admin',active:true,ll:'',lo:''},
-    {id:'u2',name:'سارة الفيصل',u:'finance',p:'finance123',r:'finance',active:true,ll:'',lo:''},
-    {id:'u3',name:'عمر الزهراني',u:'treasury',p:'treasury123',r:'treasury',active:true,ll:'',lo:''},
-    {id:'u4',name:'محمد الشمري',u:'ops',p:'ops123',r:'ops',active:true,ll:'',lo:''},
-    {id:'u5',name:'نورة الدوسري',u:'claims',p:'claims123',r:'claims',active:true,ll:'',lo:''}
+    {id:'u1',name:'أحمد العدل',u:'admin',p:'123456',r:'admin',active:true,ll:'',lo:'',mustChangePass:true},
+    {id:'u2',name:'سارة الفيصل',u:'finance',p:'123456',r:'finance',active:true,ll:'',lo:'',mustChangePass:true},
+    {id:'u3',name:'عمر الزهراني',u:'treasury',p:'123456',r:'treasury',active:true,ll:'',lo:'',mustChangePass:true},
+    {id:'u4',name:'محمد الشمري',u:'ops',p:'123456',r:'ops',active:true,ll:'',lo:'',mustChangePass:true},
+    {id:'u5',name:'نورة الدوسري',u:'claims',p:'123456',r:'claims',active:true,ll:'',lo:'',mustChangePass:true}
   ];
   S.data.clients=[
     {id:'c1',name:'مؤسسة زاد الجود',contract:'ZJ-2024-001'},
@@ -803,7 +794,19 @@ function initApp(){
   ['stF','bkStF'].forEach(id=>{var el=G(id);if(el)el.value=fm.toISOString().split('T')[0];});
   ['stT','bkStT'].forEach(id=>{var el=G(id);if(el)el.value=td2();});
   fillDrops();fillAllEmpDropdowns();fillCCDropdowns();fillCustodyLinkDropdown('ex-custody-link');fillCustodyLinkDropdown('bo-custody-link');updApCnt();checkAlerts();
-  N('dash',document.querySelector('.sbi.on'));
+  var firstPage='dash';
+  if(!canPage('dash')){
+    var u2=S.data.users.find(function(x){return x.id===S.cu.id;})||S.cu;
+    var r2=ROLES[S.cu.r];
+    var pages2=u2.customPages||(r2&&r2.pages)||[];
+    if(pages2.length>0)firstPage=pages2[0];
+  }
+  var firstBtn=document.querySelector('.sbi[data-pg="'+firstPage+'"]')||document.querySelector('.sbi.on');
+  N(firstPage,firstBtn);
+  // Force password change if flagged
+  if(S.cu.mustChangePass){
+    setTimeout(function(){openChangePass(true);},400);
+  }
   if(window.innerWidth<=768)G('menuBtn').style.display='';
 }
 function fillDrops(){['op-c','pr-c'].forEach(id=>{var s=G(id);if(!s)return;s.innerHTML='<option value="">اختر العميل</option>';S.data.clients.forEach(c=>{var o=document.createElement('option');o.value=c.id;o.textContent=c.name;s.appendChild(o);});});var cf=G('opClF');if(cf){cf.innerHTML='<option value="">كل العملاء</option>';S.data.clients.forEach(c=>{var o=document.createElement('option');o.value=c.id;o.textContent=c.name;cf.appendChild(o);});}var cs=G('ce-c');if(cs){cs.innerHTML='<option value="">اختر الموظف</option>';S.data.custodies.filter(c=>c.status==='open').forEach(c=>{var o=document.createElement('option');o.value=c.id;o.textContent=c.name;cs.appendChild(o);});}
@@ -813,7 +816,7 @@ function updApCnt(){var p=S.data.expenses.filter(e=>e.status==='pending').length
 function checkAlerts(){var alerts=[];var oldClaims=S.data.claims.filter(c=>c.stage!=='مغلقة'&&c.stage!=='تم استلام التعويض'&&daysB(c.idate)>60);if(oldClaims.length)alerts.push(oldClaims.length+' مطالبة تجاوزت 60 يوماً بدون إغلاق');var pending=S.data.expenses.filter(e=>e.status==='pending').length;if(pending>0)alerts.push(pending+' طلب صرف ينتظر الاعتماد');var b=G('alertBanner'),m=G('alertMsg');if(b&&m){if(alerts.length){b.style.display='flex';m.textContent=alerts.join(' | ');}else{b.style.display='none';}var nd=G('ntfDt');if(nd)nd.style.display=alerts.length?'block':'none';}}
 function N(pg,btn){
   // Access guard
-  if(pg!=='dash'&&!canPage(pg)){toast('ليس لديك صلاحية الوصول لهذه الصفحة','e');return;}
+  if(!canPage(pg)){toast('ليس لديك صلاحية الوصول لهذه الصفحة','e');return;}
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
   var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',emps:'سجل الموظفين',cc:'مراكز التكلفة',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
@@ -1072,7 +1075,7 @@ function loadRp(){
 }
 /* ─── USERS ─── */
 function loadUs(){G('usTbd').innerHTML=S.data.users.map(u=>'<tr><td><div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:50%;background:var(--'+(u.active?'ry':'gr2')+');display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0">'+u.name[0]+'</div><div><div style="font-weight:600">'+u.name+'</div><div style="font-size:11px;color:var(--gr);font-family:monospace">'+u.u+'</div></div></div></td><td><span class="bdg '+(ROLES[u.r]?ROLES[u.r].c:'bg2')+'">'+(ROLES[u.r]?ROLES[u.r].lbl:u.r)+'</span></td><td style="font-size:12px;color:var(--gr)">'+(u.ll?new Date(u.ll).toLocaleString('ar-SA'):'لم يدخل بعد')+'</td><td style="font-size:12px;color:var(--gr)">'+(u.lo?new Date(u.lo).toLocaleString('ar-SA'):'—')+'</td><td><span class="bdg '+(u.active?'bn':'br')+'">'+(u.active?'✅ نشط':'🔒 موقوف')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="editUs(\''+u.id+'\')">✏️ تعديل</button><button class="btn bxs '+(u.active?'bd2':'')+'" onclick="togUs(\''+u.id+'\')">'+  (u.active?'🔒 إيقاف':'✅ تفعيل')+'</button>'+(u.id!==S.cu.id?'<button class="btn bd2 bxs" onclick="delUs(\''+u.id+'\')">🗑️</button>':'')+'</div></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا يوجد مستخدمون</div></div></td></tr>';}
-function saveUs(){var n=V('us-n'),u=V('us-u'),p=V('us-p'),r=V('us-r');if(!n||!u||!p){toast('يرجى تعبئة الحقول المطلوبة','e');return;}if(S.data.users.find(x=>x.u===u)){toast('اسم المستخدم مستخدم مسبقاً','e');return;}S.data.users.push({id:uid(),name:n,u:u,p:p,r:r,active:true,ll:'',lo:''});alog('إضافة مستخدم جديد',n+' — '+ROLES[r].lbl);sv();CM('usM');loadUs();toast('تم إضافة المستخدم بنجاح');}
+function saveUs(){var n=V('us-n'),u=V('us-u'),p=V('us-p'),r=V('us-r');if(!n||!u||!p){toast('يرجى تعبئة الحقول المطلوبة','e');return;}if(S.data.users.find(x=>x.u===u)){toast('اسم المستخدم مستخدم مسبقاً','e');return;}S.data.users.push({id:uid(),name:n,u:u,p:p,r:r,active:true,ll:'',lo:'',mustChangePass:true});alog('إضافة مستخدم جديد',n+' — '+ROLES[r].lbl);sv();CM('usM');loadUs();toast('تم إضافة المستخدم بنجاح');}
 function togUs(id){var u=S.data.users.find(x=>x.id===id);if(!u)return;if(u.id===S.cu.id){toast('لا يمكن إيقاف حسابك الخاص','e');return;}u.active=!u.active;alog(u.active?'تفعيل مستخدم':'إيقاف مستخدم',u.name);sv();loadUs();toast(u.active?'تم تفعيل الحساب':'تم إيقاف الحساب',u.active?'s':'w');}
 /* ─── AUDIT ─── */
 function loadAudit(){var df=V('auDt'),uf=V('auUsr');var logs=S.data.audit;if(df)logs=logs.filter(a=>a.dt.startsWith(df));if(uf)logs=logs.filter(a=>a.user===uf);G('auTbd').innerHTML=logs.slice(0,200).map(a=>'<tr><td style="font-family:monospace;font-size:12px;white-space:nowrap">'+new Date(a.dt).toLocaleString('ar-SA')+'</td><td style="font-weight:600">'+a.user+'</td><td><span class="bdg '+(ROLES[S.data.users.find(u=>u.name===a.user)?.r]?.c||'bg2')+'">'+a.role+'</span></td><td>'+a.action+'</td><td style="color:var(--gr);font-size:12px">'+a.details+'</td><td><span class="bdg bn">'+a.res+'</span></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا توجد سجلات</div></div></td></tr>';}
@@ -1097,6 +1100,8 @@ var ALL_PAGES=[
   {id:'tr',lbl:'الخزينة'},
   {id:'bk',lbl:'البنك'},
   {id:'ap',lbl:'الاعتمادات'},
+  {id:'emps',lbl:'سجل الموظفين'},
+  {id:'cc',lbl:'مراكز التكلفة'},
   {id:'cu',lbl:'العهد الشخصية'},
   {id:'cl',lbl:'المطالبات'},
   {id:'rp',lbl:'التقارير الشاملة'},
@@ -1688,6 +1693,69 @@ function delCC(id){
   toast('تم حذف المركز','w');
 }
 
+
+/* ═══════════════════════════════════════════
+   CHANGE PASSWORD MODULE
+═══════════════════════════════════════════ */
+function checkPassStrength(){
+  var p=G('cp-new').value;
+  var bar=G('cp-strength-bar'),txt=G('cp-strength-txt'),wrap=G('cp-strength');
+  if(!p){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  var score=0;
+  if(p.length>=6)score++;
+  if(p.length>=10)score++;
+  if(/[A-Z]/.test(p)||/[a-z]/.test(p))score++;
+  if(/[0-9]/.test(p))score++;
+  if(/[^A-Za-z0-9]/.test(p))score++;
+  var levels=[
+    {lbl:'ضعيفة جداً',color:'#DC2626',w:'20%'},
+    {lbl:'ضعيفة',color:'#F97316',w:'40%'},
+    {lbl:'مقبولة',color:'#EAB308',w:'60%'},
+    {lbl:'جيدة',color:'#22C55E',w:'80%'},
+    {lbl:'قوية جداً',color:'#059669',w:'100%'}
+  ];
+  var lvl=levels[Math.min(score,4)];
+  bar.style.width=lvl.w;bar.style.background=lvl.color;
+  txt.textContent='قوة كلمة المرور: '+lvl.lbl;txt.style.color=lvl.color;
+}
+
+function saveNewPass(){
+  var oldP=G('cp-old').value;
+  var newP=G('cp-new').value;
+  var conf=G('cp-confirm').value;
+  if(!oldP||!newP||!conf){toast('يرجى تعبئة جميع الحقول','e');return;}
+  if(S.cu.p!==oldP){toast('كلمة المرور الحالية غير صحيحة','e');return;}
+  if(newP.length<6){toast('كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل','e');return;}
+  if(newP===oldP){toast('كلمة المرور الجديدة يجب أن تختلف عن الحالية','e');return;}
+  if(newP!==conf){toast('كلمة المرور الجديدة وتأكيدها غير متطابقتين','e');return;}
+  // Update password
+  var user=S.data.users.find(function(u){return u.id===S.cu.id;});
+  if(!user)return;
+  user.p=newP;
+  user.mustChangePass=false;
+  S.cu.p=newP;
+  S.cu.mustChangePass=false;
+  alog('تغيير كلمة المرور','المستخدم: '+S.cu.name);
+  sv();
+  G('chPassM').classList.remove('on');
+  // Clear fields
+  G('cp-old').value='';G('cp-new').value='';G('cp-confirm').value='';
+  G('cp-strength').style.display='none';
+  toast('✅ تم تغيير كلمة المرور بنجاح');
+}
+
+function openChangePass(isMandatory){
+  var alertEl=G('chPassAlert');
+  if(alertEl){
+    alertEl.style.display=isMandatory?'flex':'none';
+  }
+  // Clear fields
+  G('cp-old').value='';G('cp-new').value='';G('cp-confirm').value='';
+  if(G('cp-strength'))G('cp-strength').style.display='none';
+  G('chPassM').classList.add('on');
+}
+
 /* ─── KEYBOARD & EVENTS ─── */
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo2.on').forEach(m=>m.classList.remove('on'));});
 document.addEventListener('click',e=>{if(e.target.classList.contains('mo2'))e.target.classList.remove('on');if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
@@ -1787,5 +1855,32 @@ ld();
   <input type="hidden" id="cc-id">
   <div class="mft"><button class="btn" onclick="CM('ccM')">إلغاء</button><button class="btn bp" onclick="saveCC()">&#x1F4BE; حفظ</button></div>
 </div></div>
+
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="mo2" id="chPassM" style="z-index:400">
+  <div class="mb2 sm">
+    <div class="mhd">
+      <div class="mtt">&#x1F512; تغيير كلمة المرور</div>
+    </div>
+    <div id="chPassAlert" class="al aw" style="margin-bottom:14px">
+      &#x26A0;&#xFE0F; كلمة المرور الافتراضية نشطة. يجب تغييرها قبل المتابعة.
+    </div>
+    <div class="fg">
+      <div class="fld"><label>كلمة المرور الحالية <span class="req">*</span></label><input type="password" id="cp-old" placeholder="أدخل كلمة المرور الحالية"></div>
+      <div class="fld"><label>كلمة المرور الجديدة <span class="req">*</span></label><input type="password" id="cp-new" placeholder="6 أحرف على الأقل" oninput="checkPassStrength()"></div>
+      <div id="cp-strength" style="display:none;margin-top:-8px">
+        <div style="height:4px;border-radius:2px;background:var(--bd);overflow:hidden;margin-bottom:4px">
+          <div id="cp-strength-bar" style="height:100%;border-radius:2px;transition:all .3s"></div>
+        </div>
+        <div id="cp-strength-txt" style="font-size:11px"></div>
+      </div>
+      <div class="fld"><label>تأكيد كلمة المرور الجديدة <span class="req">*</span></label><input type="password" id="cp-confirm" placeholder="أعد كتابة كلمة المرور"></div>
+    </div>
+    <div class="mft">
+      <button class="btn bp" onclick="saveNewPass()" style="width:100%;justify-content:center">&#x1F512; تغيير كلمة المرور</button>
+    </div>
+  </div>
+</div>
 
 </body></html>
