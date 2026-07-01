@@ -964,10 +964,35 @@ function loadBk(){
   var bal=bI.reduce((s,b)=>s+b.amount,0)-bO.reduce((s,b)=>s+b.amount,0);
   var mI=bI.filter(b=>b.date.startsWith(ym2)).reduce((s,b)=>s+b.amount,0),mO=bO.filter(b=>b.date.startsWith(ym2)).reduce((s,b)=>s+b.amount,0);
   G('bkBal').textContent=fR(bal);G('bkInM').textContent=fR(mI);G('bkOutM').textContent=fR(mO);
-  var rv=new Set(S.data.bankRevs.map(r=>r.date));var unrv=[];for(var i=1;i<=30;i++){var d=new Date();d.setDate(d.getDate()-i);if(!rv.has(d.toISOString().split('T')[0]))unrv.push(d.toISOString().split('T')[0]);}
-  G('bkUnRv').textContent=unrv.length;
+  var rv=new Set(S.data.bankRevs.map(r=>r.date));
+  // Only count days that have actual transactions AND haven't been reviewed
+  var txDays=new Set([
+    ...S.data.bankIn.map(b=>b.date),
+    ...S.data.bankOut.map(b=>b.date)
+  ]);
+  var unrv=[];
+  for(var i=1;i<=30;i++){
+    var d=new Date();d.setDate(d.getDate()-i);
+    var dt=d.toISOString().split('T')[0];
+    if(txDays.has(dt)&&!rv.has(dt))unrv.push(dt);
+  }
+  G('bkUnRv').textContent=unrv.length>0?unrv.length:'—';
   var rvd=S.data.bankRevs.filter(r=>r.date.startsWith(ym2));G('bkRevInfo').textContent='تمت مراجعة '+rvd.length+' يوم هذا الشهر';
-  var cal=G('bkCal');cal.innerHTML='';for(var i=29;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);var dt=d.toISOString().split('T')[0],isRv=rv.has(dt);var div=document.createElement('div');div.style.cssText='text-align:center;padding:4px 2px;border-radius:7px;background:'+(isRv?'var(--scb)':'var(--dnb)');div.title=dt;div.innerHTML='<div style="font-size:11px;font-weight:700;color:'+(isRv?'var(--sc)':'var(--dn)')+'">'+d.getDate()+'</div><div style="font-size:13px">'+(isRv?'✅':'❌')+'</div>';cal.appendChild(div);}
+  var cal=G('bkCal');cal.innerHTML='';for(var i=29;i>=0;i--){
+    var d=new Date();d.setDate(d.getDate()-i);
+    var dt=d.toISOString().split('T')[0];
+    var isRv=rv.has(dt);
+    var hasTx=txDays.has(dt);
+    var div=document.createElement('div');
+    // Only color days with transactions; empty days shown neutral
+    var bg=!hasTx?'var(--ltr)':isRv?'var(--scb)':'var(--dnb)';
+    var clr=!hasTx?'var(--gr2)':isRv?'var(--sc)':'var(--dn)';
+    var ico=!hasTx?'·':isRv?'✅':'❌';
+    div.style.cssText='text-align:center;padding:4px 2px;border-radius:7px;background:'+bg+';'+(hasTx?'':'opacity:.4');
+    div.title=dt+(hasTx?(isRv?' — تمت المراجعة':' — يحتاج مراجعة'):' — لا توجد حركات');
+    div.innerHTML='<div style="font-size:11px;font-weight:700;color:'+clr+'">'+d.getDate()+'</div><div style="font-size:13px">'+ico+'</div>';
+    cal.appendChild(div);
+  }
   G('biTbd').innerHTML=bI.sort((a,b)=>b.date.localeCompare(a.date)).map(b=>'<tr><td>'+b.date+'</td><td style="font-weight:700;color:var(--sc)">'+fR(b.amount)+'</td><td>'+b.from+'</td><td style="font-family:monospace;font-size:12px">'+(b.ref||'—')+'</td><td>'+(b.desc||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+b.by+'</td><td><button class="btn bd2 bxs" onclick="delBI(\''+b.id+'\')">حذف</button></td></tr>').join('')||'<tr><td colspan="7"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
   G('boTbd').innerHTML=bO.sort((a,b)=>b.date.localeCompare(a.date)).map(b=>'<tr><td>'+b.date+'</td><td style="font-weight:700;color:var(--dn)">'+fR(b.amount)+'</td><td>'+b.to+'</td><td style="font-family:monospace;font-size:12px">'+(b.ref||'—')+'</td><td>'+(b.desc||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+b.by+'</td><td><button class="btn bd2 bxs" onclick="delBO(\''+b.id+'\')">حذف</button></td></tr>').join('')||'<tr><td colspan="7"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
   var fl=[],flI=[],flO=[];for(var i=5;i>=0;i--){var d=new Date();d.setMonth(d.getMonth()-i);var ym3=d.toISOString().slice(0,7);fl.push(d.toLocaleDateString('ar-SA',{month:'short'}));flI.push(bI.filter(b=>b.date.startsWith(ym3)).reduce((s,b)=>s+b.amount,0));flO.push(bO.filter(b=>b.date.startsWith(ym3)).reduce((s,b)=>s+b.amount,0));}
