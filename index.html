@@ -243,7 +243,7 @@ tbody tr:hover td{background:var(--ltr)}
         <button class="btn bsm" onclick="ET('opTbl')">&#x1F4E5; Excel</button>
       </div>
     </div>
-    <div class="tw"><table id="opTbl">
+    <div class="tw"><table id="opTbl" style="min-width:850px">
       <thead><tr><th>التاريخ</th><th>العميل</th><th>السيارات</th><th>السعر/سيارة</th><th>الإيراد</th><th>العقد</th><th>ملاحظات</th><th>المسجِّل</th><th></th></tr></thead>
       <tbody id="opTbd"></tbody>
     </table></div>
@@ -269,7 +269,7 @@ tbody tr:hover td{background:var(--ltr)}
     <div class="card"><div class="cht">&#x1F4C4; تقرير حسب العقد</div><div id="rvContr"></div></div>
   </div>
   <div class="card"><div class="cht">التفصيل الشهري <button class="btn bsm" onclick="ET('rvMTbl')">&#x1F4E5; تصدير</button></div>
-    <div class="tw"><table id="rvMTbl"><thead><tr><th>الشهر</th><th>أيام العمل</th><th>السيارات</th><th>الإيراد</th><th>المتوسط اليومي</th><th>التغير</th></tr></thead><tbody id="rvMTbd"></tbody></table></div>
+    <div class="tw"><table id="rvMTbl" style="min-width:650px"><thead><tr><th>الشهر</th><th>أيام العمل</th><th>السيارات</th><th>الإيراد</th><th>المتوسط اليومي</th><th>التغير</th></tr></thead><tbody id="rvMTbd"></tbody></table></div>
   </div>
 </div>
 <!-- ═══ PRICES ═══ -->
@@ -278,7 +278,7 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="btn bp" onclick="OM('prM')">&#x2795; إضافة سعر</button>
   </div>
   <div class="al ai">&#x1F4A1; يمكن تحديد سعر مختلف لكل عميل. تحديد تاريخ السريان يضمن عدم التأثير على الفترات السابقة.</div>
-  <div class="card"><div class="tw"><table id="prTbl">
+  <div class="card"><div class="tw"><table id="prTbl" style="min-width:750px">
     <thead><tr><th>العميل</th><th>السعر (ريال/سيارة)</th><th>تاريخ السريان</th><th>تاريخ الانتهاء</th><th>الحالة</th><th>ملاحظات</th><th>المسجِّل</th><th></th></tr></thead>
     <tbody id="prTbd"></tbody>
   </table></div></div>
@@ -308,7 +308,7 @@ tbody tr:hover td{background:var(--ltr)}
       <div class="card"><div class="cht">&#x1F4E5; سجل المقبوضات
         <div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('rcTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('rcTbl')">&#x1F4E5;</button></div>
       </div>
-      <div class="tw"><table id="rcTbl"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>الجهة</th><th>البيان</th><th>المبلغ</th><th>طريقة السداد</th><th>المرجع</th><th>المسجِّل</th><th>المراجعة</th><th>إجراء</th></tr></thead><tbody id="rcTbd"></tbody></table></div>
+      <div class="tw"><table id="rcTbl" style="min-width:900px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>الجهة</th><th>البيان</th><th>المبلغ</th><th>طريقة السداد</th><th>المرجع</th><th>المسجِّل</th><th>المراجعة</th><th>إجراء</th></tr></thead><tbody id="rcTbd"></tbody></table></div>
     </div></div>
     <div class="tabc" id="trEx">
       <div class="card"><div class="cht">&#x1F4E4; سجل المصروفات
@@ -318,7 +318,7 @@ tbody tr:hover td{background:var(--ltr)}
           <button class="btn bsm" onclick="ET('exTbl')">&#x1F4E5;</button>
         </div>
       </div>
-      <div class="tw"><table id="exTbl"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المستفيد</th><th>البيان</th><th>المبلغ</th><th>مركز التكلفة</th><th>الطريقة</th><th>الحالة</th><th>المسجِّل</th><th>المراجعة</th><th>إجراء</th></tr></thead><tbody id="exTbd"></tbody></table></div>
+      <div class="tw"><table id="exTbl" style="min-width:1050px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المستفيد</th><th>البيان</th><th>المبلغ</th><th>مركز التكلفة</th><th>الطريقة</th><th>الحالة</th><th>المسجِّل</th><th>المراجعة</th><th>إجراء</th></tr></thead><tbody id="exTbd"></tbody></table></div>
     </div></div>
     <div class="tabc" id="trStm">
       <div class="card"><div class="cht">&#x1F4CA; كشف الخزينة
@@ -363,8 +363,8 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb" onclick="ST('bkTbs','bkFlow',this)">التدفق النقدي</button>
   </div>
   <div id="bkTbs">
-    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th></th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
-    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th></th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
+    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th></th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th></th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
     <div class="tabc" id="bkStm"><div class="card"><div class="cht">كشف الحساب البنكي<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="date" id="bkStF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><input type="date" id="bkStT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><button class="btn bsm bp" onclick="loadBkStm()">&#x1F50E; عرض</button></div></div><div id="bkStmC"></div></div></div>
     <div class="tabc" id="bkFlow"><div class="card"><div class="cht">التدفق النقدي البنكي — 6 أشهر</div><canvas id="chFlow" height="260"></canvas></div></div>
   </div>
@@ -427,7 +427,7 @@ tbody tr:hover td{background:var(--ltr)}
         <button class="btn bsm" onclick="ET('vehTbl')">&#x1F4E5; تصدير</button>
       </div>
     </div>
-    <div class="tw"><table id="vehTbl">
+    <div class="tw"><table id="vehTbl" style="min-width:950px">
       <thead><tr><th>رقم اللوحة</th><th>الحروف</th><th>الموديل</th><th>النوع/الماركة</th><th>السنة</th><th>نوع الوقود</th><th>اللون</th><th>الحالة</th><th>ملاحظات</th><th>إجراء</th></tr></thead>
       <tbody id="vehTbd"></tbody>
     </table></div>
@@ -452,7 +452,7 @@ tbody tr:hover td{background:var(--ltr)}
         <button class="btn bsm" onclick="ET('empTbl')">&#x1F4E5; تصدير</button>
       </div>
     </div>
-    <div class="tw"><table id="empTbl">
+    <div class="tw"><table id="empTbl" style="min-width:850px">
       <thead><tr><th>اسم الموظف</th><th>رقم الموظف</th><th>الوظيفة</th><th>القسم</th><th>رقم الهاتف</th><th>حالة العهدة</th><th>رصيد العهدة</th><th>تاريخ الإضافة</th><th>إجراء</th></tr></thead>
       <tbody id="empTbd"></tbody>
     </table></div>
@@ -482,8 +482,8 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb" onclick="ST('cuTbs','cuItemRep',this);loadCuItemReport()">&#x1F4CA; تقرير البنود</button>
   </div>
   <div id="cuTbs">
-    <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
-    <div class="tabc" id="cuEnt"><div class="card"><div class="cht">سجل مصروفات العهد<div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('cuEnTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('cuEnTbl')">&#x1F4E5;</button></div></div><div class="tw"><table id="cuEnTbl"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البند</th><th>المبلغ</th><th>رقم السيارة</th><th>اللوحة</th><th>البيان</th></tr></thead><tbody id="cuEnTbd"></tbody></table></div></div></div>
+    <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl" style="min-width:850px"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="cuEnt"><div class="card"><div class="cht">سجل مصروفات العهد<div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('cuEnTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('cuEnTbl')">&#x1F4E5;</button></div></div><div class="tw"><table id="cuEnTbl" style="min-width:750px"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البند</th><th>المبلغ</th><th>رقم السيارة</th><th>اللوحة</th><th>البيان</th></tr></thead><tbody id="cuEnTbd"></tbody></table></div></div></div>
     <div class="tabc" id="cuCar"><div class="card"><div class="cht">تقرير المصروفات حسب السيارة</div><div id="cuCarC"></div></div></div>
     <div class="tabc" id="cuBal"><div class="card"><div class="cht">ملخص أرصدة العهد الحالية</div><div id="cuBalC"></div></div></div>
     <div class="tabc" id="cuRep">
@@ -558,7 +558,7 @@ tbody tr:hover td{background:var(--ltr)}
     </div>
   </div>
   <div class="card"><div class="cht">قائمة المطالبات</div>
-    <div class="tw"><table id="clTbl">
+    <div class="tw"><table id="clTbl" style="min-width:1000px">
       <thead><tr><th>رقم المطالبة</th><th>تاريخ الحادث</th><th>السيارة / اللوحة</th><th>السائق</th><th>شركة التأمين</th><th>قيمة التقدير</th><th>نسبة الخطأ</th><th>المرحلة</th><th>أيام الحادث</th><th>أيام التأمين</th><th></th></tr></thead>
       <tbody id="clTbd"></tbody>
     </table></div>
@@ -631,7 +631,7 @@ tbody tr:hover td{background:var(--ltr)}
           </div>
         </div>
         <div id="rpVehSummary" style="margin-bottom:16px"></div>
-        <div class="tw"><table id="rpVehTbl">
+        <div class="tw"><table id="rpVehTbl" style="min-width:750px">
           <thead><tr><th>السيارة</th><th>الموديل</th><th>من العهد</th><th>من الخزينة</th><th>من البنك</th><th>الإجمالي</th><th>عدد القيود</th></tr></thead>
           <tbody id="rpVehTbd"></tbody>
         </table></div>
@@ -664,7 +664,7 @@ tbody tr:hover td{background:var(--ltr)}
       <input type="date" id="auDt" onchange="loadAudit()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
       <select id="auUsr" onchange="loadAudit()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل المستخدمين</option></select>
     </div>
-    <div class="tw"><table id="auTbl">
+    <div class="tw"><table id="auTbl" style="min-width:800px">
       <thead><tr><th>التاريخ والوقت</th><th>المستخدم</th><th>الدور</th><th>العملية</th><th>التفاصيل</th><th>النتيجة</th></tr></thead>
       <tbody id="auTbd"></tbody>
     </table></div>
@@ -2617,13 +2617,13 @@ function renderCuSetRows(){
       return '<option value="'+ci.name+'"'+(r.item===ci.name?' selected':'')+'>'+ci.name+'</option>';
     }).join('');
     return '<tr style="border-bottom:1px solid var(--bd)">'+
-      '<td style="padding:6px 8px"><input type="date" value="'+r.date+'" onchange="cuSetRows['+i+'].date=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:120px"></td>'+
-      '<td style="padding:6px 8px"><input type="text" value="'+(r.desc||'')+'" placeholder="الشرح التفصيلي" oninput="cuSetRows['+i+'].desc=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:160px"></td>'+
-      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].cc=this.value;cuSetRows['+i+'].item=\'\';renderCuSetRows()" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:120px">'+ccOpts+'</select></td>'+
-      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].item=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:120px">'+itemOpts+'</select></td>'+
-      '<td style="padding:6px 8px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetSummary()" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:90px;text-align:left"></td>'+
-      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].vehId=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:120px">'+vehOpts+'</select></td>'+
-      '<td style="padding:6px 8px"><button onclick="cuSetRows.splice('+i+',1);renderCuSetRows()" style="background:var(--dnb);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px">🗑️</button></td>'+
+      '<td style="padding:4px 6px"><input type="date" value="'+r.date+'" onchange="cuSetRows['+i+'].date=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px"></td>'+
+      '<td style="padding:4px 6px"><input type="text" value="'+(r.desc||'')+'" placeholder="البيان" oninput="cuSetRows['+i+'].desc=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:140px"></td>'+
+      '<td style="padding:4px 6px"><select onchange="cuSetRows['+i+'].cc=this.value;cuSetRows['+i+'].item=\'\';renderCuSetRows()" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px">'+ccOpts+'</select></td>'+
+      '<td style="padding:4px 6px"><select onchange="cuSetRows['+i+'].item=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px">'+itemOpts+'</select></td>'+
+      '<td style="padding:4px 6px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetSummary()" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:85px;text-align:left"></td>'+
+      '<td style="padding:4px 6px"><select onchange="cuSetRows['+i+'].vehId=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px">'+vehOpts+'</select></td>'+
+      '<td style="padding:4px 6px"><button onclick="cuSetRows.splice('+i+',1);renderCuSetRows()" style="background:var(--dnb);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px">🗑️</button></td>'+
     '</tr>';
   }).join('');
   updateCuSetSummary();
@@ -3387,16 +3387,16 @@ ld();
 
   <!-- Expenses table -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:700;color:var(--nv)">&#x1F4B8; المصروفات</div><button class="btn bsm" onclick="addCustodyItem();renderCuSetRows()" style="font-size:11px">&#x2795; بند جديد</button></div>
-  <div style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:12px">
+  <div style="border:1px solid var(--bd);border-radius:10px;overflow-x:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch">
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
         <tr style="background:var(--ltr)">
-          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">التاريخ</th>
-          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">البيان</th>
-          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">مركز التكلفة</th>
-          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">البند</th>
-          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">المبلغ</th>
-          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">السيارة</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">التاريخ</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">البيان</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">مركز التكلفة</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">البند</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">المبلغ</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">السيارة</th>
           <th style="padding:8px 10px;width:40px"></th>
         </tr>
       </thead>
