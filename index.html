@@ -172,6 +172,7 @@ tbody tr:hover td{background:var(--ltr)}
   <button class="sbi" onclick="N('tr',this)" data-pg="tr">&#x1F3E6; الخزينة</button>
   <button class="sbi" onclick="N('cc',this)" data-pg="cc">&#x1F3F7;&#xFE0F; مراكز التكلفة</button>
   <button class="sbi" onclick="N('bk',this)" data-pg="bk">&#x1F3DB;&#xFE0F; البنك</button>
+  <button class="sbi" onclick="N('ba',this)" data-pg="ba">&#x1F4B3; الحسابات البنكية</button>
   <button class="sbi" id="apNav" onclick="N('ap',this)" style="display:none">&#x2705; الاعتمادات <span class="sbdg" id="apCnt">0</span></button>
   <div class="sbs">العهد والمطالبات</div>
   <button class="sbi" onclick="N('emps',this)" data-pg="emps">&#x1F464; سجل الموظفين</button>
@@ -401,6 +402,48 @@ tbody tr:hover td{background:var(--ltr)}
   </div>
 </div>
 
+
+
+<!-- ═══ BANK ACCOUNTS ═══ -->
+<div class="pg" id="pg-ba">
+  <div class="page-hdr"><h2>&#x1F4B3; الحسابات البنكية</h2>
+    <button class="btn bp" onclick="OM('baM')">&#x2795; حساب جديد</button>
+  </div>
+  <div id="ba-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:20px"></div>
+  <div class="tabs">
+    <button class="tabb on" onclick="ST('baTbs','baList',this)">حركات الحسابات</button>
+    <button class="tabb" onclick="ST('baTbs','baStm',this)">كشف حساب مقارن</button>
+  </div>
+  <div id="baTbs">
+    <div class="tabc on" id="baList">
+      <div class="card">
+        <div class="cht">&#x1F4CA; حركات الحسابات
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="ba-filter" onchange="loadBA()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل الحسابات</option></select>
+            <input type="month" id="ba-month" onchange="loadBA()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <button class="btn bsm" onclick="ET('baTbl')">&#x1F4E5;</button>
+          </div>
+        </div>
+        <div class="tw"><table id="baTbl">
+          <thead><tr><th>التاريخ</th><th>الحساب</th><th>النوع</th><th>المبلغ</th><th>الرصيد</th><th>المستفيد/المصدر</th><th>رقم العملية</th><th>البيان</th></tr></thead>
+          <tbody id="baTbd"></tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="tabc" id="baStm">
+      <div class="card">
+        <div class="cht">&#x1F4CA; مقارنة الحسابات
+          <div style="display:flex;gap:8px">
+            <input type="date" id="baStF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <input type="date" id="baStT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <button class="btn bsm bp" onclick="loadBAStm()">&#x1F50E; عرض</button>
+          </div>
+        </div>
+        <div id="baStmC"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ VEHICLES ═══ -->
 <div class="pg" id="pg-veh">
@@ -777,6 +820,7 @@ tbody tr:hover td{background:var(--ltr)}
 
 <div class="mo2" id="biM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F4E5; وارد بنكي</div><button class="mcl" onclick="CM('biM')">×</button></div>
 <div class="fg">
+  <div class="fld"><label>الحساب البنكي <span class="req">*</span></label><select id="bi-acc" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر الحساب —</option></select></div>
   <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="bi-d"></div>
   <div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="bi-a" placeholder="0"></div>
   <div class="fld"><label>مصدر التحويل <span class="req">*</span></label><input type="text" id="bi-f" placeholder="اسم المحوِّل"></div>
@@ -787,6 +831,7 @@ tbody tr:hover td{background:var(--ltr)}
 
 <div class="mo2" id="boM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F4E4; صادر بنكي</div><button class="mcl" onclick="CM('boM')">×</button></div>
 <div class="fg">
+  <div class="fld"><label>الحساب البنكي <span class="req">*</span></label><select id="bo-acc" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر الحساب —</option></select></div>
   <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="bo-d"></div>
   <div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="bo-a" placeholder="0"></div>
   <div class="fld"><label>المستفيد <span class="req">*</span></label>
@@ -893,8 +938,8 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],vehicles:[],custodyItems:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
-var BK_KEY='qawafil_v12'; // localStorage fallback key
+var S={cu:null,data:{users:[],employees:[],vehicles:[],bankAccounts:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
+var BK_KEY='qawafil_v13'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
 
@@ -1010,7 +1055,7 @@ function _startListener(){
       if(pg){
         var pgId=pg.id.replace('pg-','');
         var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,
-               ap:loadAp,veh:loadVeh,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,
+               ap:loadAp,veh:loadVeh,ba:loadBA,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,
                rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};
         if(L[pgId])L[pgId]();
       }
@@ -1031,6 +1076,11 @@ function seed(){
     {id:'u4',name:'محمد الشمري',u:'ops',p:'123456',r:'ops',active:true,ll:'',lo:'',mustChangePass:true},
     {id:'u5',name:'نورة الدوسري',u:'claims',p:'123456',r:'claims',active:true,ll:'',lo:'',mustChangePass:true}
   ];
+  // حسابات بنكية افتراضية
+  S.data.bankAccounts=[
+    {id:'ba1',name:'البنك الأهلي',number:'',branch:'الرئيسي',currency:'ريال',balance:0,active:true,color:'#059669'},
+    {id:'ba2',name:'بنك الراجحي',number:'',branch:'الرئيسي',currency:'ريال',balance:0,active:true,color:'#1A56DB'}
+  ];
   // مراكز التكلفة مع البنود التابعة لها
   S.data.costCenters=[
     {id:'cc1',name:'تشغيل',desc:'مصروفات تشغيل السيارات والأسطول',color:'#1A56DB',active:true,
@@ -1050,10 +1100,10 @@ function seed(){
 }
 var ROLES={
   admin:   {lbl:'مدير النظام',    c:'bpu', all:true,
-            pages:['dash','ops','rev','prices','tr','bk','ap','veh','emps','cc','cu','cl','rp','us','au'],
+            pages:['dash','ops','rev','prices','tr','bk','ba','ap','veh','emps','cc','cu','cl','rp','us','au'],
             canDel:true, canEdit:true, ap:true, bkRev:true, rc:true, ex:true, ops:true, claims:true},
   finance: {lbl:'المدير المالي',  c:'bb',  ap:true, bkRev:true,
-            pages:['dash','rev','tr','bk','ap','veh','emps','cc','cu','cl','rp','au'],
+            pages:['dash','rev','tr','bk','ba','ap','veh','emps','cc','cu','cl','rp','au'],
             canDel:false, canEdit:false},
   treasury:{lbl:'أمين الخزينة',   c:'bn',  rc:true, ex:true,
             pages:['dash','tr','veh','emps','cc','cu'],
@@ -1133,7 +1183,7 @@ function initApp(){
   var fm=new Date();fm.setDate(1);
   ['stF','bkStF'].forEach(id=>{var el=G(id);if(el)el.value=fm.toISOString().split('T')[0];});
   ['stT','bkStT'].forEach(id=>{var el=G(id);if(el)el.value=td2();});
-  fillDrops();fillAllEmpDropdowns();fillCCDropdowns();fillVehDropdowns();fillCustodyLinkDropdown('ex-custody-link');fillCustodyLinkDropdown('bo-custody-link');updApCnt();checkAlerts();
+  fillDrops();fillAllEmpDropdowns();fillCCDropdowns();fillVehDropdowns();getBankAccounts();fillCustodyLinkDropdown('ex-custody-link');fillCustodyLinkDropdown('bo-custody-link');updApCnt();checkAlerts();
   var firstPage='dash';
   if(!canPage('dash')){
     var u2=S.data.users.find(function(x){return x.id===S.cu.id;})||S.cu;
@@ -1159,7 +1209,7 @@ function N(pg,btn){
   if(!canPage(pg)){toast('ليس لديك صلاحية الوصول لهذه الصفحة','e');return;}
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
-  var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',veh:'سجل السيارات',emps:'سجل الموظفين',cc:'مراكز التكلفة',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,veh:loadVeh,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
+  var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',veh:'سجل السيارات',ba:'الحسابات البنكية',emps:'سجل الموظفين',cc:'مراكز التكلفة',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,veh:loadVeh,ba:loadBA,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
 function OM(id){
   if(id==='empM'){
     G('emp-id').value='';G('emp-name').value='';G('emp-job').value='';
@@ -1189,9 +1239,14 @@ function OM(id){
   }
   if(id==='ceM'){fillVehDropdowns();var cs=G('ce-veh-sel');if(cs)cs.value='';}
   if(id==='clM'){fillVehDropdowns();var cvs=G('cl-veh-sel');if(cvs)cvs.value='';}
+  if(id==='biM'||id==='boM'){
+    var accSel=G(id==='biM'?'bi-acc':'bo-acc');
+    if(accSel){accSel.innerHTML='<option value="">— اختر الحساب —</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+(a.number?' — '+a.number:'')+'</option>';}).join('');}
+  }
   if(id==='boM'){fillAllEmpDropdowns();G('bo-custody-link-row').style.display='none';
     var bovs=G('bo-veh-sel');if(bovs){bovs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+' '+v.model+'</option>';}).join('');}
   }
+  if(id==='baM'){G('ba-id').value='';G('ba-name').value='';G('ba-number').value='';G('ba-branch').value='';G('ba-opening').value='';G('ba-color').value='#059669';}
   if(id==='vehM'){
     G('veh-id').value='';G('veh-num').value='';G('veh-letters').value='';
     G('veh-plate-preview').value='';G('veh-make').value='';G('veh-model').value='';
@@ -1376,7 +1431,20 @@ function loadBk(){
   RC(G('chFlow'),'line',fl,[['وارد',flI,'rgba(5,150,105,.7)'],['صادر',flO,'rgba(220,38,38,.7)']]);
 }
 function markBkRev(){if(!can('all')&&!can('bkRev')){toast('يحتاج صلاحية المدير المالي','e');return;}var tdy=td2();if(S.data.bankRevs.find(r=>r.date===tdy)){toast('تمت مراجعة اليوم مسبقاً بواسطة '+S.data.bankRevs.find(r=>r.date===tdy).by,'i');return;}S.data.bankRevs.push({date:tdy,by:S.cu.name,at:new Date().toISOString()});alog('مراجعة البنك اليومية','يوم '+tdy+' — بواسطة '+S.cu.name);sv();loadBk();toast('✅ تم تسجيل مراجعة البنك ليوم '+tdy);}
-function saveBi(){var a=Nv('bi-a'),f=V('bi-f');if(!a||!f){toast('يرجى تعبئة الحقول المطلوبة','e');return;}S.data.bankIn.unshift({id:uid(),date:V('bi-d')||td2(),amount:a,from:f,ref:V('bi-rf'),desc:V('bi-ds'),by:S.cu.u,at:new Date().toISOString()});alog('وارد بنكي','من '+f+' — '+fR(a));sv();CM('biM');loadBk();toast('تم تسجيل الوارد البنكي');}
+function saveBi(){
+  var a=Nv('bi-a'),f=V('bi-f');
+  if(!a||!f){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  var biAccId=V('bi-acc');
+  if(!biAccId){toast('يرجى اختيار الحساب البنكي','e');return;}
+  var biAcc=(S.data.bankAccounts||[]).find(function(x){return x.id===biAccId;});
+  S.data.bankIn.unshift({id:uid(),date:V('bi-d')||td2(),amount:a,from:f,
+    ref:V('bi-rf'),desc:V('bi-ds'),
+    accId:biAccId,accName:biAcc?biAcc.name:'',
+    by:S.cu?S.cu.u:'',at:new Date().toISOString()});
+  alog('وارد بنكي',(biAcc?biAcc.name+' — ':'')+' من '+f+' — '+fR(a));
+  sv();CM('biM');loadBk();loadBA();
+  toast('تم تسجيل الوارد البنكي');
+}
 
 function delBI(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}if(!confirm('حذف؟'))return;S.data.bankIn=S.data.bankIn.filter(b=>b.id!==id);sv();loadBk();toast('تم الحذف','w');}
 function delBO(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}if(!confirm('حذف؟'))return;S.data.bankOut=S.data.bankOut.filter(b=>b.id!==id);sv();loadBk();toast('تم الحذف','w');}
@@ -1499,6 +1567,7 @@ var ALL_PAGES=[
   {id:'bk',lbl:'البنك'},
   {id:'ap',lbl:'الاعتمادات'},
   {id:'veh',lbl:'سجل السيارات'},
+  {id:'ba',lbl:'الحسابات البنكية'},
   {id:'emps',lbl:'سجل الموظفين'},
   {id:'cc',lbl:'مراكز التكلفة'},
   {id:'cu',lbl:'العهد الشخصية'},
@@ -1923,11 +1992,14 @@ function saveBo(){
     var hasCu=S.data.custodies.some(function(c){return c.empId===eid&&c.status==='open';});
     if(hasCu&&!confirm('تنبيه: اخترت موظفاً لكن لم تربط العهدة.\nهل تريد المتابعة بدون ربط بالعهدة؟')){return;}
   }
+  var boAccId=V('bo-acc');
+  var boAccObj=(S.data.bankAccounts||[]).find(function(a){return a.id===boAccId;});
+  if(!boAccId){toast('يرجى اختيار الحساب البنكي','e');return;}
   var boVehId=V('bo-veh-sel')||'';
   var boVeh=boVehId?(S.data.vehicles||[]).find(function(v){return v.id===boVehId;}):null;
   S.data.bankOut.unshift({id:uid(),date:V('bo-d')||td2(),amount:a,to:t,
     ref:V('bo-rf'),desc:V('bo-ds'),custodyLink:cuLink,
-    empId:eid,
+    empId:eid,accId:boAccId,accName:boAccObj?boAccObj.name:'',
     vehId:boVehId,vehNum:boVeh?boVeh.num:'',vehLetters:boVeh?boVeh.letters:'',
     by:S.cu?S.cu.u:'',at:new Date().toISOString()});
   if(cuLink){
@@ -3194,6 +3266,152 @@ function addItemToCC(ccId){
   toast('✅ تم إضافة البند: '+name+' لمركز '+cc.name);
 }
 
+
+/* ═══════════════════════════════════════════
+   BANK ACCOUNTS MODULE
+═══════════════════════════════════════════ */
+function getBankAccounts(){
+  if(!S.data.bankAccounts||!S.data.bankAccounts.length){
+    S.data.bankAccounts=[
+      {id:'ba1',name:'البنك الأهلي',number:'',branch:'الرئيسي',currency:'ريال',balance:0,active:true,color:'#059669'},
+      {id:'ba2',name:'بنك الراجحي',number:'',branch:'الرئيسي',currency:'ريال',balance:0,active:true,color:'#1A56DB'}
+    ];
+  }
+  return S.data.bankAccounts;
+}
+
+function getAccBalance(accId){
+  var inflow=S.data.bankIn.filter(function(b){return b.accId===accId;}).reduce(function(s,b){return s+b.amount;},0);
+  var outflow=S.data.bankOut.filter(function(b){return b.accId===accId;}).reduce(function(s,b){return s+b.amount;},0);
+  var acc=getBankAccounts().find(function(a){return a.id===accId;});
+  var opening=acc?(acc.balance||0):0;
+  return opening+inflow-outflow;
+}
+
+function loadBA(){
+  var accs=getBankAccounts();
+  var accF=V('ba-filter'),monthF=V('ba-month')||ym();
+
+  // Fill account filter
+  var af=G('ba-filter');
+  if(af&&af.options.length<=1){
+    accs.forEach(function(a){var o=document.createElement('option');o.value=a.id;o.textContent=a.name;af.appendChild(o);});
+  }
+
+  // ── Account cards ──
+  var cardsEl=G('ba-cards');
+  if(cardsEl){
+    cardsEl.innerHTML=accs.map(function(a){
+      var bal=getAccBalance(a.id);
+      var mIn=S.data.bankIn.filter(function(b){return b.accId===a.id&&b.date.startsWith(monthF);}).reduce(function(s,b){return s+b.amount;},0);
+      var mOut=S.data.bankOut.filter(function(b){return b.accId===a.id&&b.date.startsWith(monthF);}).reduce(function(s,b){return s+b.amount;},0);
+      return '<div class="card" style="border-top:4px solid '+a.color+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">'+
+          '<div>'+
+            '<div style="font-weight:700;font-size:16px">'+a.name+'</div>'+
+            '<div style="font-size:12px;color:var(--gr);margin-top:2px">'+(a.number?'حساب: '+a.number:a.branch||'')+'</div>'+
+          '</div>'+
+          '<div style="display:flex;gap:4px">'+
+            '<button class="btn bxs" onclick="editBA(this.dataset.id)" data-id="'+a.id+'">✏️</button>'+
+          '</div>'+
+        '</div>'+
+        '<div style="font-size:26px;font-weight:900;color:'+a.color+';font-family:monospace;margin-bottom:12px">'+fR(bal)+'</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--bd);padding-top:10px">'+
+          '<div><div style="font-size:11px;color:var(--gr)">وارد هذا الشهر</div><div style="font-weight:700;color:var(--sc);font-family:monospace">'+fR(mIn)+'</div></div>'+
+          '<div><div style="font-size:11px;color:var(--gr)">صادر هذا الشهر</div><div style="font-weight:700;color:var(--dn);font-family:monospace">'+fR(mOut)+'</div></div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // ── Transactions table ──
+  var biAll=S.data.bankIn.filter(function(b){
+    if(accF&&b.accId!==accF)return false;
+    if(!b.date.startsWith(monthF))return false;
+    return true;
+  }).map(function(b){return{...b,type:'وارد',party:b.from};});
+
+  var boAll=S.data.bankOut.filter(function(b){
+    if(accF&&b.accId!==accF)return false;
+    if(!b.date.startsWith(monthF))return false;
+    return true;
+  }).map(function(b){return{...b,type:'صادر',party:b.to};});
+
+  var all=[...biAll,...boAll].sort(function(a,b){return b.date.localeCompare(a.date);});
+
+  // Running balance per account
+  var runBal={};
+  getBankAccounts().forEach(function(a){runBal[a.id]=getAccBalance(a.id);});
+
+  G('baTbd').innerHTML=all.length?all.map(function(t){
+    var isIn=t.type==='وارد';
+    var acc=getBankAccounts().find(function(a){return a.id===t.accId;});
+    var accColor=acc?acc.color:'var(--gr)';
+    return '<tr>'+
+      '<td style="font-family:monospace;white-space:nowrap">'+t.date+'</td>'+
+      '<td><span style="background:'+accColor+'22;color:'+accColor+';border:1px solid '+accColor+'44;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">'+(t.accName||'—')+'</span></td>'+
+      '<td><span class="bdg '+(isIn?'bn':'br')+'">'+t.type+'</span></td>'+
+      '<td style="font-weight:700;font-family:monospace;color:'+(isIn?'var(--sc)':'var(--dn)')+'">'+(isIn?'+':'-')+fR(t.amount)+'</td>'+
+      '<td style="font-family:monospace;color:var(--ry)">'+fR(getAccBalance(t.accId))+'</td>'+
+      '<td>'+(t.party||'—')+'</td>'+
+      '<td style="font-size:12px;font-family:monospace;color:var(--gr)">'+(t.ref||'—')+'</td>'+
+      '<td style="font-size:12px;color:var(--gr)">'+(t.desc||'—')+'</td>'+
+    '</tr>';
+  }).join(''):'<tr><td colspan="8"><div class="es"><div class="esic">🏛️</div><div class="esti">لا توجد حركات</div></div></td></tr>';
+}
+
+function saveBA(){
+  var name=V('ba-name');
+  if(!name){toast('يرجى إدخال اسم البنك','e');return;}
+  var id=V('ba-id');
+  if(id){
+    var acc=getBankAccounts().find(function(a){return a.id===id;});
+    if(!acc)return;
+    acc.name=name;acc.number=V('ba-number');acc.branch=V('ba-branch');
+    acc.currency=V('ba-currency');acc.color=V('ba-color')||'#059669';
+    alog('تعديل حساب بنكي',name);toast('تم حفظ التعديلات');
+  } else {
+    if(!S.data.bankAccounts)S.data.bankAccounts=[];
+    var opening=parseFloat(document.getElementById('ba-opening').value)||0;
+    S.data.bankAccounts.push({
+      id:uid(),name:name,number:V('ba-number'),branch:V('ba-branch'),
+      currency:V('ba-currency'),balance:opening,active:true,color:V('ba-color')||'#059669'
+    });
+    alog('إضافة حساب بنكي',name);toast('✅ تم إضافة الحساب: '+name);
+  }
+  sv();CM('baM');loadBA();
+}
+
+function editBA(id){
+  var acc=getBankAccounts().find(function(a){return a.id===id;});
+  if(!acc)return;
+  G('ba-id').value=id;G('ba-name').value=acc.name;G('ba-number').value=acc.number||'';
+  G('ba-branch').value=acc.branch||'';G('ba-color').value=acc.color||'#059669';
+  var cs=G('ba-currency');
+  for(var i=0;i<cs.options.length;i++){if(cs.options[i].value===acc.currency)cs.selectedIndex=i;}
+  OM('baM');
+}
+
+function loadBAStm(){
+  var f=V('baStF'),t=V('baStT');
+  var accs=getBankAccounts();
+  var html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">';
+  accs.forEach(function(a){
+    var bi=S.data.bankIn.filter(function(b){return b.accId===a.id&&(!f||b.date>=f)&&(!t||b.date<=t);});
+    var bo=S.data.bankOut.filter(function(b){return b.accId===a.id&&(!f||b.date>=f)&&(!t||b.date<=t);});
+    var tIn=bi.reduce(function(s,b){return s+b.amount;},0);
+    var tOut=bo.reduce(function(s,b){return s+b.amount;},0);
+    html+='<div style="border:2px solid '+a.color+';border-radius:12px;padding:14px">'+
+      '<div style="font-weight:700;font-size:14px;color:'+a.color+';margin-bottom:10px">'+a.name+'</div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="color:var(--gr)">وارد</span><span style="color:var(--sc);font-weight:700">'+fR(tIn)+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="color:var(--gr)">صادر</span><span style="color:var(--dn);font-weight:700">'+fR(tOut)+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:14px;border-top:1px solid var(--bd);padding-top:8px;margin-top:8px"><span style="font-weight:700">الصافي</span><span style="font-weight:700;color:'+(tIn-tOut>=0?'var(--sc)':'var(--dn)')+'">'+fR(tIn-tOut)+'</span></div>'+
+    '</div>';
+  });
+  html+='</div>';
+  G('baStmC').innerHTML=html;
+}
+
 /* ─── KEYBOARD & EVENTS ─── */
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo2.on').forEach(m=>m.classList.remove('on'));});
 document.addEventListener('click',e=>{if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
@@ -3426,6 +3644,41 @@ ld();
     <button class="btn" onclick="CM('cuSetM')">إلغاء</button>
     <button class="btn bg3" onclick="saveCuSettle()">&#x1F4BE; حفظ التقفيل</button>
   </div>
+</div></div>
+
+
+<!-- BANK ACCOUNT MODAL -->
+<div class="mo2" id="baM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">&#x1F4B3; حساب بنكي</div><button class="mcl" onclick="CM('baM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>اسم البنك <span class="req">*</span></label><input type="text" id="ba-name" placeholder="مثال: البنك الأهلي"></div>
+    <div class="fld"><label>رقم الحساب</label><input type="text" id="ba-number" placeholder="رقم الحساب البنكي" style="font-family:monospace"></div>
+    <div class="fr">
+      <div class="fld"><label>الفرع</label><input type="text" id="ba-branch" placeholder="اسم الفرع"></div>
+      <div class="fld"><label>العملة</label>
+        <select id="ba-currency" style="font-family:var(--fn)">
+          <option value="ريال">ريال سعودي</option>
+          <option value="دولار">دولار أمريكي</option>
+          <option value="يورو">يورو</option>
+        </select>
+      </div>
+    </div>
+    <div class="fld"><label>الرصيد الابتدائي</label><input type="number" id="ba-opening" placeholder="0" min="0"></div>
+    <div class="fld"><label>اللون التمييزي</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="color" id="ba-color" value="#059669" style="width:50px;height:38px;border:1.5px solid var(--bd);border-radius:9px;cursor:pointer;padding:2px">
+        <div style="display:flex;gap:6px">
+          <div onclick="G('ba-color').value='#059669'" style="width:28px;height:28px;border-radius:6px;background:#059669;cursor:pointer"></div>
+          <div onclick="G('ba-color').value='#1A56DB'" style="width:28px;height:28px;border-radius:6px;background:#1A56DB;cursor:pointer"></div>
+          <div onclick="G('ba-color').value='#DC2626'" style="width:28px;height:28px;border-radius:6px;background:#DC2626;cursor:pointer"></div>
+          <div onclick="G('ba-color').value='#D97706'" style="width:28px;height:28px;border-radius:6px;background:#D97706;cursor:pointer"></div>
+          <div onclick="G('ba-color').value='#7C3AED'" style="width:28px;height:28px;border-radius:6px;background:#7C3AED;cursor:pointer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <input type="hidden" id="ba-id">
+  <div class="mft"><button class="btn" onclick="CM('baM')">إلغاء</button><button class="btn bp" onclick="saveBA()">&#x1F4BE; حفظ</button></div>
 </div></div>
 
 </body></html>
