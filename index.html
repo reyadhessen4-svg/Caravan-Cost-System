@@ -1024,7 +1024,18 @@ function N(pg,btn){
   document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
   var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',emps:'سجل الموظفين',cc:'مراكز التكلفة',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
 function OM(id){
-  if(id==='empM'){G('emp-id').value='';G('emp-name').value='';G('emp-num').value='';G('emp-job').value='';G('emp-dept').value='';G('emp-phone').value='';G('emp-idnum').value='';G('emp-notes').value='';}
+  if(id==='empM'){
+    G('emp-id').value='';G('emp-name').value='';G('emp-job').value='';
+    G('emp-dept').value='';G('emp-phone').value='';G('emp-idnum').value='';G('emp-notes').value='';
+    // Auto-generate employee number
+    var emps=S.data.employees||[];
+    var maxNum=0;
+    emps.forEach(function(e){
+      var n=parseInt((e.num||'').replace(/\D/g,''));
+      if(!isNaN(n)&&n>maxNum)maxNum=n;
+    });
+    G('emp-num').value=String(maxNum+1).padStart(3,'0');
+  }
   if(id==='cuM'){fillAllEmpDropdowns();}
   if(id==='rcM'){
     // Reset custody return section
@@ -1618,7 +1629,14 @@ function loadEmps(){
 
 function saveEmp(){
   var name=V('emp-name'),num=V('emp-num'),job=V('emp-job');
-  if(!name||!num||!job){toast('يرجى تعبئة الاسم والرقم والوظيفة','e');return;}
+  if(!name||!job){toast('يرجى تعبئة اسم الموظف والوظيفة','e');return;}
+  if(!num){
+    // fallback auto-generate
+    var emps2=S.data.employees||[];
+    var maxNum2=0;
+    emps2.forEach(function(e){var n=parseInt((e.num||'').replace(/\D/g,''));if(!isNaN(n)&&n>maxNum2)maxNum2=n;});
+    num=String(maxNum2+1).padStart(3,'0');
+  }
   var id=V('emp-id');
   if(id){
     // Edit mode
@@ -1644,7 +1662,8 @@ function editEmp(id){
   if(!emp)return;
   G('emp-id').value=id;
   G('emp-name').value=emp.name;
-  G('emp-num').value=emp.num;
+  G('emp-num').value=emp.num||'';
+  G('emp-num').readOnly=false; // allow editing existing number
   G('emp-job').value=emp.jobTitle||'';
   G('emp-dept').value=emp.dept||'';
   G('emp-phone').value=emp.phone||'';
@@ -2259,7 +2278,7 @@ ld();
 <div class="mo2" id="empM"><div class="mb2">
   <div class="mhd"><div class="mtt">&#x1F464; إضافة / تعديل موظف</div><button class="mcl" onclick="CM('empM')">×</button></div>
   <div class="fg">
-    <div class="fr"><div class="fld"><label>اسم الموظف <span class="req">*</span></label><input type="text" id="emp-name" placeholder="الاسم الكامل"></div><div class="fld"><label>رقم الموظف <span class="req">*</span></label><input type="text" id="emp-num" placeholder="مثال: EMP-001"></div></div>
+    <div class="fr"><div class="fld"><label>اسم الموظف <span class="req">*</span></label><input type="text" id="emp-name" placeholder="الاسم الكامل"></div><div class="fld"><label>رقم الموظف</label><input type="text" id="emp-num" placeholder="يُولَّد تلقائياً" readonly style="background:var(--ltr);color:var(--ry);font-weight:700;font-family:monospace"></div></div>
     <div class="fr"><div class="fld"><label>الوظيفة <span class="req">*</span></label><input type="text" id="emp-job" placeholder="مثال: سائق، مشرف، محاسب"></div><div class="fld"><label>القسم</label><input type="text" id="emp-dept" placeholder="مثال: التشغيل، المالية"></div></div>
     <div class="fr"><div class="fld"><label>رقم الهاتف</label><input type="tel" id="emp-phone" placeholder="05xxxxxxxx"></div><div class="fld"><label>رقم الهوية</label><input type="text" id="emp-idnum" placeholder="رقم الهوية الوطنية"></div></div>
     <div class="fld"><label>ملاحظات</label><textarea id="emp-notes" style="min-height:55px" placeholder="أي ملاحظات إضافية..."></textarea></div>
