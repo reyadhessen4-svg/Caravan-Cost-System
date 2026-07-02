@@ -479,6 +479,7 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb" onclick="ST('cuTbs','cuCar',this)">تقرير حسب السيارة</button>
     <button class="tabb" onclick="ST('cuTbs','cuBal',this)">أرصدة العهد</button>
     <button class="tabb" onclick="ST('cuTbs','cuRep',this);loadCuReport()">&#x1F4CB; تقرير التقفيلات</button>
+    <button class="tabb" onclick="ST('cuTbs','cuItemRep',this);loadCuItemReport()">&#x1F4CA; تقرير البنود</button>
   </div>
   <div id="cuTbs">
     <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
@@ -497,6 +498,38 @@ tbody tr:hover td{background:var(--ltr)}
           </div>
         </div>
         <div id="cuRepC"></div>
+      </div>
+    </div>
+    <!-- تقرير البنود -->
+    <div class="tabc" id="cuItemRep">
+      <div class="card">
+        <div class="cht">&#x1F4CA; تقرير البنود
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input type="date" id="ciRepF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <span style="font-size:13px;color:var(--gr)">إلى</span>
+            <input type="date" id="ciRepT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <button class="btn bsm bp" onclick="loadCuItemReport()">&#x1F50E; عرض</button>
+            <button class="btn bsm" onclick="window.print()">&#x1F5A8;&#xFE0F; طباعة</button>
+            <button class="btn bsm" onclick="exportCuItemReport()">&#x1F4E5; Excel</button>
+          </div>
+        </div>
+        <!-- فلاتر البنود -->
+        <div style="background:var(--ltr);border-radius:10px;padding:14px;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--nv);margin-bottom:10px">&#x1F3F7;&#xFE0F; اختر البنود (يمكن اختيار أكثر من بند)</div>
+          <div id="ciFilterItems" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn bxs" onclick="ciSelectAll(true)">تحديد الكل</button>
+            <button class="btn bxs" onclick="ciSelectAll(false)">إلغاء الكل</button>
+            <div style="border-right:1px solid var(--bd);margin:0 4px"></div>
+            <select id="ciRepEmp" style="padding:5px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)">
+              <option value="">كل الموظفين</option>
+            </select>
+            <select id="ciRepVeh" style="padding:5px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)">
+              <option value="">كل السيارات</option>
+            </select>
+          </div>
+        </div>
+        <div id="cuItemRepC"></div>
       </div>
     </div>
   </div>
@@ -541,6 +574,7 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb" onclick="ST('rpTbs','rpCu',this)">العهد</button>
     <button class="tabb" onclick="ST('rpTbs','rpCl',this)">المطالبات</button>
     <button class="tabb" onclick="ST('rpTbs','rpKpi',this)">مؤشرات KPI</button>
+    <button class="tabb" onclick="ST('rpTbs','rpVeh',this);loadRpVeh()">&#x1F697; مصروفات السيارات</button>
   </div>
   <div id="rpTbs">
     <div class="tabc on" id="rpRv">
@@ -582,6 +616,27 @@ tbody tr:hover td{background:var(--ltr)}
     <div class="tabc" id="rpKpi">
       <div class="g3" style="margin-bottom:16px" id="rpKpiC"></div>
       <div class="card"><div class="cht">&#x1F4CA; مقارنة الأداء الشهري</div><canvas id="chKpi" height="260"></canvas></div>
+    </div>
+    <div class="tabc" id="rpVeh">
+      <div class="card">
+        <div class="cht">&#x1F697; مصروفات السيارات
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input type="date" id="rpVehF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <span style="color:var(--gr);font-size:13px">إلى</span>
+            <input type="date" id="rpVehT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <select id="rpVehSel" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل السيارات</option></select>
+            <button class="btn bsm bp" onclick="loadRpVeh()">&#x1F50E; عرض</button>
+            <button class="btn bsm" onclick="window.print()">&#x1F5A8;&#xFE0F;</button>
+            <button class="btn bsm" onclick="ET('rpVehTbl')">&#x1F4E5; Excel</button>
+          </div>
+        </div>
+        <div id="rpVehSummary" style="margin-bottom:16px"></div>
+        <div class="tw"><table id="rpVehTbl">
+          <thead><tr><th>السيارة</th><th>الموديل</th><th>من العهد</th><th>من الخزينة</th><th>من البنك</th><th>الإجمالي</th><th>عدد القيود</th></tr></thead>
+          <tbody id="rpVehTbd"></tbody>
+        </table></div>
+        <div id="rpVehDetail" style="margin-top:16px"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -708,7 +763,14 @@ tbody tr:hover td{background:var(--ltr)}
     <div class="hint" style="font-size:11px;color:var(--sc);margin-top:3px">✓ عند الاعتماد سيُضاف المبلغ تلقائياً كمصروف على عهدة الموظف</div>
   </div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="ex-ds" placeholder="وصف واضح للمصروف"></div>
-  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="ex-cc" style="font-family:var(--fn)"></select></div><div class="fld"><label>طريقة الصرف</label><select id="ex-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="ex-cc" onchange="fillExItems()" style="font-family:var(--fn)"></select></div>
+      <div class="fld"><label>البند (اختياري)</label><select id="ex-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر البند —</option></select></div>
+      <div class="fld"><label>طريقة الصرف</label><select id="ex-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fld"><label>السيارة (اختياري)</label>
+    <select id="ex-veh-sel" onchange="fillExVeh()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— بدون سيارة —</option>
+    </select>
+  </div>
   <div class="fld"><label>ملاحظات</label><textarea id="ex-nt" style="min-height:55px"></textarea></div>
 </div>
 <div class="mft"><button class="btn" onclick="CM('exM')">إلغاء</button><button class="btn bg3" onclick="saveEx()">&#x1F4E4; إرسال للاعتماد</button></div></div></div>
@@ -742,6 +804,11 @@ tbody tr:hover td{background:var(--ltr)}
   </div>
   <div class="fld"><label>رقم العملية</label><input type="text" id="bo-rf" placeholder="رقم المرجع"></div>
   <div class="fld"><label>البيان</label><input type="text" id="bo-ds" placeholder="بيان التحويل"></div>
+  <div class="fld"><label>السيارة (اختياري)</label>
+    <select id="bo-veh-sel" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— بدون سيارة —</option>
+    </select>
+  </div>
 </div>
 <div class="mft"><button class="btn" onclick="CM('boM')">إلغاء</button><button class="btn bg3" onclick="saveBo()">&#x1F4BE; تسجيل</button></div></div></div>
 
@@ -826,8 +893,8 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],vehicles:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
-var BK_KEY='qawafil_v10'; // localStorage fallback key
+var S={cu:null,data:{users:[],employees:[],vehicles:[],custodyItems:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
+var BK_KEY='qawafil_v12'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
 
@@ -964,16 +1031,20 @@ function seed(){
     {id:'u4',name:'محمد الشمري',u:'ops',p:'123456',r:'ops',active:true,ll:'',lo:'',mustChangePass:true},
     {id:'u5',name:'نورة الدوسري',u:'claims',p:'123456',r:'claims',active:true,ll:'',lo:'',mustChangePass:true}
   ];
-  // مراكز التكلفة الافتراضية فقط
+  // مراكز التكلفة مع البنود التابعة لها
   S.data.costCenters=[
-    {id:'cc1',name:'عمومي',desc:'المصروفات العامة غير المصنفة',color:'#6B7280',active:true},
-    {id:'cc2',name:'تشغيل',desc:'مصروفات تشغيل السيارات والأسطول',color:'#1A56DB',active:true},
-    {id:'cc3',name:'صيانة',desc:'إصلاح وصيانة السيارات والمعدات',color:'#D97706',active:true},
-    {id:'cc4',name:'رواتب',desc:'رواتب الموظفين والسائقين',color:'#059669',active:true},
-    {id:'cc5',name:'إداري',desc:'مصروفات إدارية ومكتبية',color:'#7C3AED',active:true},
-    {id:'cc6',name:'وقود',desc:'وقود السيارات والمعدات',color:'#DC2626',active:true},
-    {id:'cc7',name:'تأمين',desc:'أقساط التأمين على السيارات',color:'#0891B2',active:true},
-    {id:'cc8',name:'متنوعات',desc:'مصروفات متنوعة أخرى',color:'#9CA3AF',active:true}
+    {id:'cc1',name:'تشغيل',desc:'مصروفات تشغيل السيارات والأسطول',color:'#1A56DB',active:true,
+      items:['وقود','إطارات','غسيل','نثريات تشغيل']},
+    {id:'cc2',name:'صيانة',desc:'إصلاح وصيانة السيارات والمعدات',color:'#D97706',active:true,
+      items:['سمكرة','كهرباء','تكييف','محرك','ناقل حركة','فرامل','تشحيم']},
+    {id:'cc3',name:'إداري',desc:'مصروفات إدارية ومكتبية',color:'#7C3AED',active:true,
+      items:['اتصالات','مستلزمات مكتبية','إيجار','ضيافة']},
+    {id:'cc4',name:'رواتب',desc:'رواتب الموظفين والسائقين',color:'#059669',active:true,
+      items:['رواتب','بدلات','مكافآت','تأمينات']},
+    {id:'cc5',name:'تأمين',desc:'أقساط التأمين على السيارات',color:'#0891B2',active:true,
+      items:['تأمين شامل','تأمين ضد الغير','تجديد لوحات']},
+    {id:'cc6',name:'متنوعات',desc:'مصروفات متنوعة أخرى',color:'#9CA3AF',active:true,
+      items:['متنوعات']}
   ];
   sv();
 }
@@ -1113,10 +1184,14 @@ function OM(id){
     G('rc-f').value='';G('rc-ds').value='';G('rc-a').value='';
     G('rc-rf').value='';G('rc-nt').value='';
   }
-  if(id==='exM'){fillAllEmpDropdowns();G('ex-custody-link-row').style.display='none';}
+  if(id==='exM'){fillAllEmpDropdowns();G('ex-custody-link-row').style.display='none';fillExItems();
+    var exvs=G('ex-veh-sel');if(exvs){exvs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+' '+v.model+'</option>';}).join('');}
+  }
   if(id==='ceM'){fillVehDropdowns();var cs=G('ce-veh-sel');if(cs)cs.value='';}
   if(id==='clM'){fillVehDropdowns();var cvs=G('cl-veh-sel');if(cvs)cvs.value='';}
-  if(id==='boM'){fillAllEmpDropdowns();G('bo-custody-link-row').style.display='none';}
+  if(id==='boM'){fillAllEmpDropdowns();G('bo-custody-link-row').style.display='none';
+    var bovs=G('bo-veh-sel');if(bovs){bovs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+' '+v.model+'</option>';}).join('');}
+  }
   if(id==='vehM'){
     G('veh-id').value='';G('veh-num').value='';G('veh-letters').value='';
     G('veh-plate-preview').value='';G('veh-make').value='';G('veh-model').value='';
@@ -1804,10 +1879,13 @@ function saveEx(){
     if(hasCu&&!confirm('تنبيه: اخترت موظفاً لكن لم تربط العهدة.\nهل تريد المتابعة بدون ربط بالعهدة؟')){return;}
   }
   S.data.ctr.ex++;
+  var exVehId=V('ex-veh-sel')||'';
+  var exVeh=exVehId?(S.data.vehicles||[]).find(function(v){return v.id===exVehId;}):null;
   var rec={id:uid(),num:S.data.ctr.ex,date:V('ex-d')||td2(),to:t,desc:d,amount:a,
-    cc:V('ex-cc'),method:V('ex-m'),notes:V('ex-nt'),status:'pending',
+    cc:V('ex-cc'),item:V('ex-item')||'',method:V('ex-m'),notes:V('ex-nt'),status:'pending',
     apBy:'',apAt:'',reviewed:false,reviewedBy:'',reviewedAt:'',
     custodyLink:cuLink,empId:eid,
+    vehId:exVehId,vehNum:exVeh?exVeh.num:'',vehLetters:exVeh?exVeh.letters:'',
     by:S.cu?S.cu.u:'',at:new Date().toISOString()};
   S.data.expenses.unshift(rec);
   alog('طلب صرف','لـ '+t+' — '+fR(a)+(cuLink?' — مربوط بعهدة':'')+' — معلق للاعتماد');
@@ -1845,9 +1923,13 @@ function saveBo(){
     var hasCu=S.data.custodies.some(function(c){return c.empId===eid&&c.status==='open';});
     if(hasCu&&!confirm('تنبيه: اخترت موظفاً لكن لم تربط العهدة.\nهل تريد المتابعة بدون ربط بالعهدة؟')){return;}
   }
+  var boVehId=V('bo-veh-sel')||'';
+  var boVeh=boVehId?(S.data.vehicles||[]).find(function(v){return v.id===boVehId;}):null;
   S.data.bankOut.unshift({id:uid(),date:V('bo-d')||td2(),amount:a,to:t,
     ref:V('bo-rf'),desc:V('bo-ds'),custodyLink:cuLink,
-    empId:eid,by:S.cu?S.cu.u:'',at:new Date().toISOString()});
+    empId:eid,
+    vehId:boVehId,vehNum:boVeh?boVeh.num:'',vehLetters:boVeh?boVeh.letters:'',
+    by:S.cu?S.cu.u:'',at:new Date().toISOString()});
   if(cuLink){
     addCustodyEntry(cuLink,a,V('bo-ds')||('صرف بنكي لـ '+t),'صادر بنكي');
     alog('صادر بنكي','لـ '+t+' — '+fR(a)+' — أُضيف لعهدة الموظف تلقائياً');
@@ -1921,26 +2003,33 @@ function loadCC(){
     var spent=byCC[cc.name]||0;
     var count=expenses.filter(function(e){return e.cc===cc.name;}).length;
     var pct=totalSpent?Math.round(spent/totalSpent*100):0;
-    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd)">' +
-      '<div style="width:40px;height:40px;border-radius:10px;background:'+cc.color+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0">&#x1F3F7;&#xFE0F;</div>'+
-      '<div style="flex:1">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">' +
-          '<span style="font-weight:700;font-size:14px">'+cc.name+'</span>'+
-          (cc.active?'<span class="bdg bn" style="font-size:10px">نشط</span>':'<span class="bdg bg2" style="font-size:10px">موقوف</span>')+
-        '</div>'+
-        '<div style="font-size:12px;color:var(--gr);margin-bottom:6px">'+(cc.desc||'—')+'</div>'+
-        '<div style="display:flex;align-items:center;gap:8px">' +
-          '<div style="flex:1;height:5px;background:var(--bd);border-radius:3px;overflow:hidden">'+
-            '<div style="height:100%;width:'+pct+'%;background:'+cc.color+';border-radius:3px"></div>'+
+    var items=cc.items||[];
+    return '<div style="padding:14px 0;border-bottom:1px solid var(--bd)">'+
+      '<div style="display:flex;align-items:center;gap:12px">'+
+        '<div style="width:40px;height:40px;border-radius:10px;background:'+cc.color+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0">&#x1F3F7;&#xFE0F;</div>'+
+        '<div style="flex:1">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">'+
+            '<span style="font-weight:700;font-size:14px">'+cc.name+'</span>'+
+            (cc.active?'<span class="bdg bn" style="font-size:10px">نشط</span>':'<span class="bdg bg2" style="font-size:10px">موقوف</span>')+
           '</div>'+
-          '<span style="font-size:12px;font-family:monospace;font-weight:600;color:'+cc.color+'">'+fR(spent)+'</span>'+
-          '<span style="font-size:11px;color:var(--gr2)">('+count+' سند)</span>'+
+          '<div style="font-size:12px;color:var(--gr);margin-bottom:6px">'+(cc.desc||'—')+'</div>'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
+            '<div style="flex:1;height:5px;background:var(--bd);border-radius:3px;overflow:hidden">'+
+              '<div style="height:100%;width:'+pct+'%;background:'+cc.color+';border-radius:3px"></div>'+
+            '</div>'+
+            '<span style="font-size:12px;font-family:monospace;font-weight:600;color:'+cc.color+'">'+fR(spent)+'</span>'+
+            '<span style="font-size:11px;color:var(--gr2)">('+count+' سند)</span>'+
+          '</div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">'+
+            items.map(function(it){return'<span style="background:'+cc.color+'22;color:'+cc.color+';border:1px solid '+cc.color+'44;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600">'+it+'</span>';}).join('')+
+            '<button onclick="addItemToCC(this.dataset.id)" data-id="'+cc.id+'" style="background:var(--ltr);border:1px dashed var(--bd);border-radius:20px;padding:2px 10px;font-size:11px;cursor:pointer;color:var(--gr);font-family:var(--fn)">+ بند جديد</button>'+
+          '</div>'+
         '</div>'+
-      '</div>'+
-      '<div style="display:flex;flex-direction:column;gap:4px">' +
-        '<button class="btn bxs" onclick="editCC(this.dataset.id)" data-id="'+cc.id+'" title="تعديل">&#x270F;&#xFE0F;</button>'+
-        '<button class="btn bxs '+(cc.active?'bg3':'')+'" onclick="toggleCC(this.dataset.id)" data-id="'+cc.id+'" title="'+(cc.active?'إيقاف':'تفعيل')+'">'+(cc.active?'&#x23F8;&#xFE0F;':'&#x25B6;&#xFE0F;')+'</button>'+
-        (can('all')&&count===0?'<button class="btn bd2 bxs" onclick="delCC(this.dataset.id)" data-id="'+cc.id+'" title="حذف">&#x1F5D1;&#xFE0F;</button>':'')+
+        '<div style="display:flex;flex-direction:column;gap:4px">'+
+          '<button class="btn bxs" onclick="editCC(this.dataset.id)" data-id="'+cc.id+'" title="تعديل">&#x270F;&#xFE0F;</button>'+
+          '<button class="btn bxs '+(cc.active?'bg3':'')+'" onclick="toggleCC(this.dataset.id)" data-id="'+cc.id+'" title="'+(cc.active?'إيقاف':'تفعيل')+'">'+(cc.active?'&#x23F8;&#xFE0F;':'&#x25B6;&#xFE0F;')+'</button>'+
+          (can('all')&&count===0?'<button class="btn bd2 bxs" onclick="delCC(this.dataset.id)" data-id="'+cc.id+'" title="حذف">&#x1F5D1;&#xFE0F;</button>':'')+
+        '</div>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -1984,7 +2073,7 @@ function saveCC(){
     var cc=ccs.find(function(c){return c.id===id;});
     if(!cc)return;
     var oldName=cc.name;
-    cc.name=name;cc.desc=V('cc-desc');cc.color=V('cc-color')||'#6B7280';
+    var oldName=cc.name;cc.name=name;cc.desc=V('cc-desc');cc.color=V('cc-color')||'#6B7280';
     // Update existing expenses that used old name
     if(oldName!==name){
       S.data.expenses.forEach(function(e){if(e.cc===oldName)e.cc=name;});
@@ -2515,17 +2604,25 @@ function renderCuSetRows(){
 
   var tbody=document.getElementById('cuSet-rows');
   if(!cuSetRows.length){
-    tbody.innerHTML='<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--gr);font-size:13px">اضغط "إضافة سطر" لتسجيل مصروف</td></tr>';
+    tbody.innerHTML='<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--gr);font-size:13px">اضغط "إضافة سطر" لتسجيل مصروف</td></tr>';
     updateCuSetSummary();
     return;
   }
   tbody.innerHTML=cuSetRows.map(function(r,i){
+    var ccOpts='<option value="">— اختر المركز —</option>'+(S.data.costCenters||[]).filter(function(c){return c.active;}).map(function(cc){
+      return '<option value="'+cc.name+'"'+(r.cc===cc.name?' selected':'')+'>'+cc.name+'</option>';
+    }).join('');
+    var itemsForCC=r.cc?getCustodyItems(r.cc):getCustodyItems();
+    var itemOpts='<option value="">— اختر البند —</option>'+itemsForCC.map(function(ci){
+      return '<option value="'+ci.name+'"'+(r.item===ci.name?' selected':'')+'>'+ci.name+'</option>';
+    }).join('');
     return '<tr style="border-bottom:1px solid var(--bd)">'+
       '<td style="padding:6px 8px"><input type="date" value="'+r.date+'" onchange="cuSetRows['+i+'].date=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:120px"></td>'+
-      '<td style="padding:6px 8px"><input type="text" value="'+r.item+'" placeholder="البند" oninput="cuSetRows['+i+'].item=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:130px"></td>'+
-      '<td style="padding:6px 8px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetSummary()" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:100px;text-align:left"></td>'+
+      '<td style="padding:6px 8px"><input type="text" value="'+(r.desc||'')+'" placeholder="الشرح التفصيلي" oninput="cuSetRows['+i+'].desc=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:160px"></td>'+
+      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].cc=this.value;cuSetRows['+i+'].item=\'\';renderCuSetRows()" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:120px">'+ccOpts+'</select></td>'+
+      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].item=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:120px">'+itemOpts+'</select></td>'+
+      '<td style="padding:6px 8px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetSummary()" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:90px;text-align:left"></td>'+
       '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].vehId=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:120px">'+vehOpts+'</select></td>'+
-      '<td style="padding:6px 8px"><input type="text" value="'+r.desc+'" placeholder="بيان" oninput="cuSetRows['+i+'].desc=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:140px"></td>'+
       '<td style="padding:6px 8px"><button onclick="cuSetRows.splice('+i+',1);renderCuSetRows()" style="background:var(--dnb);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px">🗑️</button></td>'+
     '</tr>';
   }).join('');
@@ -2585,8 +2682,10 @@ function saveCuSettle(){
     S.data.custodyEnts.push({
       id:uid(),cid:cuid,empName:cu.name,
       date:r.date||settDate,
-      item:r.item,amount:r.amount,
-      desc:r.desc||('تقفيل بتاريخ '+settDate),
+      cc:r.cc||'',
+      item:r.item||r.desc||'مصروف',
+      desc:r.desc||'',
+      amount:r.amount,
       car:veh?veh.num:'',
       plate:veh?veh.letters:'',
       vehId:r.vehId||'',
@@ -2727,6 +2826,372 @@ function loadCuReport(){
 
   var repC=document.getElementById('cuRepC');
   if(repC)repC.innerHTML=html||'<div class="es"><div class="esic">📋</div><div class="esti">لا توجد بيانات</div><div class="essb">اختر موظفاً أو فترة زمنية وأعد المحاولة</div></div>';
+}
+
+
+/* ─── CUSTODY ITEMS (بنود العهدة) ─── */
+function getCustodyItems(ccName){
+  // Returns items for a specific cost center, or all items
+  var ccs=S.data.costCenters||[];
+  if(ccName){
+    var cc=ccs.find(function(c){return c.name===ccName;});
+    return cc&&cc.items?cc.items.map(function(i){return{name:i};}).concat([{name:'أخرى'}]):[{name:'أخرى'}];
+  }
+  // All items from all centers
+  var all=[];
+  ccs.forEach(function(cc){
+    if(cc.items)cc.items.forEach(function(i){if(all.indexOf(i)<0)all.push(i);});
+  });
+  return all.map(function(i){return{name:i};});
+}
+
+function addCustodyItem(ccName){
+  var name=prompt('اسم البند الجديد'+(ccName?' لمركز '+ccName:'')+':');
+  if(!name||!name.trim())return;
+  name=name.trim();
+  var ccs=S.data.costCenters||[];
+  if(ccName){
+    var cc=ccs.find(function(c){return c.name===ccName;});
+    if(cc){
+      if(!cc.items)cc.items=[];
+      if(cc.items.indexOf(name)>=0){toast('هذا البند موجود مسبقاً','w');return;}
+      cc.items.push(name);
+    }
+  } else {
+    // Add to first center or prompt
+    if(ccs.length){if(!ccs[0].items)ccs[0].items=[];ccs[0].items.push(name);}
+  }
+  sv();toast('✅ تم إضافة البند: '+name);
+}
+
+
+/* ═══════════════════════════════════════════
+   CUSTODY ITEMS REPORT MODULE
+═══════════════════════════════════════════ */
+
+function loadCuItemReport(){
+  var items=getCustodyItems();
+  var dateF=document.getElementById('ciRepF')?document.getElementById('ciRepF').value:'';
+  var dateT=document.getElementById('ciRepT')?document.getElementById('ciRepT').value:'';
+  var empF=document.getElementById('ciRepEmp')?document.getElementById('ciRepEmp').value:'';
+  var vehF=document.getElementById('ciRepVeh')?document.getElementById('ciRepVeh').value:'';
+
+  // Build items filter checkboxes
+  var filterEl=document.getElementById('ciFilterItems');
+  if(filterEl&&!filterEl.children.length){
+    filterEl.innerHTML=items.map(function(ci){
+      return '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:var(--wh);border:1px solid var(--bd);border-radius:8px;padding:5px 10px;font-size:12px">'+
+        '<input type="checkbox" class="ci-chk" value="'+ci.name+'" checked style="width:14px;height:14px"> '+ci.name+
+      '</label>';
+    }).join('');
+  }
+
+  // Fill employee and vehicle filters
+  var empSel=document.getElementById('ciRepEmp');
+  if(empSel&&empSel.options.length<=1){
+    S.data.custodies.forEach(function(c){
+      var o=document.createElement('option');o.value=c.id;o.textContent=c.name;empSel.appendChild(o);
+    });
+  }
+  var vehSel=document.getElementById('ciRepVeh');
+  if(vehSel&&vehSel.options.length<=1){
+    (S.data.vehicles||[]).forEach(function(v){
+      var o=document.createElement('option');o.value=v.id;o.textContent=v.num+' '+v.letters;vehSel.appendChild(o);
+    });
+  }
+
+  // Get selected items
+  var selectedItems=[];
+  document.querySelectorAll('.ci-chk:checked').forEach(function(cb){selectedItems.push(cb.value);});
+  if(!selectedItems.length){
+    document.getElementById('cuItemRepC').innerHTML='<div class="al aw">&#x26A0;&#xFE0F; اختر بنداً واحداً على الأقل</div>';
+    return;
+  }
+
+  // Get all custody entries matching filters
+  var allEnts=S.data.custodyEnts.filter(function(e){
+    if(e.amount<=0||e.isTopup)return false; // only actual expenses
+    if(selectedItems.indexOf(e.item)<0)return false;
+    if(dateF&&e.date<dateF)return false;
+    if(dateT&&e.date>dateT)return false;
+    if(empF&&e.cid!==empF)return false;
+    if(vehF){
+      var v=(S.data.vehicles||[]).find(function(x){return x.id===vehF;});
+      if(v&&e.car!==v.num)return false;
+    }
+    return true;
+  });
+
+  if(!allEnts.length){
+    document.getElementById('cuItemRepC').innerHTML='<div class="es"><div class="esic">&#x1F4CA;</div><div class="esti">لا توجد بيانات</div><div class="essb">جرّب تغيير الفلاتر أو الفترة الزمنية</div></div>';
+    return;
+  }
+
+  // ── Summary cards by item ──
+  var byItem={};
+  allEnts.forEach(function(e){
+    if(!byItem[e.item])byItem[e.item]={total:0,count:0,entries:[]};
+    byItem[e.item].total+=e.amount;
+    byItem[e.item].count++;
+    byItem[e.item].entries.push(e);
+  });
+  var grandTotal=allEnts.reduce(function(s,e){return s+e.amount;},0);
+
+  var html='';
+
+  // ── Total summary ──
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">';
+  html+='<div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(grandTotal)+'</div><div class="ms2">'+allEnts.length+' قيد</div></div>';
+  Object.entries(byItem).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(entry){
+    var k=entry[0],v=entry[1];
+    html+='<div class="met mb"><div class="ml2">'+k+'</div><div class="mv2">'+fR(v.total)+'</div><div class="ms2">'+v.count+' قيد</div></div>';
+  });
+  html+='</div>';
+
+  // ── Chart by item ──
+  html+='<div style="margin-bottom:16px">';
+  Object.entries(byItem).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(entry){
+    var k=entry[0],v=entry[1];
+    var pct=grandTotal?Math.round(v.total/grandTotal*100):0;
+    html+='<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">'+
+      '<span style="font-weight:700">'+k+'</span>'+
+      '<span style="font-family:monospace">'+fR(v.total)+' ('+pct+'%)</span>'+
+    '</div><div style="height:8px;background:var(--bd);border-radius:4px;overflow:hidden">'+
+      '<div style="height:100%;width:'+pct+'%;background:var(--ry);border-radius:4px"></div>'+
+    '</div></div>';
+  });
+  html+='</div>';
+
+  // ── Detail table ──
+  html+='<div class="tw"><table><thead><tr>'+
+    '<th>التاريخ</th><th>الموظف</th><th>البند</th><th>البيان</th><th>المبلغ</th><th>السيارة</th>'+
+  '</tr></thead><tbody>';
+
+  allEnts.sort(function(a,b){return a.date.localeCompare(b.date);}).forEach(function(e){
+    var vehInfo='—';
+    if(e.car||e.plate)vehInfo=(e.car||'')+(e.plate?' '+e.plate:'');
+    html+='<tr>'+
+      '<td style="font-family:monospace;white-space:nowrap">'+e.date+'</td>'+
+      '<td style="font-weight:600">'+e.empName+'</td>'+
+      '<td><span class="bdg bb" style="font-size:11px">'+e.item+'</span></td>'+
+      '<td style="font-size:12px;color:var(--gr)">'+(e.desc||'—')+'</td>'+
+      '<td style="font-weight:700;color:var(--dn);font-family:monospace">'+fR(e.amount)+'</td>'+
+      '<td style="font-size:12px;color:var(--gr)">'+vehInfo+'</td>'+
+    '</tr>';
+  });
+
+  // Total row
+  html+='<tr style="background:var(--ltr);font-weight:700">'+
+    '<td colspan="4" style="padding:10px 13px;text-align:left">الإجمالي</td>'+
+    '<td style="color:var(--dn);font-family:monospace">'+fR(grandTotal)+'</td>'+
+    '<td></td></tr>';
+
+  html+='</tbody></table></div>';
+
+  document.getElementById('cuItemRepC').innerHTML=html;
+}
+
+function ciSelectAll(checked){
+  document.querySelectorAll('.ci-chk').forEach(function(cb){cb.checked=checked;});
+  loadCuItemReport();
+}
+
+function exportCuItemReport(){
+  ET('cuItemRepC table'[0]||'');
+  var tbl=document.querySelector('#cuItemRepC table');
+  if(!tbl){toast('لا توجد بيانات للتصدير','w');return;}
+  var rows=tbl.querySelectorAll('tr');
+  var csv='';
+  rows.forEach(function(r){
+    var cells=Array.from(r.querySelectorAll('th,td'));
+    var line=cells.map(function(c){
+      var t=c.textContent.trim().split('"').join('""');
+      return '"'+t+'"';
+    }).join(',');
+    csv+=line+'\n';
+  });
+  var b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  a.download='custody_items_'+td2()+'.csv';
+  a.click();
+  toast('تم التصدير');
+}
+
+
+/* ═══════════════════════════════════════════
+   VEHICLES EXPENSE REPORT
+═══════════════════════════════════════════ */
+function loadRpVeh(){
+  var vehs=S.data.vehicles||[];
+  var dateF=V('rpVehF'),dateT=V('rpVehT'),vehF=V('rpVehSel');
+
+  // Fill vehicle filter
+  var vSel=G('rpVehSel');
+  if(vSel&&vSel.options.length<=1){
+    vehs.forEach(function(v){
+      var o=document.createElement('option');
+      o.value=v.id;o.textContent=v.num+' '+v.letters+' — '+v.make+' '+v.model;
+      vSel.appendChild(o);
+    });
+  }
+
+  // ── Collect expenses from 3 sources ──
+
+  // 1. From custody entries (عهد)
+  var cuEnts=S.data.custodyEnts.filter(function(e){
+    if(!e.car||e.amount<=0||e.isTopup)return false;
+    if(dateF&&e.date<dateF)return false;
+    if(dateT&&e.date>dateT)return false;
+    return true;
+  }).map(function(e){
+    var veh=vehs.find(function(v){return v.num===e.car;});
+    return{source:'عهدة',vehId:veh?veh.id:'',vehNum:e.car,vehLetters:e.plate||'',
+           date:e.date,amount:e.amount,desc:e.item+(e.desc?' — '+e.desc:''),empName:e.empName};
+  });
+
+  // 2. From expenses (خزينة) - approved only
+  var exEnts=S.data.expenses.filter(function(e){
+    if(!e.vehId||e.status!=='approved')return false;
+    if(dateF&&e.date<dateF)return false;
+    if(dateT&&e.date>dateT)return false;
+    return true;
+  }).map(function(e){
+    return{source:'خزينة',vehId:e.vehId,vehNum:e.vehNum||'',vehLetters:e.vehLetters||'',
+           date:e.date,amount:e.amount,desc:e.desc,empName:e.to};
+  });
+
+  // 3. From bank out (بنك)
+  var boEnts=S.data.bankOut.filter(function(b){
+    if(!b.vehId)return false;
+    if(dateF&&b.date<dateF)return false;
+    if(dateT&&b.date>dateT)return false;
+    return true;
+  }).map(function(b){
+    return{source:'بنك',vehId:b.vehId,vehNum:b.vehNum||'',vehLetters:b.vehLetters||'',
+           date:b.date,amount:b.amount,desc:b.desc||'',empName:b.to};
+  });
+
+  // Combine all
+  var allEnts=[].concat(cuEnts,exEnts,boEnts);
+
+  // Filter by selected vehicle
+  if(vehF)allEnts=allEnts.filter(function(e){return e.vehId===vehF;});
+
+  if(!allEnts.length){
+    G('rpVehTbd').innerHTML='<tr><td colspan="7"><div class="es"><div class="esic">&#x1F697;</div><div class="esti">لا توجد مصروفات مرتبطة بسيارات</div><div class="essb">تأكد من اختيار السيارة عند تسجيل المصروفات</div></div></td></tr>';
+    G('rpVehSummary').innerHTML='';
+    G('rpVehDetail').innerHTML='';
+    return;
+  }
+
+  // ── Group by vehicle ──
+  var byVeh={};
+  allEnts.forEach(function(e){
+    var key=e.vehId||e.vehNum;
+    if(!byVeh[key])byVeh[key]={vehNum:e.vehNum,vehLetters:e.vehLetters,vehId:e.vehId,
+      fromCu:0,fromEx:0,fromBo:0,total:0,count:0,entries:[]};
+    if(e.source==='عهدة')byVeh[key].fromCu+=e.amount;
+    else if(e.source==='خزينة')byVeh[key].fromEx+=e.amount;
+    else byVeh[key].fromBo+=e.amount;
+    byVeh[key].total+=e.amount;
+    byVeh[key].count++;
+    byVeh[key].entries.push(e);
+  });
+
+  var sortedVehs=Object.values(byVeh).sort(function(a,b){return b.total-a.total;});
+  var grandTotal=allEnts.reduce(function(s,e){return s+e.amount;},0);
+
+  // ── Summary bar ──
+  var topVeh=sortedVehs[0];
+  G('rpVehSummary').innerHTML=
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">'+
+    '<div class="met mr"><div class="ml2">إجمالي المصروفات</div><div class="mv2">'+fR(grandTotal)+'</div><div class="ms2">'+allEnts.length+' قيد</div></div>'+
+    '<div class="met mb"><div class="ml2">عدد السيارات</div><div class="mv2">'+sortedVehs.length+'</div></div>'+
+    (topVeh?'<div class="met mo"><div class="ml2">أكثر سيارة مصروفاً</div><div class="mv2" style="font-size:16px">'+topVeh.vehNum+' '+topVeh.vehLetters+'</div><div class="ms2">'+fR(topVeh.total)+'</div></div>':'')+'</div>';
+
+  // ── Main table ──
+  G('rpVehTbd').innerHTML=sortedVehs.map(function(v){
+    var vehInfo=vehs.find(function(x){return x.id===v.vehId;});
+    var pct=grandTotal?Math.round(v.total/grandTotal*100):0;
+    return '<tr>'+
+      '<td><div style="font-weight:700;font-size:15px;font-family:monospace">'+v.vehNum+' '+v.vehLetters+'</div>'+
+        '<div style="height:4px;background:var(--bd);border-radius:2px;margin-top:4px;width:100px"><div style="height:100%;width:'+pct+'%;background:var(--ry);border-radius:2px"></div></div>'+
+      '</td>'+
+      '<td style="font-size:12px;color:var(--gr)">'+(vehInfo?vehInfo.make+' '+vehInfo.model:'—')+'</td>'+
+      '<td style="color:var(--sc);font-weight:600">'+fR(v.fromCu)+'</td>'+
+      '<td style="color:var(--dn);font-weight:600">'+fR(v.fromEx)+'</td>'+
+      '<td style="color:var(--wn);font-weight:600">'+fR(v.fromBo)+'</td>'+
+      '<td style="font-weight:700;font-size:15px">'+fR(v.total)+'</td>'+
+      '<td style="font-family:monospace">'+v.count+'</td>'+
+    '</tr>';
+  }).join('');
+
+  // ── Detail by vehicle ──
+  var detailHtml='<div style="font-size:14px;font-weight:700;margin:16px 0 10px">&#x1F4CB; تفاصيل حسب السيارة</div>';
+  sortedVehs.forEach(function(v){
+    var vehInfo=vehs.find(function(x){return x.id===v.vehId;});
+    detailHtml+='<div style="margin-bottom:16px;border:1px solid var(--bd);border-radius:12px;overflow:hidden">'+
+      '<div style="background:var(--nv);color:#fff;padding:10px 14px;display:flex;justify-content:space-between">'+
+        '<div><span style="font-size:15px;font-weight:700;font-family:monospace">'+v.vehNum+' '+v.vehLetters+'</span>'+
+          (vehInfo?' <span style="opacity:.6;font-size:12px">'+vehInfo.make+' '+vehInfo.model+'</span>':'')+
+        '</div>'+
+        '<div style="font-weight:700">'+fR(v.total)+'</div>'+
+      '</div>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+        '<thead><tr style="background:var(--ltr)"><th style="padding:7px 12px;text-align:right;color:var(--gr)">التاريخ</th><th style="padding:7px 12px;text-align:right;color:var(--gr)">البيان</th><th style="padding:7px 12px;text-align:right;color:var(--gr)">المصدر</th><th style="padding:7px 12px;text-align:right;color:var(--gr)">المبلغ</th></tr></thead>'+
+        '<tbody>'+
+        v.entries.sort(function(a,b){return a.date.localeCompare(b.date);}).map(function(e){
+          var srcColor=e.source==='عهدة'?'var(--sc)':e.source==='خزينة'?'var(--dn)':'var(--wn)';
+          return '<tr style="border-top:1px solid var(--bd)">'+
+            '<td style="padding:7px 12px;font-family:monospace;white-space:nowrap">'+e.date+'</td>'+
+            '<td style="padding:7px 12px">'+e.desc+'</td>'+
+            '<td style="padding:7px 12px"><span class="bdg" style="background:var(--ltr);color:'+srcColor+';font-size:10px">'+e.source+'</span></td>'+
+            '<td style="padding:7px 12px;font-weight:700;font-family:monospace">'+fR(e.amount)+'</td>'+
+          '</tr>';
+        }).join('')+
+        '<tr style="background:var(--ltr);border-top:2px solid var(--bd)"><td colspan="3" style="padding:7px 12px;font-weight:700;text-align:left">الإجمالي</td><td style="padding:7px 12px;font-weight:700;font-family:monospace">'+fR(v.total)+'</td></tr>'+
+        '</tbody></table></div>';
+  });
+  G('rpVehDetail').innerHTML=detailHtml;
+}
+
+
+/* ─── Dynamic item dropdown helpers ─── */
+function fillExItems(){
+  var cc=V('ex-cc');
+  var items=getCustodyItems(cc);
+  var sel=G('ex-item');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— اختر البند —</option>'+
+    items.map(function(i){return'<option value="'+i.name+'">'+i.name+'</option>';}).join('');
+}
+
+function fillExVeh(){
+  var eid=V('ex-emp-sel');
+  var row=G('ex-custody-link-row');
+  if(!eid){G('ex-t').value='';if(row)row.style.display='none';return;}
+  var emp=S.data.employees.find(function(e){return e.id===eid;});
+  if(!emp)return;
+  G('ex-t').value=emp.name;
+  var empCu=S.data.custodies.find(function(c){return c.empId===eid&&c.status==='open';});
+  if(empCu){if(row){row.style.display='';fillCustodyLinkDropdown('ex-custody-link');G('ex-custody-link').value=empCu.id;}}
+  else{if(row)row.style.display='none';if(confirm('الموظف '+emp.name+' لا يملك عهدة مفتوحة.\nهل تريد إنشاء عهدة له الآن؟')){G('cu-emp-sel').innerHTML='<option value="'+eid+'">'+emp.name+'</option>';G('cu-emp-sel').value=eid;G('cu-nm').value=emp.name;G('cu-id').value=emp.num||'';G('cu-d').value=td2();G('cu-op').value='';CM('exM');OM('cuM');toast('أدخل الرصيد الابتدائي للعهدة ثم احفظ','i');}}
+}
+
+
+function addItemToCC(ccId){
+  var cc=(S.data.costCenters||[]).find(function(c){return c.id===ccId;});
+  if(!cc)return;
+  var name=prompt('اسم البند الجديد لمركز "'+cc.name+'":');
+  if(!name||!name.trim())return;
+  name=name.trim();
+  if(!cc.items)cc.items=[];
+  if(cc.items.indexOf(name)>=0){toast('هذا البند موجود مسبقاً','w');return;}
+  cc.items.push(name);
+  alog('إضافة بند لمركز تكلفة',cc.name+' ← '+name);
+  sv();loadCC();fillCCDropdowns();
+  toast('✅ تم إضافة البند: '+name+' لمركز '+cc.name);
 }
 
 /* ─── KEYBOARD & EVENTS ─── */
@@ -2921,16 +3386,17 @@ ld();
   </div>
 
   <!-- Expenses table -->
-  <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--nv)">&#x1F4B8; المصروفات</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:700;color:var(--nv)">&#x1F4B8; المصروفات</div><button class="btn bsm" onclick="addCustodyItem();renderCuSetRows()" style="font-size:11px">&#x2795; بند جديد</button></div>
   <div style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:12px">
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
         <tr style="background:var(--ltr)">
           <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">التاريخ</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">البيان</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">مركز التكلفة</th>
           <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">البند</th>
           <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">المبلغ</th>
           <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">السيارة</th>
-          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">البيان</th>
           <th style="padding:8px 10px;width:40px"></th>
         </tr>
       </thead>
