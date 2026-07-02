@@ -165,6 +165,7 @@ tbody tr:hover td{background:var(--ltr)}
   <button class="sbi on" onclick="N('dash',this)">&#x1F4CA; لوحة التحكم</button>
   <div class="sbs">التشغيل</div>
   <button class="sbi" onclick="N('ops',this)" data-pg="ops">&#x1F69B; العمليات اليومية</button>
+  <button class="sbi" onclick="N('veh',this)" data-pg="veh">&#x1F697; سجل السيارات</button>
   <button class="sbi" onclick="N('rev',this)" data-pg="rev">&#x1F4B0; الإيرادات والتقارير</button>
   <button class="sbi" onclick="N('prices',this)" data-pg="prices">&#x1F3F7;&#xFE0F; إدارة الأسعار</button>
   <div class="sbs">المالية</div>
@@ -400,6 +401,39 @@ tbody tr:hover td{background:var(--ltr)}
   </div>
 </div>
 
+
+<!-- ═══ VEHICLES ═══ -->
+<div class="pg" id="pg-veh">
+  <div class="page-hdr"><h2>&#x1F697; سجل السيارات</h2>
+    <button class="btn bp" onclick="OM('vehM')">&#x2795; إضافة سيارة</button>
+  </div>
+  <div class="mets">
+    <div class="met mb"><div class="mi2">&#x1F697;</div><div class="ml2">إجمالي السيارات</div><div class="mv2" id="veh-total">—</div></div>
+    <div class="met mg"><div class="mi2">&#x26FD;</div><div class="ml2">بنزين</div><div class="mv2" id="veh-petrol">—</div></div>
+    <div class="met mo"><div class="mi2">&#x1F6E2;&#xFE0F;</div><div class="ml2">ديزل</div><div class="mv2" id="veh-diesel">—</div></div>
+    <div class="met mp"><div class="mi2">&#x1F50B;</div><div class="ml2">كهربائية</div><div class="mv2" id="veh-electric">—</div></div>
+  </div>
+  <div class="card">
+    <div class="cht">قائمة السيارات
+      <div style="display:flex;gap:8px">
+        <input class="srch-inp" placeholder="بحث بالرقم أو الموديل..." oninput="FT('vehTbl',this.value)" style="width:200px">
+        <select id="veh-fuel-f" onchange="loadVeh()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)">
+          <option value="">كل الأنواع</option>
+          <option value="بنزين">بنزين</option>
+          <option value="ديزل">ديزل</option>
+          <option value="كهربائي">كهربائي</option>
+          <option value="هجين">هجين</option>
+        </select>
+        <button class="btn bsm" onclick="ET('vehTbl')">&#x1F4E5; تصدير</button>
+      </div>
+    </div>
+    <div class="tw"><table id="vehTbl">
+      <thead><tr><th>رقم اللوحة</th><th>الحروف</th><th>الموديل</th><th>النوع/الماركة</th><th>السنة</th><th>نوع الوقود</th><th>اللون</th><th>الحالة</th><th>ملاحظات</th><th>إجراء</th></tr></thead>
+      <tbody id="vehTbd"></tbody>
+    </table></div>
+  </div>
+</div>
+
 <!-- ═══ EMPLOYEES ═══ -->
 <div class="pg" id="pg-emps">
   <div class="page-hdr"><h2>سجل الموظفين</h2>
@@ -444,12 +478,27 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb" onclick="ST('cuTbs','cuEnt',this)">سجل المصروفات</button>
     <button class="tabb" onclick="ST('cuTbs','cuCar',this)">تقرير حسب السيارة</button>
     <button class="tabb" onclick="ST('cuTbs','cuBal',this)">أرصدة العهد</button>
+    <button class="tabb" onclick="ST('cuTbs','cuRep',this);loadCuReport()">&#x1F4CB; تقرير التقفيلات</button>
   </div>
   <div id="cuTbs">
     <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
     <div class="tabc" id="cuEnt"><div class="card"><div class="cht">سجل مصروفات العهد<div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('cuEnTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('cuEnTbl')">&#x1F4E5;</button></div></div><div class="tw"><table id="cuEnTbl"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البند</th><th>المبلغ</th><th>رقم السيارة</th><th>اللوحة</th><th>البيان</th></tr></thead><tbody id="cuEnTbd"></tbody></table></div></div></div>
     <div class="tabc" id="cuCar"><div class="card"><div class="cht">تقرير المصروفات حسب السيارة</div><div id="cuCarC"></div></div></div>
     <div class="tabc" id="cuBal"><div class="card"><div class="cht">ملخص أرصدة العهد الحالية</div><div id="cuBalC"></div></div></div>
+    <div class="tabc" id="cuRep">
+      <div class="card">
+        <div class="cht">&#x1F4CB; تقرير التقفيلات والعهد
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="cuRepEmp" onchange="loadCuReport()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل الموظفين</option></select>
+            <input type="date" id="cuRepF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <input type="date" id="cuRepT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <button class="btn bsm bp" onclick="loadCuReport()">&#x1F50E; عرض</button>
+            <button class="btn bsm" onclick="window.print()">&#x1F5A8;&#xFE0F; طباعة</button>
+          </div>
+        </div>
+        <div id="cuRepC"></div>
+      </div>
+    </div>
   </div>
 </div>
 <!-- ═══ CLAIMS ═══ -->
@@ -720,8 +769,17 @@ tbody tr:hover td{background:var(--ltr)}
   <div class="fr"><div class="fld"><label>البند <span class="req">*</span></label><input type="text" id="ce-it" placeholder="نوع المصروف"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ce-a" placeholder="0"></div></div>
   <div class="fld"><label>البيان التفصيلي</label><input type="text" id="ce-ds" placeholder="وصف تفصيلي للمصروف"></div>
   <div style="background:var(--ltr);border-radius:10px;padding:12px">
-    <div style="font-size:12px;font-weight:700;color:var(--gr);margin-bottom:8px">&#x1F69B; بيانات السيارة (اختياري)</div>
-    <div class="fr"><div class="fld"><label>رقم السيارة</label><input type="text" id="ce-cr" placeholder="رقم السيارة"></div><div class="fld"><label>لوحة السيارة</label><input type="text" id="ce-pl" placeholder="رقم اللوحة"></div></div>
+    <div style="font-size:12px;font-weight:700;color:var(--gr);margin-bottom:8px">&#x1F697; السيارة (اختياري)</div>
+    <div class="fld">
+      <label>اختر السيارة</label>
+      <select id="ce-veh-sel" onchange="fillCeFromVeh()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+        <option value="">— بدون سيارة —</option>
+      </select>
+    </div>
+    <div class="fr" style="margin-top:8px">
+      <div class="fld"><label>رقم اللوحة</label><input type="text" id="ce-cr" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr);font-family:monospace"></div>
+      <div class="fld"><label>الحروف</label><input type="text" id="ce-pl" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr)"></div>
+    </div>
   </div>
 </div>
 <div class="mft"><button class="btn" onclick="CM('ceM')">إلغاء</button><button class="btn bp" onclick="saveCe()">&#x1F4BE; تسجيل المصروف</button></div></div></div>
@@ -729,7 +787,15 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mo2" id="clM"><div class="mb2 lg"><div class="mhd"><div class="mtt">&#x1F6E1;&#xFE0F; تسجيل مطالبة تأمينية جديدة</div><button class="mcl" onclick="CM('clM')">×</button></div>
 <div class="fg">
   <div class="fsep">&#x1F4CD; بيانات الحادث</div>
-  <div class="fr3"><div class="fld"><label>تاريخ الحادث <span class="req">*</span></label><input type="date" id="cl-d"></div><div class="fld"><label>رقم السيارة <span class="req">*</span></label><input type="text" id="cl-cr" placeholder="رقم السيارة"></div><div class="fld"><label>لوحة السيارة</label><input type="text" id="cl-pl" placeholder="رقم اللوحة"></div></div>
+  <div class="fr3"><div class="fld"><label>تاريخ الحادث <span class="req">*</span></label><input type="date" id="cl-d"></div><div class="fld"><label>السيارة <span class="req">*</span></label>
+      <select id="cl-veh-sel" onchange="fillClFromVeh()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+        <option value="">— اختر السيارة —</option>
+      </select>
+    </div>
+    <div class="fr">
+      <div class="fld"><label>رقم اللوحة</label><input type="text" id="cl-cr" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr);font-family:monospace"></div>
+      <div class="fld"><label>الحروف</label><input type="text" id="cl-pl" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr)"></div>
+    </div></div>
   <div class="fr3"><div class="fld"><label>اسم السائق <span class="req">*</span></label><input type="text" id="cl-dr" placeholder="الاسم الكامل"></div><div class="fld"><label>رقم الهوية</label><input type="text" id="cl-idd" placeholder="رقم الهوية الوطنية"></div><div class="fld"><label>رقم تقرير نجم</label><input type="text" id="cl-nj" placeholder="رقم التقرير"></div></div>
   <div class="fr"><div class="fld"><label>نسبة الخطأ %</label><input type="number" id="cl-ft" placeholder="100" min="0" max="100"></div><div class="fld"><label>الطرف المتسبب</label><input type="text" id="cl-af" placeholder="اسم الطرف المتسبب"></div></div>
   <div class="fld"><label>وصف الحادث</label><textarea id="cl-ds" placeholder="وصف تفصيلي للحادث والأضرار..."></textarea></div>
@@ -746,7 +812,7 @@ tbody tr:hover td{background:var(--ltr)}
 
 <div class="mo2" id="cuDM"><div class="mb2"><div class="mhd"><div class="mtt" id="cuDT">تفاصيل العهدة</div><button class="mcl" onclick="CM('cuDM')">×</button></div>
 <div id="cuDC"></div>
-<div class="mft"><button class="btn" onclick="CM('cuDM')">إغلاق</button><button class="btn bg3" id="cuDSetBtn" onclick="setCu()">&#x1F4B0; إجراء تسوية</button></div></div></div>
+<div class="mft"><button class="btn" onclick="CM('cuDM')">إغلاق</button><button class="btn bg3" id="cuDSetBtn" onclick="openCuSettle()">&#x1F4CB; تقفيل العهدة</button></div></div></div>
 
 <div class="mo2" id="usM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F464; إضافة مستخدم جديد</div><button class="mcl" onclick="CM('usM')">×</button></div>
 <div class="fg">
@@ -760,8 +826,8 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
-var BK_KEY='qawafil_v9'; // localStorage fallback key
+var S={cu:null,data:{users:[],employees:[],vehicles:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
+var BK_KEY='qawafil_v10'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
 
@@ -877,7 +943,7 @@ function _startListener(){
       if(pg){
         var pgId=pg.id.replace('pg-','');
         var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,
-               ap:loadAp,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,
+               ap:loadAp,veh:loadVeh,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,
                rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};
         if(L[pgId])L[pgId]();
       }
@@ -913,16 +979,16 @@ function seed(){
 }
 var ROLES={
   admin:   {lbl:'مدير النظام',    c:'bpu', all:true,
-            pages:['dash','ops','rev','prices','tr','bk','ap','emps','cc','cu','cl','rp','us','au'],
+            pages:['dash','ops','rev','prices','tr','bk','ap','veh','emps','cc','cu','cl','rp','us','au'],
             canDel:true, canEdit:true, ap:true, bkRev:true, rc:true, ex:true, ops:true, claims:true},
   finance: {lbl:'المدير المالي',  c:'bb',  ap:true, bkRev:true,
-            pages:['dash','rev','tr','bk','ap','emps','cc','cu','cl','rp','au'],
+            pages:['dash','rev','tr','bk','ap','veh','emps','cc','cu','cl','rp','au'],
             canDel:false, canEdit:false},
   treasury:{lbl:'أمين الخزينة',   c:'bn',  rc:true, ex:true,
-            pages:['dash','tr','emps','cc','cu'],
+            pages:['dash','tr','veh','emps','cc','cu'],
             canDel:false, canEdit:true},
   ops:     {lbl:'موظف التشغيل',  c:'bo',  ops:true,
-            pages:['dash','ops','rev'],
+            pages:['dash','ops','veh','rev'],
             canDel:false, canEdit:false},
   claims:  {lbl:'مسؤول المطالبات',c:'br',  claims:true,
             pages:['dash','cl'],
@@ -996,7 +1062,7 @@ function initApp(){
   var fm=new Date();fm.setDate(1);
   ['stF','bkStF'].forEach(id=>{var el=G(id);if(el)el.value=fm.toISOString().split('T')[0];});
   ['stT','bkStT'].forEach(id=>{var el=G(id);if(el)el.value=td2();});
-  fillDrops();fillAllEmpDropdowns();fillCCDropdowns();fillCustodyLinkDropdown('ex-custody-link');fillCustodyLinkDropdown('bo-custody-link');updApCnt();checkAlerts();
+  fillDrops();fillAllEmpDropdowns();fillCCDropdowns();fillVehDropdowns();fillCustodyLinkDropdown('ex-custody-link');fillCustodyLinkDropdown('bo-custody-link');updApCnt();checkAlerts();
   var firstPage='dash';
   if(!canPage('dash')){
     var u2=S.data.users.find(function(x){return x.id===S.cu.id;})||S.cu;
@@ -1022,7 +1088,7 @@ function N(pg,btn){
   if(!canPage(pg)){toast('ليس لديك صلاحية الوصول لهذه الصفحة','e');return;}
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
-  var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',emps:'سجل الموظفين',cc:'مراكز التكلفة',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
+  var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',veh:'سجل السيارات',emps:'سجل الموظفين',cc:'مراكز التكلفة',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,veh:loadVeh,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
 function OM(id){
   if(id==='empM'){
     G('emp-id').value='';G('emp-name').value='';G('emp-job').value='';
@@ -1048,7 +1114,15 @@ function OM(id){
     G('rc-rf').value='';G('rc-nt').value='';
   }
   if(id==='exM'){fillAllEmpDropdowns();G('ex-custody-link-row').style.display='none';}
+  if(id==='ceM'){fillVehDropdowns();var cs=G('ce-veh-sel');if(cs)cs.value='';}
+  if(id==='clM'){fillVehDropdowns();var cvs=G('cl-veh-sel');if(cvs)cvs.value='';}
   if(id==='boM'){fillAllEmpDropdowns();G('bo-custody-link-row').style.display='none';}
+  if(id==='vehM'){
+    G('veh-id').value='';G('veh-num').value='';G('veh-letters').value='';
+    G('veh-plate-preview').value='';G('veh-make').value='';G('veh-model').value='';
+    G('veh-year').value='';G('veh-color').value='';G('veh-vin').value='';G('veh-notes').value='';
+    G('veh-fuel').selectedIndex=0;G('veh-status').selectedIndex=0;
+  }
   if(id==='ccM'){G('cc-id').value='';G('cc-name').value='';G('cc-desc').value='';G('cc-color').value='#1A56DB';}
   G(id).classList.add('on');
 }function CM(id){G(id).classList.remove('on');}
@@ -1259,7 +1333,22 @@ function loadCu(){
 
 function saveCe(){var cid=V('ce-c'),a=Nv('ce-a'),it=V('ce-it');if(!cid||!a||!it){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var cu=S.data.custodies.find(c=>c.id===cid);if(!cu){toast('الموظف غير موجود','e');return;}var sp=S.data.custodyEnts.filter(e=>e.cid===cid).reduce((s,e)=>s+e.amount,0);if(sp+a>cu.opening*1.1)toast('تحذير: المبلغ سيتجاوز رصيد العهدة','w');S.data.custodyEnts.push({id:uid(),cid:cid,empName:cu.name,date:V('ce-d')||td2(),item:it,amount:a,desc:V('ce-ds'),car:V('ce-cr'),plate:V('ce-pl'),by:S.cu.u,at:new Date().toISOString()});alog('قيد عهدة',cu.name+' — '+it+' — '+fR(a));sv();CM('ceM');loadCu();toast('تم تسجيل مصروف العهدة');}
 var curCuId=null;
-function vwCu(id){curCuId=id;var cu=S.data.custodies.find(c=>c.id===id);var en=S.data.custodyEnts.filter(e=>e.cid===id);var sp=en.reduce((s,e)=>s+e.amount,0),rm=cu.opening-sp;G('cuDT').textContent='عهدة '+cu.name;G('cuDSetBtn').style.display=cu.status==='open'?'':'none';G('cuDC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div><div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(sp)+'</div></div><div class="met '+(rm<0?'mr':'mg')+'"><div class="ml2">المتبقي</div><div class="mv2">'+fR(rm)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th></tr></thead><tbody>'+en.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>'<tr><td>'+e.date+'</td><td>'+e.item+'</td><td style="color:var(--dn);font-weight:700">'+fR(e.amount)+'</td><td>'+(e.car?e.car+(e.plate?' ('+e.plate+')'  :''):'—')+'</td><td>'+(e.desc||'—')+'</td></tr>').join('')+'</tbody></table></div>'+(cu.settHist&&cu.settHist.length?'<div style="margin-top:14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">سجل التسويات:</div>'+cu.settHist.map(h=>'<div style="padding:6px 10px;background:var(--ltr);border-radius:8px;font-size:12px;margin-bottom:4px">'+h.type+' — '+h.date+' — بواسطة '+h.by+'</div>').join('')+'</div>':'');OM('cuDM');}
+function vwCu(id){curCuId=id;var cu=S.data.custodies.find(c=>c.id===id);var en=S.data.custodyEnts.filter(e=>e.cid===id);var sp=en.reduce((s,e)=>s+e.amount,0),rm=cu.opening-sp;G('cuDT').textContent='عهدة '+cu.name;G('cuDSetBtn').style.display=cu.status==='open'?'':'none';G('cuDC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div><div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(sp)+'</div></div><div class="met '+(rm<0?'mr':'mg')+'"><div class="ml2">المتبقي</div><div class="mv2">'+fR(rm)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th></tr></thead><tbody>'+en.sort((a,b)=>b.date.localeCompare(a.date)).map(function(e){
+  var isReturn=e.isReturn||e.amount<0;
+  var isTopup=e.isTopup;
+  var dispAmt=isTopup?(e.addedToOpening||0):e.amount;
+  var amtColor=isReturn?'var(--sc)':isTopup?'var(--ry)':'var(--dn)';
+  var amtPrefix=isReturn?'↩ +':isTopup?'↑ ':'';
+  var badge=isReturn?'<span class="bdg bn" style="font-size:10px;margin-left:4px">إرجاع</span>':
+            isTopup?'<span class="bdg bb" style="font-size:10px;margin-left:4px">إضافة رصيد</span>':'';
+  if(isTopup&&!dispAmt)return'';
+  return '<tr style="background:'+(isReturn?'rgba(5,150,105,.04)':isTopup?'rgba(26,86,219,.04)':'')+'">'+
+    '<td>'+e.date+'</td>'+
+    '<td>'+badge+e.item+'</td>'+
+    '<td style="color:'+amtColor+';font-weight:700">'+amtPrefix+fR(Math.abs(dispAmt))+'</td>'+
+    '<td>'+(e.car?e.car+(e.plate?' ('+e.plate+')':''):'—')+'</td>'+
+    '<td>'+(e.desc||'—')+'</td></tr>';
+}).join('')+'</tbody></table></div>'+(cu.settHist&&cu.settHist.length?'<div style="margin-top:14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">سجل التسويات:</div>'+cu.settHist.map(h=>'<div style="padding:6px 10px;background:var(--ltr);border-radius:8px;font-size:12px;margin-bottom:4px">'+h.type+' — '+h.date+' — بواسطة '+h.by+'</div>').join('')+'</div>':'');OM('cuDM');}
 function prepSetCu(id){curCuId=id;vwCu(id);}
 function setCu(){if(!curCuId)return;var type=confirm('تسوية كاملة للعهدة؟\n(موافق = كاملة | إلغاء = جزئية)')?'تسوية كاملة':'تسوية جزئية';var cu=S.data.custodies.find(c=>c.id===curCuId);if(!cu)return;if(type==='تسوية كاملة')cu.status='settled';if(!cu.settHist)cu.settHist=[];cu.settHist.push({type:type,date:td2(),by:S.cu.name});alog('تسوية عهدة',cu.name+' — '+type);sv();CM('cuDM');loadCu();toast('تمت '+type+' للموظف '+cu.name);}
 /* ─── CLAIMS ─── */
@@ -1334,6 +1423,7 @@ var ALL_PAGES=[
   {id:'tr',lbl:'الخزينة'},
   {id:'bk',lbl:'البنك'},
   {id:'ap',lbl:'الاعتمادات'},
+  {id:'veh',lbl:'سجل السيارات'},
   {id:'emps',lbl:'سجل الموظفين'},
   {id:'cc',lbl:'مراكز التكلفة'},
   {id:'cu',lbl:'العهد الشخصية'},
@@ -2216,9 +2306,432 @@ function resetAllData(){
   toast('✅ تم مسح جميع البيانات بنجاح — النظام جاهز للاستخدام الحقيقي');
 }
 
+
+/* ═══════════════════════════════════════════
+   VEHICLES MODULE
+═══════════════════════════════════════════ */
+
+function getVehLabel(v){
+  return v.num+' '+v.letters;
+}
+
+function fillVehDropdowns(){
+  var vehs=(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';});
+  var opts='<option value="">— اختر السيارة —</option>'+
+    vehs.map(function(v){
+      return '<option value="'+v.id+'">'+getVehLabel(v)+' — '+v.make+' '+v.model+'</option>';
+    }).join('');
+  // Fill all vehicle selects in the system
+  ['ce-veh-sel','cl-veh-sel'].forEach(function(id){
+    var sel=document.getElementById(id);
+    if(sel){sel.innerHTML=opts;}
+  });
+}
+
+function loadVeh(){
+  var vehs=S.data.vehicles||[];
+  var ff=document.getElementById('veh-fuel-f');
+  var fuelF=ff?ff.value:'';
+  var filtered=fuelF?vehs.filter(function(v){return v.fuel===fuelF;}):vehs;
+
+  document.getElementById('veh-total').textContent=vehs.length;
+  document.getElementById('veh-petrol').textContent=vehs.filter(function(v){return v.fuel==='بنزين';}).length;
+  document.getElementById('veh-diesel').textContent=vehs.filter(function(v){return v.fuel==='ديزل';}).length;
+  document.getElementById('veh-electric').textContent=vehs.filter(function(v){return v.fuel==='كهربائي'||v.fuel==='هجين';}).length;
+
+  var fuelIcon={'بنزين':'⛽','ديزل':'🛢️','كهربائي':'🔋','هجين':'⚡'};
+  var statusBadge={'نشطة':'bn','في الصيانة':'bo','متوقفة':'br'};
+
+  document.getElementById('vehTbd').innerHTML=filtered.length?filtered.map(function(v){
+    return '<tr>'+
+      '<td style="font-family:monospace;font-weight:700;font-size:15px">'+v.num+'</td>'+
+      '<td style="font-weight:700;font-size:15px">'+v.letters+'</td>'+
+      '<td>'+v.model+'</td>'+
+      '<td>'+v.make+'</td>'+
+      '<td style="font-family:monospace">'+(v.year||'—')+'</td>'+
+      '<td>'+(fuelIcon[v.fuel]||'')+' '+v.fuel+'</td>'+
+      '<td>'+(v.color||'—')+'</td>'+
+      '<td><span class="bdg '+(statusBadge[v.status]||'bg2')+'">'+v.status+'</span></td>'+
+      '<td style="font-size:12px;color:var(--gr)">'+(v.notes||'—')+'</td>'+
+      '<td><div style="display:flex;gap:4px">'+
+        '<button class="btn bxs" onclick="editVeh(this.dataset.id)" data-id="'+v.id+'" title="تعديل">✏️</button>'+
+        (can('all')?'<button class="btn bd2 bxs" onclick="delVeh(this.dataset.id)" data-id="'+v.id+'" title="حذف">🗑️</button>':'')+
+      '</div></td>'+
+    '</tr>';
+  }).join(''):'<tr><td colspan="10"><div class="es"><div class="esic">🚗</div><div class="esti">لا توجد سيارات</div><div class="essb">أضف أول سيارة بالضغط على الزر أعلاه</div></div></td></tr>';
+}
+
+function saveVeh(){
+  var num=document.getElementById('veh-num').value.trim();
+  var letters=document.getElementById('veh-letters').value.trim();
+  var make=document.getElementById('veh-make').value.trim();
+  var model=document.getElementById('veh-model').value.trim();
+  var fuel=document.getElementById('veh-fuel').value;
+  if(!num||!letters||!make||!model||!fuel){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  var id=document.getElementById('veh-id').value;
+  var plate=num+' '+letters;
+  if(id){
+    var v=S.data.vehicles.find(function(x){return x.id===id;});
+    if(!v)return;
+    v.num=num;v.letters=letters;v.plate=plate;
+    v.make=make;v.model=model;
+    v.year=parseInt(document.getElementById('veh-year').value)||null;
+    v.color=document.getElementById('veh-color').value;
+    v.fuel=fuel;
+    v.status=document.getElementById('veh-status').value;
+    v.vin=document.getElementById('veh-vin').value;
+    v.notes=document.getElementById('veh-notes').value;
+    alog('تعديل سيارة',plate+' — '+make+' '+model);
+    toast('تم حفظ التعديلات');
+  } else {
+    if(!S.data.vehicles)S.data.vehicles=[];
+    if(S.data.vehicles.find(function(x){return x.plate===plate;})){
+      toast('هذه السيارة موجودة مسبقاً','e');return;
+    }
+    S.data.vehicles.push({
+      id:uid(),num:num,letters:letters,plate:plate,
+      make:make,model:model,
+      year:parseInt(document.getElementById('veh-year').value)||null,
+      color:document.getElementById('veh-color').value,
+      fuel:fuel,
+      status:document.getElementById('veh-status').value||'نشطة',
+      vin:document.getElementById('veh-vin').value,
+      notes:document.getElementById('veh-notes').value,
+      by:S.cu?S.cu.u:'',at:new Date().toISOString()
+    });
+    alog('إضافة سيارة',plate+' — '+make+' '+model);
+    toast('تم إضافة السيارة');
+  }
+  sv();CM('vehM');loadVeh();fillVehDropdowns();
+}
+
+function editVeh(id){
+  var v=(S.data.vehicles||[]).find(function(x){return x.id===id;});
+  if(!v)return;
+  document.getElementById('veh-id').value=id;
+  document.getElementById('veh-num').value=v.num||'';
+  document.getElementById('veh-letters').value=v.letters||'';
+  document.getElementById('veh-plate-preview').value=v.plate||'';
+  document.getElementById('veh-make').value=v.make||'';
+  document.getElementById('veh-model').value=v.model||'';
+  document.getElementById('veh-year').value=v.year||'';
+  document.getElementById('veh-color').value=v.color||'';
+  document.getElementById('veh-vin').value=v.vin||'';
+  document.getElementById('veh-notes').value=v.notes||'';
+  var fs=document.getElementById('veh-fuel');
+  for(var i=0;i<fs.options.length;i++){if(fs.options[i].value===v.fuel)fs.selectedIndex=i;}
+  var ss=document.getElementById('veh-status');
+  for(var i=0;i<ss.options.length;i++){if(ss.options[i].value===v.status)ss.selectedIndex=i;}
+  OM('vehM');
+}
+
+function delVeh(id){
+  var v=(S.data.vehicles||[]).find(function(x){return x.id===id;});
+  if(!v)return;
+  if(!confirm('حذف السيارة '+v.plate+'؟'))return;
+  S.data.vehicles=S.data.vehicles.filter(function(x){return x.id!==id;});
+  alog('حذف سيارة',v.plate);sv();loadVeh();fillVehDropdowns();toast('تم الحذف','w');
+}
+
+function updatePlatePreview(){
+  var num=document.getElementById('veh-num').value.trim();
+  var letters=document.getElementById('veh-letters').value.trim();
+  var prev=document.getElementById('veh-plate-preview');
+  if(prev)prev.value=(num&&letters)?num+' '+letters:(num||letters||'');
+}
+
+
+/* ─── Vehicle selector helpers ─── */
+function fillCeFromVeh(){
+  var id=document.getElementById('ce-veh-sel').value;
+  if(!id){
+    document.getElementById('ce-cr').value='';
+    document.getElementById('ce-pl').value='';
+    return;
+  }
+  var v=(S.data.vehicles||[]).find(function(x){return x.id===id;});
+  if(!v)return;
+  document.getElementById('ce-cr').value=v.num;
+  document.getElementById('ce-pl').value=v.letters;
+}
+
+function fillClFromVeh(){
+  var id=document.getElementById('cl-veh-sel').value;
+  if(!id){
+    document.getElementById('cl-cr').value='';
+    document.getElementById('cl-pl').value='';
+    return;
+  }
+  var v=(S.data.vehicles||[]).find(function(x){return x.id===id;});
+  if(!v)return;
+  document.getElementById('cl-cr').value=v.num;
+  document.getElementById('cl-pl').value=v.letters;
+}
+
+
+/* ═══════════════════════════════════════════
+   CUSTODY SETTLEMENT MODULE
+═══════════════════════════════════════════ */
+var cuSetRows = [];
+
+function openCuSettle(){
+  if(!curCuId)return;
+  var cu=S.data.custodies.find(function(c){return c.id===curCuId;});
+  if(!cu){toast('عهدة غير موجودة','e');return;}
+  // Reset
+  cuSetRows=[];
+  document.getElementById('cuSet-cuid').value=curCuId;
+  document.getElementById('cuSetName').textContent=cu.name;
+  document.getElementById('cuSet-date').value=td2();
+  document.getElementById('cuSet-return').value='';
+  document.getElementById('cuSet-notes').value='';
+  document.getElementById('cuSet-type').value='partial';
+  // Summary
+  var en=S.data.custodyEnts.filter(function(e){return e.cid===curCuId;});
+  var sp=en.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+  var rem=cu.opening-sp;
+  document.getElementById('cuSetSummary').innerHTML=
+    '<div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div>'+
+    '<div class="met mr"><div class="ml2">مصروف سابق</div><div class="mv2">'+fR(sp)+'</div></div>'+
+    '<div class="met mg"><div class="ml2">المتبقي الحالي</div><div class="mv2">'+fR(rem)+'</div></div>';
+  // Render rows
+  renderCuSetRows();
+  // Fill vehicle dropdown in settlement
+  fillVehDropdowns();
+  CM('cuDM');
+  OM('cuSetM');
+}
+
+function addCuSetRow(){
+  cuSetRows.push({date:td2(),item:'',amount:0,vehId:'',desc:''});
+  renderCuSetRows();
+}
+
+function renderCuSetRows(){
+  var vehs=(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';});
+  var vehOpts='<option value="">— بدون سيارة —</option>'+vehs.map(function(v){
+    return '<option value="'+v.id+'">'+v.num+' '+v.letters+'</option>';
+  }).join('');
+
+  var tbody=document.getElementById('cuSet-rows');
+  if(!cuSetRows.length){
+    tbody.innerHTML='<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--gr);font-size:13px">اضغط "إضافة سطر" لتسجيل مصروف</td></tr>';
+    updateCuSetSummary();
+    return;
+  }
+  tbody.innerHTML=cuSetRows.map(function(r,i){
+    return '<tr style="border-bottom:1px solid var(--bd)">'+
+      '<td style="padding:6px 8px"><input type="date" value="'+r.date+'" onchange="cuSetRows['+i+'].date=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:120px"></td>'+
+      '<td style="padding:6px 8px"><input type="text" value="'+r.item+'" placeholder="البند" oninput="cuSetRows['+i+'].item=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:130px"></td>'+
+      '<td style="padding:6px 8px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetSummary()" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:100px;text-align:left"></td>'+
+      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].vehId=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:120px">'+vehOpts+'</select></td>'+
+      '<td style="padding:6px 8px"><input type="text" value="'+r.desc+'" placeholder="بيان" oninput="cuSetRows['+i+'].desc=this.value" style="padding:5px 8px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:140px"></td>'+
+      '<td style="padding:6px 8px"><button onclick="cuSetRows.splice('+i+',1);renderCuSetRows()" style="background:var(--dnb);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px">🗑️</button></td>'+
+    '</tr>';
+  }).join('');
+  updateCuSetSummary();
+}
+
+function updateCuSetSummary(){
+  var total=cuSetRows.reduce(function(s,r){return s+(r.amount||0);},0);
+  var ret=parseFloat(document.getElementById('cuSet-return').value)||0;
+  var lbl=document.getElementById('cuSet-total-lbl');
+  if(lbl)lbl.textContent='إجمالي المصروفات: '+fR(total);
+  // Balance check
+  var cuid=document.getElementById('cuSet-cuid').value;
+  var cu=S.data.custodies.find(function(c){return c.id===cuid;});
+  if(!cu)return;
+  var en=S.data.custodyEnts.filter(function(e){return e.cid===cuid;});
+  var prevSp=en.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+  var rem=cu.opening-prevSp;
+  var newBal=rem-total-ret;
+  var alert=document.getElementById('cuSet-balance-alert');
+  if(alert){
+    if(newBal<-0.01){
+      alert.innerHTML='<div class="al" style="background:var(--dnb);color:#991B1B;border:1px solid #FCA5A5">&#x26A0;&#xFE0F; المصروفات + المُرجَع ('+fR(total+ret)+') أكبر من الرصيد المتبقي ('+fR(rem)+')</div>';
+    } else if(Math.abs(newBal)<0.01){
+      alert.innerHTML='<div class="al as">&#x2705; الحساب متوازن — الرصيد صفر</div>';
+    } else {
+      alert.innerHTML='<div class="al ai">&#x1F4CA; الرصيد المتبقي بعد التقفيل: <strong>'+fR(newBal)+'</strong></div>';
+    }
+  }
+}
+
+function saveCuSettle(){
+  var cuid=document.getElementById('cuSet-cuid').value;
+  var settDate=document.getElementById('cuSet-date').value;
+  var settType=document.getElementById('cuSet-type').value;
+  var ret=parseFloat(document.getElementById('cuSet-return').value)||0;
+  var notes=document.getElementById('cuSet-notes').value;
+
+  if(!settDate){toast('يرجى تحديد تاريخ التقفيل','e');return;}
+  var hasItems=cuSetRows.some(function(r){return r.amount>0&&r.item;});
+  if(!hasItems&&!ret&&!confirm('لم تسجّل أي مصروفات. هل تريد المتابعة؟'))return;
+
+  var cu=S.data.custodies.find(function(c){return c.id===cuid;});
+  if(!cu){toast('عهدة غير موجودة','e');return;}
+
+  // Validate total
+  var en=S.data.custodyEnts.filter(function(e){return e.cid===cuid;});
+  var prevSp=en.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+  var rem=cu.opening-prevSp;
+  var total=cuSetRows.reduce(function(s,r){return s+(r.amount||0);},0);
+  if(total+ret>rem+0.01){toast('إجمالي المصروفات والمبلغ المُرجَع يتجاوز الرصيد المتبقي','e');return;}
+
+  // Save each expense entry
+  cuSetRows.forEach(function(r){
+    if(!r.amount||!r.item)return;
+    var veh=r.vehId?(S.data.vehicles||[]).find(function(v){return v.id===r.vehId;}):null;
+    S.data.custodyEnts.push({
+      id:uid(),cid:cuid,empName:cu.name,
+      date:r.date||settDate,
+      item:r.item,amount:r.amount,
+      desc:r.desc||('تقفيل بتاريخ '+settDate),
+      car:veh?veh.num:'',
+      plate:veh?veh.letters:'',
+      vehId:r.vehId||'',
+      settleId:'sett_'+settDate,
+      by:S.cu?S.cu.u:'',at:new Date().toISOString()
+    });
+  });
+
+  // Save return as receipt if any
+  if(ret>0){
+    S.data.ctr.rc++;
+    S.data.receipts.unshift({
+      id:uid(),num:S.data.ctr.rc,
+      date:settDate,
+      from:cu.name,
+      desc:'إرجاع عهدة — تقفيل '+settDate,
+      amount:ret,method:'نقدي',ref:'',notes:notes,
+      reviewed:false,reviewedBy:'',reviewedAt:'',
+      custodyReturn:true,custodyId:cuid,
+      by:S.cu?S.cu.u:'',at:new Date().toISOString()
+    });
+    // Deduct from custody
+    S.data.custodyEnts.push({
+      id:uid(),cid:cuid,empName:cu.name,
+      date:settDate,item:'إرجاع للخزينة',amount:-ret,
+      desc:'مبلغ مُرجَع ضمن تقفيل '+settDate,
+      car:'',plate:'',isReturn:true,
+      receiptNum:S.data.ctr.rc,settleId:'sett_'+settDate,
+      by:S.cu?S.cu.u:'',at:new Date().toISOString()
+    });
+  }
+
+  // Record settlement
+  if(!cu.settHist)cu.settHist=[];
+  cu.settHist.push({
+    id:'sett_'+settDate,
+    type:settType==='full'?'تقفيل كامل':'تقفيل جزئي',
+    date:settDate,
+    totalExpenses:total,
+    returned:ret,
+    notes:notes,
+    by:S.cu?S.cu.name:'',
+    items:cuSetRows.filter(function(r){return r.amount>0&&r.item;}).length
+  });
+
+  if(settType==='full'){
+    cu.status='settled';
+    alog('تقفيل كامل للعهدة',cu.name+' — مصروف: '+fR(total)+(ret?' — مُرجَع: '+fR(ret):''));
+    toast('✅ تم التقفيل الكامل لعهدة '+cu.name);
+  } else {
+    alog('تقفيل جزئي للعهدة',cu.name+' — مصروف: '+fR(total)+(ret?' — مُرجَع: '+fR(ret):''));
+    toast('✅ تم التقفيل الجزئي — العهدة لا تزال مفتوحة');
+  }
+
+  sv();CM('cuSetM');loadCu();
+  if(G('trBal'))loadTr();
+}
+
+/* ═══════════════════════════════════════════
+   CUSTODY REPORT MODULE
+═══════════════════════════════════════════ */
+function loadCuReport(){
+  // Fill employee filter
+  var empSel=document.getElementById('cuRepEmp');
+  if(empSel&&empSel.options.length<=1){
+    S.data.custodies.forEach(function(c){
+      var o=document.createElement('option');
+      o.value=c.id;o.textContent=c.name;
+      empSel.appendChild(o);
+    });
+  }
+  var empF=document.getElementById('cuRepEmp')?document.getElementById('cuRepEmp').value:'';
+  var dateF=document.getElementById('cuRepF')?document.getElementById('cuRepF').value:'';
+  var dateT=document.getElementById('cuRepT')?document.getElementById('cuRepT').value:'';
+
+  var custodies=S.data.custodies;
+  if(empF)custodies=custodies.filter(function(c){return c.id===empF;});
+
+  var html='';
+  custodies.forEach(function(cu){
+    var en=S.data.custodyEnts.filter(function(e){return e.cid===cu.id;});
+    // Filter by date if set
+    if(dateF||dateT){
+      en=en.filter(function(e){
+        if(dateF&&e.date<dateF)return false;
+        if(dateT&&e.date>dateT)return false;
+        return true;
+      });
+    }
+    if(!en.length&&(dateF||dateT))return; // skip if no entries in period
+
+    var sp=en.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+    var ret=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
+    var added=en.filter(function(e){return e.isTopup;}).reduce(function(s,e){return s+(e.addedToOpening||0);},0);
+    var totalEn=S.data.custodyEnts.filter(function(e){return e.cid===cu.id&&e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+    var currentRem=cu.opening-totalEn;
+
+    html+='<div style="margin-bottom:24px;page-break-inside:avoid">';
+    // Header
+    html+='<div style="background:var(--nv);color:#fff;border-radius:10px 10px 0 0;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">';
+    html+='<div><div style="font-size:15px;font-weight:700">'+cu.name+'</div>';
+    html+='<div style="font-size:11px;opacity:.6">رقم الموظف: '+(cu.num||'—')+' | فُتحت: '+cu.date+'</div></div>';
+    html+='<div style="text-align:left"><span class="bdg '+(cu.status==='open'?'bn':'bg2')+'" style="font-size:11px">'+(cu.status==='open'?'مفتوحة':'مُغلقة')+'</span></div>';
+    html+='</div>';
+    // Summary bar
+    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--bd);border-top:none">';
+    html+='<div style="padding:10px;border-left:1px solid var(--bd);text-align:center"><div style="font-size:11px;color:var(--gr)">الرصيد الابتدائي</div><div style="font-weight:700;color:var(--ry)">'+fR(cu.opening)+'</div></div>';
+    html+='<div style="padding:10px;border-left:1px solid var(--bd);text-align:center"><div style="font-size:11px;color:var(--gr)">إجمالي المصروف</div><div style="font-weight:700;color:var(--dn)">'+fR(sp)+'</div></div>';
+    html+='<div style="padding:10px;border-left:1px solid var(--bd);text-align:center"><div style="font-size:11px;color:var(--gr)">المُرجَع للخزينة</div><div style="font-weight:700;color:var(--sc)">'+fR(ret)+'</div></div>';
+    html+='<div style="padding:10px;text-align:center"><div style="font-size:11px;color:var(--gr)">الرصيد الحالي</div><div style="font-weight:700;color:'+(currentRem<0?'var(--dn)':'var(--sc)')+'">'+fR(currentRem)+'</div></div>';
+    html+='</div>';
+    // Entries table
+    if(en.length){
+      html+='<div class="tw" style="border-radius:0 0 10px 10px;border-top:none">';
+      html+='<table><thead><tr><th>التاريخ</th><th>البند</th><th>مدين (مصروف)</th><th>دائن (إرجاع/إضافة)</th><th>السيارة</th><th>البيان</th></tr></thead><tbody>';
+      var runBal=0;
+      en.sort(function(a,b){return a.date.localeCompare(b.date);}).forEach(function(e){
+        var isRet=e.isReturn||e.amount<0;
+        var isTop=e.isTopup;
+        var debit=(!isRet&&!isTop&&e.amount>0)?e.amount:0;
+        var credit=isRet?Math.abs(e.amount):isTop?(e.addedToOpening||0):0;
+        var veh=(e.car||e.plate)?(e.car+' '+e.plate).trim():'—';
+        html+='<tr style="background:'+(isRet?'rgba(5,150,105,.04)':isTop?'rgba(26,86,219,.04)':'')+'">'+
+          '<td style="font-family:monospace;white-space:nowrap">'+e.date+'</td>'+
+          '<td>'+(isRet?'<span class="bdg bn" style="font-size:10px">إرجاع</span> ':isTop?'<span class="bdg bb" style="font-size:10px">إضافة</span> ':'')+e.item+'</td>'+
+          '<td style="color:var(--dn);font-weight:700;font-family:monospace">'+(debit?fR(debit):'—')+'</td>'+
+          '<td style="color:var(--sc);font-weight:700;font-family:monospace">'+(credit?fR(credit):'—')+'</td>'+
+          '<td style="font-size:12px;color:var(--gr)">'+veh+'</td>'+
+          '<td style="font-size:12px;color:var(--gr)">'+(e.desc||'—')+'</td>'+
+        '</tr>';
+      });
+      html+='</tbody></table></div>';
+    } else {
+      html+='<div style="padding:16px;text-align:center;color:var(--gr);font-size:13px;border:1px solid var(--bd);border-top:none;border-radius:0 0 10px 10px">لا توجد حركات في هذه الفترة</div>';
+    }
+    html+='</div>';
+  });
+
+  var repC=document.getElementById('cuRepC');
+  if(repC)repC.innerHTML=html||'<div class="es"><div class="esic">📋</div><div class="esti">لا توجد بيانات</div><div class="essb">اختر موظفاً أو فترة زمنية وأعد المحاولة</div></div>';
+}
+
 /* ─── KEYBOARD & EVENTS ─── */
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo2.on').forEach(m=>m.classList.remove('on'));});
-document.addEventListener('click',e=>{if(e.target.classList.contains('mo2'))e.target.classList.remove('on');if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
+document.addEventListener('click',e=>{if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
 G('lgp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 G('lgu').addEventListener('keydown',e=>{if(e.key==='Enter')G('lgp').focus();});
 window.addEventListener('resize',()=>{if(window.innerWidth>768)G('SB').classList.remove('open');G('menuBtn').style.display=window.innerWidth<=768?'':'none';});
@@ -2342,5 +2855,111 @@ ld();
     </div>
   </div>
 </div>
+
+
+<!-- VEHICLE MODAL -->
+<div class="mo2" id="vehM"><div class="mb2">
+  <div class="mhd"><div class="mtt">&#x1F697; إضافة / تعديل سيارة</div><button class="mcl" onclick="CM('vehM')">×</button></div>
+  <div class="fg">
+    <div class="fr">
+      <div class="fld"><label>رقم اللوحة (أرقام) <span class="req">*</span></label><input type="text" id="veh-num" placeholder="مثال: 1234" style="font-family:monospace;font-size:16px;font-weight:700" oninput="updatePlatePreview()"></div>
+      <div class="fld"><label>حروف اللوحة <span class="req">*</span></label><input type="text" id="veh-letters" placeholder="مثال: أ ب ج" style="font-size:16px;font-weight:700" oninput="updatePlatePreview()"></div>
+    </div>
+    <div class="fld"><label>اللوحة الكاملة (معاينة)</label><input type="text" id="veh-plate-preview" readonly style="background:var(--ltr);font-weight:700;font-size:15px;text-align:center;letter-spacing:2px"></div>
+    <div class="fr">
+      <div class="fld"><label>الماركة / النوع <span class="req">*</span></label><input type="text" id="veh-make" placeholder="مثال: تويوتا، فورد، هيونداي"></div>
+      <div class="fld"><label>الموديل <span class="req">*</span></label><input type="text" id="veh-model" placeholder="مثال: كامري، F150، سوناتا"></div>
+    </div>
+    <div class="fr">
+      <div class="fld"><label>سنة الصنع</label><input type="number" id="veh-year" placeholder="مثال: 2022" min="1990" max="2030"></div>
+      <div class="fld"><label>اللون</label><input type="text" id="veh-color" placeholder="مثال: أبيض، أسود"></div>
+    </div>
+    <div class="fr">
+      <div class="fld"><label>نوع الوقود <span class="req">*</span></label>
+        <select id="veh-fuel" style="font-family:var(--fn)">
+          <option value="بنزين">⛽ بنزين</option>
+          <option value="ديزل">🛢️ ديزل</option>
+          <option value="كهربائي">🔋 كهربائي</option>
+          <option value="هجين">⚡ هجين</option>
+        </select>
+      </div>
+      <div class="fld"><label>الحالة</label>
+        <select id="veh-status" style="font-family:var(--fn)">
+          <option value="نشطة">✅ نشطة</option>
+          <option value="صيانة">🔧 في الصيانة</option>
+          <option value="متوقفة">⏸️ متوقفة</option>
+        </select>
+      </div>
+    </div>
+    <div class="fld"><label>رقم الهيكل (VIN)</label><input type="text" id="veh-vin" placeholder="رقم الهيكل اختياري" style="font-family:monospace"></div>
+    <div class="fld"><label>ملاحظات</label><textarea id="veh-notes" style="min-height:55px" placeholder="أي ملاحظات إضافية..."></textarea></div>
+  </div>
+  <input type="hidden" id="veh-id">
+  <div class="mft"><button class="btn" onclick="CM('vehM')">إلغاء</button><button class="btn bp" onclick="saveVeh()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+
+<!-- CUSTODY SETTLEMENT MODAL -->
+<div class="mo2" id="cuSetM"><div class="mb2 lg">
+  <div class="mhd">
+    <div class="mtt">&#x1F4CB; تقفيل عهدة — <span id="cuSetName"></span></div>
+    <button class="mcl" onclick="CM('cuSetM')">×</button>
+  </div>
+  <!-- Summary -->
+  <div class="g3" style="margin-bottom:16px" id="cuSetSummary"></div>
+  <div class="al ai">&#x1F4A1; سجّل كل المصروفات التي أنفقها الموظف. يمكنك إضافة أكثر من سطر. ثم حدد المبلغ المُرجَع (إن وجد) واضغط حفظ التقفيل.</div>
+
+  <!-- Date of settlement -->
+  <div class="fr" style="margin-bottom:12px">
+    <div class="fld"><label>تاريخ التقفيل <span class="req">*</span></label><input type="date" id="cuSet-date"></div>
+    <div class="fld"><label>نوع التقفيل</label>
+      <select id="cuSet-type" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none">
+        <option value="partial">تقفيل جزئي (العهدة تبقى مفتوحة)</option>
+        <option value="full">تقفيل كامل (إغلاق العهدة نهائياً)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Expenses table -->
+  <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--nv)">&#x1F4B8; المصروفات</div>
+  <div style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:12px">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:var(--ltr)">
+          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">التاريخ</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">البند</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">المبلغ</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">السيارة</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--gr);font-size:11px">البيان</th>
+          <th style="padding:8px 10px;width:40px"></th>
+        </tr>
+      </thead>
+      <tbody id="cuSet-rows"></tbody>
+    </table>
+    <div style="padding:8px 10px;border-top:1px solid var(--bd)">
+      <button class="btn bsm bp" onclick="addCuSetRow()">&#x2795; إضافة سطر</button>
+      <span id="cuSet-total-lbl" style="font-size:13px;font-weight:700;color:var(--dn);margin-right:16px"></span>
+    </div>
+  </div>
+
+  <!-- Return amount -->
+  <div class="fr">
+    <div class="fld">
+      <label>&#x1F4B5; مبلغ مُرجَع للخزينة (إن وجد)</label>
+      <input type="number" id="cuSet-return" placeholder="0" oninput="updateCuSetSummary()" min="0">
+      <div style="font-size:11px;color:var(--gr2);margin-top:3px">سيُسجَّل تلقائياً كمقبوض في الخزينة</div>
+    </div>
+    <div class="fld">
+      <label>ملاحظات التقفيل</label>
+      <textarea id="cuSet-notes" style="min-height:60px" placeholder="أي ملاحظات على هذا التقفيل..."></textarea>
+    </div>
+  </div>
+  <div id="cuSet-balance-alert" style="margin-top:8px"></div>
+  <input type="hidden" id="cuSet-cuid">
+  <div class="mft">
+    <button class="btn" onclick="CM('cuSetM')">إلغاء</button>
+    <button class="btn bg3" onclick="saveCuSettle()">&#x1F4BE; حفظ التقفيل</button>
+  </div>
+</div></div>
 
 </body></html>
