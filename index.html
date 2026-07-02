@@ -360,13 +360,18 @@ tbody tr:hover td{background:var(--ltr)}
   <div class="tabs">
     <button class="tabb on" onclick="ST('bkTbs','bkIn',this)">الوارد البنكي</button>
     <button class="tabb" onclick="ST('bkTbs','bkOut',this)">الصادر البنكي</button>
+    <button class="tabb" onclick="ST('bkTbs','bkAp',this);loadBkAp()">&#x23F3; طلبات الاعتماد <span class="sbdg" id="bkApCnt" style="display:none">0</span></button>
     <button class="tabb" onclick="ST('bkTbs','bkStm',this)">كشف الحساب</button>
     <button class="tabb" onclick="ST('bkTbs','bkFlow',this)">التدفق النقدي</button>
   </div>
   <div id="bkTbs">
-    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th></th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
-    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th></th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
+    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
     <div class="tabc" id="bkStm"><div class="card"><div class="cht">كشف الحساب البنكي<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="date" id="bkStF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><input type="date" id="bkStT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><button class="btn bsm bp" onclick="loadBkStm()">&#x1F50E; عرض</button></div></div><div id="bkStmC"></div></div></div>
+    <div class="tabc" id="bkAp">
+      <div class="al aw">&#x26A0;&#xFE0F; الصادرات التالية تنتظر اعتمادك. بعد الاعتماد يتم تأثيرها على رصيد الحساب.</div>
+      <div id="bkApList"><div class="lb"><div class="sp"></div></div></div>
+    </div>
     <div class="tabc" id="bkFlow"><div class="card"><div class="cht">التدفق النقدي البنكي — 6 أشهر</div><canvas id="chFlow" height="260"></canvas></div></div>
   </div>
 </div>
@@ -407,7 +412,10 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ BANK ACCOUNTS ═══ -->
 <div class="pg" id="pg-ba">
   <div class="page-hdr"><h2>&#x1F4B3; الحسابات البنكية</h2>
-    <button class="btn bp" onclick="OM('baM')">&#x2795; حساب جديد</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="assignOldTxns()" title="تعيين حساب للحركات القديمة">&#x1F504; تعيين حساب للبيانات القديمة</button>
+      <button class="btn bp" onclick="OM('baM')">&#x2795; حساب جديد</button>
+    </div>
   </div>
   <div id="ba-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:20px"></div>
   <div class="tabs">
@@ -1059,7 +1067,7 @@ function _startListener(){
                rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};
         if(L[pgId])L[pgId]();
       }
-      updApCnt();checkAlerts();
+      updApCnt();updBkApCnt();checkAlerts();
       setSyncIcon('ok');
     }
   },function(err){
@@ -1183,7 +1191,7 @@ function initApp(){
   var fm=new Date();fm.setDate(1);
   ['stF','bkStF'].forEach(id=>{var el=G(id);if(el)el.value=fm.toISOString().split('T')[0];});
   ['stT','bkStT'].forEach(id=>{var el=G(id);if(el)el.value=td2();});
-  fillDrops();fillAllEmpDropdowns();fillCCDropdowns();fillVehDropdowns();getBankAccounts();fillCustodyLinkDropdown('ex-custody-link');fillCustodyLinkDropdown('bo-custody-link');updApCnt();checkAlerts();
+  fillDrops();fillAllEmpDropdowns();fillCCDropdowns();fillVehDropdowns();getBankAccounts();fillCustodyLinkDropdown('ex-custody-link');fillCustodyLinkDropdown('bo-custody-link');updApCnt();updBkApCnt();checkAlerts();
   var firstPage='dash';
   if(!canPage('dash')){
     var u2=S.data.users.find(function(x){return x.id===S.cu.id;})||S.cu;
@@ -1425,8 +1433,44 @@ function loadBk(){
     div.innerHTML='<div style="font-size:11px;font-weight:700;color:'+clr+'">'+d.getDate()+'</div><div style="font-size:13px">'+ico+'</div>';
     cal.appendChild(div);
   }
-  G('biTbd').innerHTML=bI.sort((a,b)=>b.date.localeCompare(a.date)).map(b=>'<tr><td>'+b.date+'</td><td style="font-weight:700;color:var(--sc)">'+fR(b.amount)+'</td><td>'+b.from+'</td><td style="font-family:monospace;font-size:12px">'+(b.ref||'—')+'</td><td>'+(b.desc||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+b.by+'</td><td><button class="btn bd2 bxs" onclick="delBI(\''+b.id+'\')">حذف</button></td></tr>').join('')||'<tr><td colspan="7"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
-  G('boTbd').innerHTML=bO.sort((a,b)=>b.date.localeCompare(a.date)).map(b=>'<tr><td>'+b.date+'</td><td style="font-weight:700;color:var(--dn)">'+fR(b.amount)+'</td><td>'+b.to+'</td><td style="font-family:monospace;font-size:12px">'+(b.ref||'—')+'</td><td>'+(b.desc||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+b.by+'</td><td><button class="btn bd2 bxs" onclick="delBO(\''+b.id+'\')">حذف</button></td></tr>').join('')||'<tr><td colspan="7"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
+  G('biTbd').innerHTML=bI.sort((a,b)=>b.date.localeCompare(a.date)).map(function(b){
+    var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
+    var accTag=acc?'<span style="background:'+acc.color+'22;color:'+acc.color+';border:1px solid '+acc.color+'44;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">'+acc.name+'</span>':'<span class="bdg bo" style="font-size:10px">غير مُعيَّن</span>';
+    return '<tr>'+
+      '<td>'+b.date+'</td>'+
+      '<td style="font-weight:700;color:var(--sc)">'+fR(b.amount)+'</td>'+
+      '<td>'+accTag+'</td>'+
+      '<td>'+b.from+'</td>'+
+      '<td style="font-family:monospace;font-size:12px">'+(b.ref||'—')+'</td>'+
+      '<td>'+(b.desc||'—')+'</td>'+
+      '<td style="font-size:11px;color:var(--gr2)">'+b.by+'</td>'+
+      '<td><div style="display:flex;gap:4px">'+
+        '<button class="btn bxs" onclick="editBI(this.dataset.id)" data-id="'+b.id+'" title="تعديل">✏️</button>'+
+        (can('all')?'<button class="btn bd2 bxs" onclick="delBI(this.dataset.id)" data-id="'+b.id+'" title="حذف">🗑️</button>':'')+
+      '</div></td>'+
+    '</tr>';
+  }).join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
+  G('boTbd').innerHTML=bO.sort((a,b)=>b.date.localeCompare(a.date)).map(function(b){
+    var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
+    var accTag=acc?'<span style="background:'+acc.color+'22;color:'+acc.color+';border:1px solid '+acc.color+'44;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">'+acc.name+'</span>':'<span class="bdg bo" style="font-size:10px">غير مُعيَّن</span>';
+    return '<tr>'+
+      '<td>'+b.date+'</td>'+
+      '<td style="font-weight:700;color:var(--dn)">'+fR(b.amount)+'</td>'+
+      '<td>'+accTag+'</td>'+
+      '<td>'+b.to+'</td>'+
+      '<td style="font-family:monospace;font-size:12px">'+(b.ref||'—')+'</td>'+
+      '<td>'+(b.desc||'—')+'</td>'+
+      '<td style="font-size:11px;color:var(--gr2)">'+b.by+'</td>'+
+      '<td>'+sBadge(b.status||'approved')+'</td>'+
+      '<td><div style="display:flex;gap:3px">'+
+        ((can('all')||can('ap'))&&(b.status||'approved')==='pending'?
+          '<button class="btn bss bxs" onclick="apBO(this.dataset.id)" data-id="'+b.id+'" title="اعتماد">✓</button>'+
+          '<button class="btn bd2 bxs" onclick="rjBO(this.dataset.id)" data-id="'+b.id+'" title="رفض">✗</button>':'')+
+        (b.status!=='approved'||can('all')?'<button class="btn bxs" onclick="editBO(this.dataset.id)" data-id="'+b.id+'">✏️</button>':'')+
+        (can('all')?'<button class="btn bd2 bxs" onclick="delBO(this.dataset.id)" data-id="'+b.id+'">🗑️</button>':'')+
+      '</div></td>'+
+    '</tr>';
+  }).join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
   var fl=[],flI=[],flO=[];for(var i=5;i>=0;i--){var d=new Date();d.setMonth(d.getMonth()-i);var ym3=d.toISOString().slice(0,7);fl.push(d.toLocaleDateString('ar-SA',{month:'short'}));flI.push(bI.filter(b=>b.date.startsWith(ym3)).reduce((s,b)=>s+b.amount,0));flO.push(bO.filter(b=>b.date.startsWith(ym3)).reduce((s,b)=>s+b.amount,0));}
   RC(G('chFlow'),'line',fl,[['وارد',flI,'rgba(5,150,105,.7)'],['صادر',flO,'rgba(220,38,38,.7)']]);
 }
@@ -2001,15 +2045,12 @@ function saveBo(){
     ref:V('bo-rf'),desc:V('bo-ds'),custodyLink:cuLink,
     empId:eid,accId:boAccId,accName:boAccObj?boAccObj.name:'',
     vehId:boVehId,vehNum:boVeh?boVeh.num:'',vehLetters:boVeh?boVeh.letters:'',
+    status:'pending',apBy:'',apAt:'',
+    reviewed:false,reviewedBy:'',reviewedAt:'',
     by:S.cu?S.cu.u:'',at:new Date().toISOString()});
-  if(cuLink){
-    addCustodyEntry(cuLink,a,V('bo-ds')||('صرف بنكي لـ '+t),'صادر بنكي');
-    alog('صادر بنكي','لـ '+t+' — '+fR(a)+' — أُضيف لعهدة الموظف تلقائياً');
-    toast('✅ تم تسجيل الصادر البنكي وإضافته لعهدة الموظف تلقائياً');
-  } else {
-    alog('صادر بنكي','لـ '+t+' — '+fR(a));
-    toast('تم تسجيل الصادر البنكي');
-  }
+  // Custody entry added AFTER approval not now
+  alog('طلب صادر بنكي','لـ '+t+' — '+fR(a)+' — معلق للاعتماد');
+  toast('تم إرسال طلب الصادر البنكي للاعتماد ⏳','i');
   sv();CM('boM');loadBk();
 }
 
@@ -3412,6 +3453,167 @@ function loadBAStm(){
   G('baStmC').innerHTML=html;
 }
 
+
+/* ─── BANK TRANSACTIONS EDIT / ASSIGN ─── */
+
+function fillAccSelects(){
+  var accs=getBankAccounts();
+  var opts='<option value="">— اختر الحساب —</option>'+
+    accs.filter(function(a){return a.active;}).map(function(a){
+      return '<option value="'+a.id+'">'+a.name+(a.number?' ('+a.number+')':'')+'</option>';
+    }).join('');
+  ['bie-acc','boe-acc'].forEach(function(id){var s=G(id);if(s)s.innerHTML=opts;});
+}
+
+function editBI(id){
+  var b=S.data.bankIn.find(function(x){return x.id===id;});
+  if(!b)return;
+  fillAccSelects();
+  G('bie-id').value=id;
+  G('bie-d').value=b.date;
+  G('bie-a').value=b.amount;
+  G('bie-f').value=b.from;
+  G('bie-rf').value=b.ref||'';
+  G('bie-ds').value=b.desc||'';
+  if(b.accId){var s=G('bie-acc');if(s)s.value=b.accId;}
+  OM('biEM');
+}
+
+function saveEditBI(){
+  var id=V('bie-id');
+  var b=S.data.bankIn.find(function(x){return x.id===id;});
+  if(!b)return;
+  var a=parseFloat(G('bie-a').value)||0;
+  var f=V('bie-f');
+  if(!a||!f){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  var accId=V('bie-acc');
+  var acc=getBankAccounts().find(function(x){return x.id===accId;});
+  b.date=V('bie-d')||td2();
+  b.amount=a;b.from=f;b.ref=V('bie-rf');b.desc=V('bie-ds');
+  b.accId=accId;b.accName=acc?acc.name:'';
+  alog('تعديل وارد بنكي','من '+f+' — '+fR(a)+(acc?' — '+acc.name:''));
+  sv();CM('biEM');loadBk();loadBA();toast('تم حفظ التعديل');
+}
+
+function editBO(id){
+  var b=S.data.bankOut.find(function(x){return x.id===id;});
+  if(!b)return;
+  fillAccSelects();
+  G('boe-id').value=id;
+  G('boe-d').value=b.date;
+  G('boe-a').value=b.amount;
+  G('boe-t').value=b.to;
+  G('boe-rf').value=b.ref||'';
+  G('boe-ds').value=b.desc||'';
+  if(b.accId){var s=G('boe-acc');if(s)s.value=b.accId;}
+  OM('boEM');
+}
+
+function saveEditBO(){
+  var id=V('boe-id');
+  var b=S.data.bankOut.find(function(x){return x.id===id;});
+  if(!b)return;
+  var a=parseFloat(G('boe-a').value)||0;
+  var t=V('boe-t');
+  if(!a||!t){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  var accId=V('boe-acc');
+  var acc=getBankAccounts().find(function(x){return x.id===accId;});
+  b.date=V('boe-d')||td2();
+  b.amount=a;b.to=t;b.ref=V('boe-rf');b.desc=V('boe-ds');
+  b.accId=accId;b.accName=acc?acc.name:'';
+  alog('تعديل صادر بنكي','لـ '+t+' — '+fR(a)+(acc?' — '+acc.name:''));
+  sv();CM('boEM');loadBk();loadBA();toast('تم حفظ التعديل');
+}
+
+function assignOldTxns(){
+  // Find transactions without accId
+  var noAcc=[...S.data.bankIn.filter(function(b){return !b.accId;}),
+             ...S.data.bankOut.filter(function(b){return !b.accId;})];
+  if(!noAcc.length){toast('كل الحركات مُعيَّنة لحسابات بالفعل ✅','s');return;}
+  
+  var accs=getBankAccounts();
+  if(!accs.length){toast('يرجى إضافة حساب بنكي أولاً','e');return;}
+  
+  // Build selection dialog
+  var opts=accs.map(function(a,i){return i+': '+a.name;}).join('\n');
+  var choice=prompt('يوجد '+noAcc.length+' حركة بدون حساب مُعيَّن.\n\nاختر الحساب لتعيينه (أدخل الرقم):\n'+opts+'\n\nأو اضغط إلغاء للتعيين يدوياً عبر زر التعديل');
+  
+  if(choice===null)return;
+  var idx=parseInt(choice);
+  if(isNaN(idx)||idx<0||idx>=accs.length){toast('رقم غير صحيح','e');return;}
+  
+  var acc=accs[idx];
+  S.data.bankIn.forEach(function(b){if(!b.accId){b.accId=acc.id;b.accName=acc.name;}});
+  S.data.bankOut.forEach(function(b){if(!b.accId){b.accId=acc.id;b.accName=acc.name;}});
+  
+  alog('تعيين حساب للحركات القديمة',acc.name+' — '+noAcc.length+' حركة');
+  sv();loadBk();loadBA();
+  toast('✅ تم تعيين '+acc.name+' لـ '+noAcc.length+' حركة');
+}
+
+
+/* ─── BANK OUT APPROVAL ─── */
+function updBkApCnt(){
+  var p=S.data.bankOut.filter(function(b){return(b.status||'approved')==='pending';}).length;
+  var el=G('bkApCnt');if(el){el.textContent=p;el.style.display=p>0?'inline':'none';}
+}
+
+function loadBkAp(){
+  var pnd=S.data.bankOut.filter(function(b){return(b.status||'approved')==='pending';});
+  var el=G('bkApList');
+  if(!el)return;
+  if(!pnd.length){
+    el.innerHTML='<div class="es"><div class="esic">✅</div><div class="esti">لا توجد طلبات معلقة</div></div>';
+    return;
+  }
+  el.innerHTML=pnd.map(function(b){
+    var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
+    return '<div class="ac">'+
+      '<div class="ahd">'+
+        '<span>&#x1F4E4; صادر بنكي — '+b.to+'</span>'+
+        '<span class="bdg bo">⏳ معلق</span>'+
+      '</div>'+
+      '<div class="aro"><span class="ak">المبلغ</span><span class="av" style="font-size:16px;color:var(--dn)">'+fR(b.amount)+'</span></div>'+
+      '<div class="aro"><span class="ak">الحساب</span><span class="av">'+(acc?acc.name:'غير مُعيَّن')+'</span></div>'+
+      '<div class="aro"><span class="ak">البيان</span><span class="av">'+(b.desc||'—')+'</span></div>'+
+      '<div class="aro"><span class="ak">التاريخ</span><span class="av">'+b.date+'</span></div>'+
+      '<div class="aro"><span class="ak">مقدم الطلب</span><span class="av">'+b.by+'</span></div>'+
+      ((can('all')||can('ap'))?
+        '<div class="ab2">'+
+          '<button class="btn bss" onclick="apBO(this.dataset.id)" data-id="'+b.id+'">✅ اعتماد</button>'+
+          '<button class="btn bd2" onclick="rjBO(this.dataset.id)" data-id="'+b.id+'">❌ رفض</button>'+
+        '</div>':
+        '<div class="al ai" style="margin-top:8px">يتطلب صلاحية المدير المالي</div>'
+      )+
+    '</div>';
+  }).join('');
+}
+
+function apBO(id){
+  if(!can('all')&&!can('ap')){toast('ليس لديك صلاحية','e');return;}
+  var b=S.data.bankOut.find(function(x){return x.id===id;});
+  if(!b||(b.status||'approved')!=='pending')return;
+  b.status='approved';b.apBy=S.cu?S.cu.u:'';b.apAt=new Date().toISOString();
+  // Now add to custody if linked
+  if(b.custodyLink){
+    addCustodyEntry(b.custodyLink,b.amount,b.desc||('صرف بنكي لـ '+b.to),'صادر بنكي');
+  }
+  alog('اعتماد صادر بنكي',b.to+' — '+fR(b.amount));
+  sv();loadBk();loadBkAp();updBkApCnt();
+  toast('✅ تم اعتماد الصادر البنكي');
+}
+
+function rjBO(id){
+  if(!can('all')&&!can('ap')){toast('ليس لديك صلاحية','e');return;}
+  var rsn=prompt('سبب الرفض (اختياري):');
+  var b=S.data.bankOut.find(function(x){return x.id===id;});
+  if(!b||(b.status||'approved')!=='pending')return;
+  b.status='rejected';b.rjBy=S.cu?S.cu.u:'';b.rjAt=new Date().toISOString();b.rjRsn=rsn||'';
+  alog('رفض صادر بنكي',b.to+' — '+fR(b.amount)+' — السبب: '+(rsn||'غير محدد'));
+  sv();loadBk();loadBkAp();updBkApCnt();
+  toast('تم رفض الطلب','w');
+}
+
 /* ─── KEYBOARD & EVENTS ─── */
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo2.on').forEach(m=>m.classList.remove('on'));});
 document.addEventListener('click',e=>{if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
@@ -3679,6 +3881,37 @@ ld();
   </div>
   <input type="hidden" id="ba-id">
   <div class="mft"><button class="btn" onclick="CM('baM')">إلغاء</button><button class="btn bp" onclick="saveBA()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+
+<!-- EDIT BANK IN MODAL -->
+<div class="mo2" id="biEM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">✏️ تعديل وارد بنكي</div><button class="mcl" onclick="CM('biEM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>الحساب البنكي <span class="req">*</span></label><select id="bie-acc" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر الحساب —</option></select></div>
+    <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="bie-d"></div>
+    <div class="fld"><label>المبلغ <span class="req">*</span></label><input type="number" id="bie-a" placeholder="0"></div>
+    <div class="fld"><label>مصدر التحويل <span class="req">*</span></label><input type="text" id="bie-f" placeholder="اسم المحوِّل"></div>
+    <div class="fld"><label>رقم العملية</label><input type="text" id="bie-rf" placeholder="رقم المرجع"></div>
+    <div class="fld"><label>البيان</label><input type="text" id="bie-ds" placeholder="بيان التحويل"></div>
+  </div>
+  <input type="hidden" id="bie-id">
+  <div class="mft"><button class="btn" onclick="CM('biEM')">إلغاء</button><button class="btn bss" onclick="saveEditBI()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+<!-- EDIT BANK OUT MODAL -->
+<div class="mo2" id="boEM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">✏️ تعديل صادر بنكي</div><button class="mcl" onclick="CM('boEM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>الحساب البنكي <span class="req">*</span></label><select id="boe-acc" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر الحساب —</option></select></div>
+    <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="boe-d"></div>
+    <div class="fld"><label>المبلغ <span class="req">*</span></label><input type="number" id="boe-a" placeholder="0"></div>
+    <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="boe-t" placeholder="اسم المستفيد"></div>
+    <div class="fld"><label>رقم العملية</label><input type="text" id="boe-rf" placeholder="رقم المرجع"></div>
+    <div class="fld"><label>البيان</label><input type="text" id="boe-ds" placeholder="بيان التحويل"></div>
+  </div>
+  <input type="hidden" id="boe-id">
+  <div class="mft"><button class="btn" onclick="CM('boEM')">إلغاء</button><button class="btn bg3" onclick="saveEditBO()">&#x1F4BE; حفظ</button></div>
 </div></div>
 
 </body></html>
