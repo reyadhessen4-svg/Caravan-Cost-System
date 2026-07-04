@@ -1030,8 +1030,10 @@ function ld(){
     DB.ref(DB_REF).once('value').then(function(snap){
       clearTimeout(_fbTimeout);
       var d=snap.val();
-      if(d&&d.users&&d.users.length){
+      if(d&&d.users){
         S.data=Object.assign({},S.data,d);
+        var arrFields=['users','employees','vehicles','bankAccounts','clients','costCenters','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
+        arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
         setSyncIcon('ok');
       } else {
         _loadLocal();
@@ -1075,9 +1077,16 @@ function _startListener(){
   DB.ref(DB_REF).on('value',function(snap){
     var d=snap.val();
     if(!d||!d.users)return;
-    // Only update if not currently saving (avoid echo)
     clearTimeout(_saveTimer);
     S.data=Object.assign({},S.data,d);
+    // Ensure arrays
+    var arrF=['users','employees','vehicles','bankAccounts','clients','costCenters',
+      'prices','ops','receipts','expenses','bankIn','bankOut','bankRevs',
+      'custodies','custodyEnts','claims','audit'];
+    arrF.forEach(function(f){
+      if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);
+      if(!S.data[f])S.data[f]=[];
+    });
     // Refresh current page if app is open
     if(S.cu){
       var pg=document.querySelector('.pg.on');
