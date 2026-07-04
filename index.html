@@ -970,7 +970,6 @@ var DB_REF='/qawafil'; // Firebase path
     };
     firebase.initializeApp(cfg);
     DB=firebase.database();
-    console.log('✅ Firebase connected');
   }catch(e){
     console.warn('Firebase init failed, using localStorage',e);
     DB=null;
@@ -1030,21 +1029,16 @@ function ld(){
     DB.ref(DB_REF).once('value').then(function(snap){
       clearTimeout(_fbTimeout);
       var d=snap.val();
-      console.log('📦 Firebase data received:', d?'has data':'null', d?Object.keys(d):[]);
       if(d&&d.users){
         S.data=Object.assign({},S.data,d);
         var arrFields=['users','employees','vehicles','bankAccounts','clients','costCenters','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
         arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
-        console.log('✅ Users loaded:', S.data.users.length);
         setSyncIcon('ok');
       } else {
-        console.log('⚠️ No users in Firebase - loading local');
         _loadLocal();
         sv();
       }
-      console.log('📄 Calling _showLoginPage...');
       _showLoginPage();
-      console.log('📄 _showLoginPage called - LP display:', document.getElementById('LP')?document.getElementById('LP').style.display:'NOT FOUND');
       _startListener();
     }).catch(function(err){
       clearTimeout(_fbTimeout);
@@ -1068,11 +1062,20 @@ function _loadLocal(){
 }
 
 function _showLoginPage(){
+  // Hide FBLoad with multiple methods
   var fb=document.getElementById('FBLoad');
+  if(fb){
+    fb.style.display='none';
+    fb.style.visibility='hidden';
+    fb.style.zIndex='-1';
+    fb.style.opacity='0';
+    try{if(fb.parentNode)fb.parentNode.removeChild(fb);}catch(e){}
+  }
+  // Show login page
   var lp=document.getElementById('LP');
-  // Remove FBLoad completely from DOM
-  if(fb&&fb.parentNode)fb.parentNode.removeChild(fb);
-  if(lp){lp.style.display='flex';lp.style.visibility='visible';lp.style.opacity='1';}
+  if(lp){
+    lp.style.cssText='display:flex!important;visibility:visible!important;opacity:1!important;z-index:200!important;position:relative!important;';
+  }
 }
 
 /* ── Realtime listener: sync changes from other users ── */
