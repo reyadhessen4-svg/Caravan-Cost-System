@@ -456,7 +456,14 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ VEHICLES ═══ -->
 <div class="pg" id="pg-veh">
   <div class="page-hdr"><h2>&#x1F697; سجل السيارات</h2>
-    <button class="btn bp" onclick="OM('vehM')">&#x2795; إضافة سيارة</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="downloadVehTemplate()">&#x1F4E5; تنزيل القالب</button>
+      <label class="btn" style="cursor:pointer" title="رفع ملف Excel مملوء">
+        &#x1F4E4; رفع ملف Excel
+        <input type="file" id="vehImportFile" accept=".csv,.xlsx,.xls" onchange="importVehFile(this)" style="display:none">
+      </label>
+      <button class="btn bp" onclick="OM('vehM')">&#x2795; إضافة سيارة</button>
+    </div>
   </div>
   <div class="mets">
     <div class="met mb"><div class="mi2">&#x1F697;</div><div class="ml2">إجمالي السيارات</div><div class="mv2" id="veh-total">—</div></div>
@@ -3685,7 +3692,7 @@ function printVoucher(id){
     '<div class="sig-box">'+
       '<div class="sig-title">أمين الخزينة</div>'+
       '<div style="height:40px"></div>'+
-      '<div class="sig-line"><div class="sig-name">'+byName+'</div><div>التوقيع</div></div>'+
+      '<div class="sig-line"><div class="sig-name" style="font-size:14px;font-weight:900">'+byName+'</div><div>التوقيع</div></div>'+
     '</div>'+
     '<div class="sig-box">'+
       '<div class="sig-title">المستلم</div>'+
@@ -3745,7 +3752,8 @@ function printReceipt(id){
   if(!r){toast('لم يتم العثور على السند','e');return;}
 
   var byUser=S.data.users.find(function(u){return u.u===r.by;});
-  var byName=byUser?byUser.name:(r.by||'أمين الخزينة');
+  if(!byUser)byUser=S.data.users.find(function(u){return u.name===r.by;});
+  var byName=byUser?byUser.name:(S.cu&&S.cu.r==='treasury'?S.cu.name:(r.by||'أمين الخزينة'));
   var printDate=new Date().toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
   var rcDate=r.date||td2();
 
@@ -3805,7 +3813,7 @@ function printReceipt(id){
     '<div class="sig-box">'+
       '<div class="sig-title">أمين الخزينة</div>'+
       '<div style="height:40px"></div>'+
-      '<div class="sig-line"><div class="sig-name">'+byName+'</div><div>التوقيع</div></div>'+
+      '<div class="sig-line"><div class="sig-name" style="font-size:14px;font-weight:900">'+byName+'</div><div>التوقيع</div></div>'+
     '</div>'+
     '<div class="sig-box">'+
       '<div class="sig-title">الدافع / المسلِّم</div>'+
@@ -3832,6 +3840,141 @@ function printReceipt(id){
   setTimeout(function(){w.print();},500);
 }
 
+
+/* ═══════════════════════════════════════════
+   VEHICLES IMPORT / EXPORT TEMPLATE
+═══════════════════════════════════════════ */
+function downloadVehTemplate(){
+  // CSV template with headers matching vehicle fields
+  var headers=[
+    'رقم اللوحة (أرقام)',
+    'حروف اللوحة',
+    'الماركة',
+    'الموديل',
+    'سنة الصنع',
+    'اللون',
+    'نوع الوقود (بنزين/ديزل/كهربائي/هجين)',
+    'الحالة (نشطة/صيانة/متوقفة)',
+    'رقم الهيكل VIN',
+    'ملاحظات'
+  ];
+  // Add example rows
+  var examples=[
+    ['1234','أ ب ج','تويوتا','كامري 2022','2022','أبيض','بنزين','نشطة','',''],
+    ['5678','د هـ و','فورد','F150 2021','2021','أسود','بنزين','نشطة','',''],
+    ['9999','س ط م','هيونداي','سوناتا 2023','2023','فضي','بنزين','نشطة','',''],
+  ];
+  var csv='\uFEFF'+headers.join(',')+'\n';
+  examples.forEach(function(r){csv+=r.map(function(c){return'"'+c+'"';}).join(',')+'\n';});
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='قالب_سجل_السيارات.csv';
+  a.click();
+  toast('تم تنزيل القالب — افتحه في Excel وأدخل بيانات السيارات ثم ارفعه');
+}
+
+function importVehFile(input){
+  var file=input.files[0];
+  if(!file)return;
+  var ext=file.name.split('.').pop().toLowerCase();
+  if(ext!=='csv'){
+    toast('يرجى رفع ملف CSV فقط. احفظ ملف Excel بصيغة CSV أولاً','w');
+    input.value='';
+    return;
+  }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var text=e.target.result;
+      // Remove BOM if present
+      text=text.replace(/^\uFEFF/,'');
+      var lines=text.split('\n').filter(function(l){return l.trim();});
+      if(lines.length<2){toast('الملف فارغ أو لا يحتوي على بيانات','e');return;}
+      
+      var added=0,skipped=0,errors=[];
+      // Skip header row
+      for(var i=1;i<lines.length;i++){
+        var cols=parseCSVLine(lines[i]);
+        if(!cols||cols.length<3)continue;
+        
+        var num=(cols[0]||'').trim();
+        var letters=(cols[1]||'').trim();
+        var make=(cols[2]||'').trim();
+        var model=(cols[3]||'').trim();
+        var year=parseInt(cols[4])||null;
+        var color=(cols[5]||'').trim();
+        var fuel=(cols[6]||'بنزين').trim();
+        var status=(cols[7]||'نشطة').trim();
+        var vin=(cols[8]||'').trim();
+        var notes=(cols[9]||'').trim();
+        
+        if(!num||!letters||!make){
+          errors.push('سطر '+(i+1)+': بيانات ناقصة');
+          skipped++;continue;
+        }
+        var plate=num+' '+letters;
+        // Check duplicate
+        if((S.data.vehicles||[]).find(function(v){return v.plate===plate;})){
+          errors.push('سطر '+(i+1)+': اللوحة '+plate+' موجودة مسبقاً');
+          skipped++;continue;
+        }
+        // Validate fuel
+        var validFuels=['بنزين','ديزل','كهربائي','هجين'];
+        if(validFuels.indexOf(fuel)<0)fuel='بنزين';
+        // Validate status
+        var validStatus=['نشطة','صيانة','متوقفة'];
+        if(validStatus.indexOf(status)<0)status='نشطة';
+        
+        if(!S.data.vehicles)S.data.vehicles=[];
+        S.data.vehicles.push({
+          id:uid(),num:num,letters:letters,plate:plate,
+          make:make,model:model||make,
+          year:year,color:color,fuel:fuel,status:status,
+          vin:vin,notes:notes,
+          by:S.cu?S.cu.u:'',at:new Date().toISOString()
+        });
+        added++;
+      }
+      
+      if(added>0){
+        alog('استيراد سيارات','تم إضافة '+added+' سيارة من ملف Excel');
+        sv();loadVeh();fillVehDropdowns();
+      }
+      
+      var msg='✅ تم استيراد '+added+' سيارة';
+      if(skipped>0)msg+=' | تجاهل '+skipped+' سطر';
+      toast(msg,added>0?'s':'w');
+      
+      if(errors.length>0&&errors.length<=5){
+        setTimeout(function(){toast('تنبيهات: '+errors.join(' | '),'w');},1500);
+      }
+    }catch(err){
+      toast('خطأ في قراءة الملف: '+err.message,'e');
+    }
+    input.value='';
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+function parseCSVLine(line){
+  // Handle quoted CSV fields
+  var result=[],cur='',inQ=false;
+  for(var i=0;i<line.length;i++){
+    var c=line[i];
+    if(c==='"'){
+      if(inQ&&line[i+1]==='"'){cur+='"';i++;}
+      else inQ=!inQ;
+    } else if(c===','&&!inQ){
+      result.push(cur);cur='';
+    } else {
+      cur+=c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
 /* ─── KEYBOARD & EVENTS ─── */
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo2.on').forEach(m=>m.classList.remove('on'));});
 document.addEventListener('click',e=>{if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
@@ -3840,6 +3983,1252 @@ G('lgu').addEventListener('keydown',e=>{if(e.key==='Enter')G('lgp').focus();});
 window.addEventListener('resize',()=>{if(window.innerWidth>768)G('SB').classList.remove('open');G('menuBtn').style.display=window.innerWidth<=768?'':'none';});
 ld();
 </script>
+<!-- EDIT RECEIPT MODAL -->
+<div class="mo2" id="rcEM"><div class="mb2"><div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل مقبوض</div><button class="mcl" onclick="CM('rcEM')">×</button></div>
+<div class="fg">
+  <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="rce-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="rce-a" placeholder="0"></div></div>
+  <div class="fld"><label>الجهة الدافعة <span class="req">*</span></label><input type="text" id="rce-f" placeholder="اسم الجهة أو الشركة"></div>
+  <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="rce-ds" placeholder="بيان المقبوض"></div>
+  <div class="fr"><div class="fld"><label>طريقة السداد</label><select id="rce-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option><option>بطاقة</option></select></div><div class="fld"><label>رقم مرجعي</label><input type="text" id="rce-rf" placeholder="رقم الشيك / التحويل"></div></div>
+  <div class="fld"><label>ملاحظات</label><textarea id="rce-nt" style="min-height:55px"></textarea></div>
+</div>
+<input type="hidden" id="rce-id">
+<div class="mft"><button class="btn" onclick="CM('rcEM')">إلغاء</button><button class="btn bss" onclick="saveEditRc()">&#x1F4BE; حفظ التعديل</button></div></div></div>
+
+<!-- EDIT EXPENSE MODAL -->
+<div class="mo2" id="exEM"><div class="mb2"><div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل مصروف</div><button class="mcl" onclick="CM('exEM')">×</button></div>
+<div class="al aw">&#x26A0;&#xFE0F; يمكن تعديل المصروفات المعلقة والمرفوضة فقط. المعتمدة لا تُعدَّل.</div>
+<div class="fg">
+  <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="exe-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="exe-a" placeholder="0"></div></div>
+  <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="exe-t" placeholder="اسم المستفيد"></div>
+  <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="exe-ds" placeholder="وصف واضح للمصروف"></div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc" style="font-family:var(--fn)"></select></div><div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fld"><label>ملاحظات</label><textarea id="exe-nt" style="min-height:55px"></textarea></div>
+</div>
+<input type="hidden" id="exe-id">
+<div class="mft"><button class="btn" onclick="CM('exEM')">إلغاء</button><button class="btn bg3" onclick="saveEditEx()">&#x1F4BE; حفظ التعديل</button></div></div></div>
+
+
+<!-- EDIT USER MODAL -->
+<div class="mo2" id="usEM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل بيانات المستخدم</div><button class="mcl" onclick="CM('usEM')">×</button></div>
+<div class="fg">
+  <div class="fld"><label>الاسم الكامل <span class="req">*</span></label><input type="text" id="use-n" placeholder="الاسم الكامل"></div>
+  <div class="fld"><label>اسم المستخدم <span class="req">*</span></label><input type="text" id="use-u" placeholder="اسم الدخول"></div>
+  <div class="fld"><label>كلمة المرور الجديدة</label><input type="password" id="use-p" placeholder="اتركها فارغة إذا لا تريد تغييرها"></div>
+  <div class="fld"><label>الدور الوظيفي <span class="req">*</span></label>
+    <select id="use-r">
+      <option value="admin">مدير النظام</option>
+      <option value="finance">المدير المالي</option>
+      <option value="treasury">أمين الخزينة</option>
+      <option value="ops">موظف التشغيل</option>
+      <option value="claims">مسؤول المطالبات</option>
+    </select>
+  </div>
+  <div style="background:var(--ltr);border-radius:10px;padding:12px">
+    <div style="font-size:12px;font-weight:700;color:var(--nv);margin-bottom:10px">&#x1F512; صلاحيات الصفحات (تعديل تلقائي حسب الدور أو يدوي)</div>
+    <div id="use-pages-list" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+  </div>
+</div>
+<input type="hidden" id="use-id">
+<div class="mft"><button class="btn" onclick="CM('usEM')">إلغاء</button><button class="btn bp" onclick="saveEditUs()">&#x1F4BE; حفظ التعديلات</button></div></div></div>
+
+
+<!-- EMPLOYEE MODAL -->
+<div class="mo2" id="empM"><div class="mb2">
+  <div class="mhd"><div class="mtt">&#x1F464; إضافة / تعديل موظف</div><button class="mcl" onclick="CM('empM')">×</button></div>
+  <div class="fg">
+    <div class="fr"><div class="fld"><label>اسم الموظف <span class="req">*</span></label><input type="text" id="emp-name" placeholder="الاسم الكامل"></div><div class="fld"><label>رقم الموظف</label><input type="text" id="emp-num" placeholder="يُولَّد تلقائياً" readonly style="background:var(--ltr);color:var(--ry);font-weight:700;font-family:monospace"></div></div>
+    <div class="fr"><div class="fld"><label>الوظيفة <span class="req">*</span></label><input type="text" id="emp-job" placeholder="مثال: سائق، مشرف، محاسب"></div><div class="fld"><label>القسم</label><input type="text" id="emp-dept" placeholder="مثال: التشغيل، المالية"></div></div>
+    <div class="fr"><div class="fld"><label>رقم الهاتف</label><input type="tel" id="emp-phone" placeholder="05xxxxxxxx"></div><div class="fld"><label>رقم الهوية</label><input type="text" id="emp-idnum" placeholder="رقم الهوية الوطنية"></div></div>
+    <div class="fld"><label>ملاحظات</label><textarea id="emp-notes" style="min-height:55px" placeholder="أي ملاحظات إضافية..."></textarea></div>
+  </div>
+  <input type="hidden" id="emp-id">
+  <div class="mft"><button class="btn" onclick="CM('empM')">إلغاء</button><button class="btn bp" onclick="saveEmp()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+<!-- EXPENSE WITH CUSTODY LINK OPTION (upgrade existing expense modal) -->
+
+
+<!-- COST CENTER MODAL -->
+<div class="mo2" id="ccM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">&#x1F3F7;&#xFE0F; مركز تكلفة</div><button class="mcl" onclick="CM('ccM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>اسم المركز <span class="req">*</span></label><input type="text" id="cc-name" placeholder="مثال: تشغيل الأسطول"></div>
+    <div class="fld"><label>الوصف</label><textarea id="cc-desc" style="min-height:60px" placeholder="وصف مختصر لهذا المركز وما يشمله..."></textarea></div>
+    <div class="fld"><label>اللون (للتمييز البصري)</label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="color" id="cc-color" value="#1A56DB" style="width:50px;height:38px;border:1.5px solid var(--bd);border-radius:9px;cursor:pointer;padding:2px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="cc-preset-colors">
+          <div onclick="G('cc-color').value='#1A56DB'" style="width:28px;height:28px;border-radius:6px;background:#1A56DB;cursor:pointer;border:2px solid transparent" title="أزرق"></div>
+          <div onclick="G('cc-color').value='#059669'" style="width:28px;height:28px;border-radius:6px;background:#059669;cursor:pointer" title="أخضر"></div>
+          <div onclick="G('cc-color').value='#DC2626'" style="width:28px;height:28px;border-radius:6px;background:#DC2626;cursor:pointer" title="أحمر"></div>
+          <div onclick="G('cc-color').value='#D97706'" style="width:28px;height:28px;border-radius:6px;background:#D97706;cursor:pointer" title="برتقالي"></div>
+          <div onclick="G('cc-color').value='#7C3AED'" style="width:28px;height:28px;border-radius:6px;background:#7C3AED;cursor:pointer" title="بنفسجي"></div>
+          <div onclick="G('cc-color').value='#0891B2'" style="width:28px;height:28px;border-radius:6px;background:#0891B2;cursor:pointer" title="سماوي"></div>
+          <div onclick="G('cc-color').value='#BE185D'" style="width:28px;height:28px;border-radius:6px;background:#BE185D;cursor:pointer" title="وردي"></div>
+          <div onclick="G('cc-color').value='#6B7280'" style="width:28px;height:28px;border-radius:6px;background:#6B7280;cursor:pointer" title="رمادي"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <input type="hidden" id="cc-id">
+  <div class="mft"><button class="btn" onclick="CM('ccM')">إلغاء</button><button class="btn bp" onclick="saveCC()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="mo2" id="chPassM" style="z-index:400">
+  <div class="mb2 sm">
+    <div class="mhd">
+      <div class="mtt">&#x1F512; تغيير كلمة المرور</div>
+    </div>
+    <div id="chPassAlert" class="al aw" style="margin-bottom:14px">
+      &#x26A0;&#xFE0F; كلمة المرور الافتراضية نشطة. يجب تغييرها قبل المتابعة.
+    </div>
+    <div class="fg">
+      <div class="fld"><label>كلمة المرور الحالية <span class="req">*</span></label><input type="password" id="cp-old" placeholder="أدخل كلمة المرور الحالية"></div>
+      <div class="fld"><label>كلمة المرور الجديدة <span class="req">*</span></label><input type="password" id="cp-new" placeholder="6 أحرف على الأقل" oninput="checkPassStrength()"></div>
+      <div id="cp-strength" style="display:none;margin-top:-8px">
+        <div style="height:4px;border-radius:2px;background:var(--bd);overflow:hidden;margin-bottom:4px">
+          <div id="cp-strength-bar" style="height:100%;border-radius:2px;transition:all .3s"></div>
+        </div>
+        <div id="cp-strength-txt" style="font-size:11px"></div>
+      </div>
+      <div class="fld"><label>تأكيد كلمة المرور الجديدة <span class="req">*</span></label><input type="password" id="cp-confirm" placeholder="أعد كتابة كلمة المرور"></div>
+    </div>
+    <div class="mft">
+      <button class="btn bp" onclick="saveNewPass()" style="width:100%;justify-content:center">&#x1F512; تغيير كلمة المرور</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- VEHICLE MODAL -->
+<div class="mo2" id="vehM"><div class="mb2">
+  <div class="mhd"><div class="mtt">&#x1F697; إضافة / تعديل سيارة</div><button class="mcl" onclick="CM('vehM')">×</button></div>
+  <div class="fg">
+    <div class="fr">
+      <div class="fld"><label>رقم اللوحة (أرقام) <span class="req">*</span></label><input type="text" id="veh-num" placeholder="مثال: 1234" style="font-family:monospace;font-size:16px;font-weight:700" oninput="updatePlatePreview()"></div>
+      <div class="fld"><label>حروف اللوحة <span class="req">*</span></label><input type="text" id="veh-letters" placeholder="مثال: أ ب ج" style="font-size:16px;font-weight:700" oninput="updatePlatePreview()"></div>
+    </div>
+    <div class="fld"><label>اللوحة الكاملة (معاينة)</label><input type="text" id="veh-plate-preview" readonly style="background:var(--ltr);font-weight:700;font-size:15px;text-align:center;letter-spacing:2px"></div>
+    <div class="fr">
+      <div class="fld"><label>الماركة / النوع <span class="req">*</span></label><input type="text" id="veh-make" placeholder="مثال: تويوتا، فورد، هيونداي"></div>
+      <div class="fld"><label>الموديل <span class="req">*</span></label><input type="text" id="veh-model" placeholder="مثال: كامري، F150، سوناتا"></div>
+    </div>
+    <div class="fr">
+      <div class="fld"><label>سنة الصنع</label><input type="number" id="veh-year" placeholder="مثال: 2022" min="1990" max="2030"></div>
+      <div class="fld"><label>اللون</label><input type="text" id="veh-color" placeholder="مثال: أبيض، أسود"></div>
+    </div>
+    <div class="fr">
+      <div class="fld"><label>نوع الوقود <span class="req">*</span></label>
+        <select id="veh-fuel" style="font-family:var(--fn)">
+          <option value="بنزين">⛽ بنزين</option>
+          <option value="ديزل">🛢️ ديزل</option>
+          <option value="كهربائي">🔋 كهربائي</option>
+          <option value="هجين">⚡ هجين</option>
+        </select>
+      </div>
+      <div class="fld"><label>الحالة</label>
+        <select id="veh-status" style="font-family:var(--fn)">
+          <option value="نشطة">✅ نشطة</option>
+          <option value="صيانة">🔧 في الصيانة</option>
+          <option value="متوقفة">⏸️ متوقفة</option>
+        </select>
+      </div>
+    </div>
+    <div class="fld"><label>رقم الهيكل (VIN)</label><input type="text" id="veh-vin" placeholder="رقم الهيكل اختياري" style="font-family:monospace"></div>
+    <div class="fld"><label>ملاحظات</label><textarea id="veh-notes" style="min-height:55px" placeholder="أي ملاحظات إضافية..."></textarea></div>
+  </div>
+  <input type="hidden" id="veh-id">
+  <div class="mft"><button class="btn" onclick="CM('vehM')">إلغاء</button><button class="btn bp" onclick="saveVeh()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+
+<!-- CUSTODY SETTLEMENT MODAL -->
+<div class="mo2" id="cuSetM"><div class="mb2 lg">
+  <div class="mhd">
+    <div class="mtt">&#x1F4CB; تقفيل عهدة — <span id="cuSetName"></span></div>
+    <button class="mcl" onclick="CM('cuSetM')">×</button>
+  </div>
+  <!-- Summary -->
+  <div class="g3" style="margin-bottom:16px" id="cuSetSummary"></div>
+  <div class="al ai">&#x1F4A1; سجّل كل المصروفات التي أنفقها الموظف. يمكنك إضافة أكثر من سطر. ثم حدد المبلغ المُرجَع (إن وجد) واضغط حفظ التقفيل.</div>
+
+  <!-- Date of settlement -->
+  <div class="fr" style="margin-bottom:12px">
+    <div class="fld"><label>تاريخ التقفيل <span class="req">*</span></label><input type="date" id="cuSet-date"></div>
+    <div class="fld"><label>نوع التقفيل</label>
+      <select id="cuSet-type" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none">
+        <option value="partial">تقفيل جزئي (العهدة تبقى مفتوحة)</option>
+        <option value="full">تقفيل كامل (إغلاق العهدة نهائياً)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Expenses table -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:700;color:var(--nv)">&#x1F4B8; المصروفات</div><button class="btn bsm" onclick="addCustodyItem();renderCuSetRows()" style="font-size:11px">&#x2795; بند جديد</button></div>
+  <div style="border:1px solid var(--bd);border-radius:10px;overflow-x:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:var(--ltr)">
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">التاريخ</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">البيان</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">مركز التكلفة</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">البند</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">المبلغ</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">السيارة</th>
+          <th style="padding:8px 10px;width:40px"></th>
+        </tr>
+      </thead>
+      <tbody id="cuSet-rows"></tbody>
+    </table>
+    <div style="padding:8px 10px;border-top:1px solid var(--bd)">
+      <button class="btn bsm bp" onclick="addCuSetRow()">&#x2795; إضافة سطر</button>
+      <span id="cuSet-total-lbl" style="font-size:13px;font-weight:700;color:var(--dn);margin-right:16px"></span>
+    </div>
+  </div>
+
+  <!-- Return amount -->
+  <div class="fr">
+    <div class="fld">
+      <label>&#x1F4B5; مبلغ مُرجَع للخزينة (إن وجد)</label>
+      <input type="number" id="cuSet-return" placeholder="0" oninput="updateCuSetSummary()" min="0">
+      <div style="font-size:11px;color:var(--gr2);margin-top:3px">سيُسجَّل تلقائياً كمقبوض في الخزينة</div>
+    </div>
+    <div class="fld">
+      <label>ملاحظات التقفيل</label>
+      <textarea id="cuSet-notes" style="min-height:60px" placeholder="أي ملاحظات على هذا التقفيل..."></textarea>
+    </div>
+  </div>
+  <div id="cuSet-balance-alert" style="margin-top:8px"></div>
+  <input type="hidden" id="cuSet-cuid">
+  <div class="mft">
+    <button class="btn" onclick="CM('cuSetM')">إلغاء</button>
+    <button class="btn bg3" onclick="saveCuSettle()">&#x1F4BE; حفظ التقفيل</button>
+  </div>
+</div></div>
+
+
+<!-- BANK ACCOUNT MODAL -->
+<div class="mo2" id="baM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">&#x1F4B3; حساب بنكي</div><button class="mcl" onclick="CM('baM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>اسم البنك <span class="req">*</span></label><input type="text" id="ba-name" placeholder="مثال: البنك الأهلي"></div>
+    <div class="fld"><label>رقم الحساب</label><input type="text" id="ba-number" placeholder="رقم الحساب البنكي" style="font-family:monospace"></div>
+    <div class="fr">
+      <div class="fld"><label>الفرع</label><input type="text" id="ba-branch" placeholder="اسم الفرع"></div>
+      <div class="fld"><label>العملة</label>
+        <select id="ba-currency" style="font-family:var(--fn)">
+          <option value="ريال">ريال سعودي</option>
+          <option value="دولار">دولار أمريكي</option>
+          <option value="يورو">يورو</option>
+        </select>
+      </div>
+    </div>
+    <div class="fld"><label>الرصيد الابتدائي</label><input type="number" id="ba-opening" placeholder="0" min="0"></div>
+    <div class="fld"><label>اللون التمييزي</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="color" id="ba-color" value="#059669" style="width:50px;height:38px;border:1.5px solid var(--bd);border-radius:9px;cursor:pointer;padding:2px">
+        <div style="display:flex;gap:6px">
+          <div onclick="G('ba-color').value='#059669'" style="width:28px;height:28px;border-radius:6px;background:#059669;cursor:pointer"></div>
+          <div onclick="G('ba-color').value='#1A56DB'" style="width:28px;height:28px;border-radius:6px;background:#1A56DB;cursor:pointer"></div>
+          <div onclick="G('ba-color').value='#DC2626'" style="width:28px;height:28px;border-radius:6px;background:#DC2626;cursor:pointer"></div>
+          <div onclick="G('ba-color').value='#D97706'" style="width:28px;height:28px;border-radius:6px;background:#D97706;cursor:pointer"></div>
+          <div onclick="G('ba-color').value='#7C3AED'" style="width:28px;height:28px;border-radius:6px;background:#7C3AED;cursor:pointer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <input type="hidden" id="ba-id">
+  <div class="mft"><button class="btn" onclick="CM('baM')">إلغاء</button><button class="btn bp" onclick="saveBA()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+
+<!-- EDIT BANK IN MODAL -->
+<div class="mo2" id="biEM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">✏️ تعديل وارد بنكي</div><button class="mcl" onclick="CM('biEM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>الحساب البنكي <span class="req">*</span></label><select id="bie-acc" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر الحساب —</option></select></div>
+    <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="bie-d"></div>
+    <div class="fld"><label>المبلغ <span class="req">*</span></label><input type="number" id="bie-a" placeholder="0"></div>
+    <div class="fld"><label>مصدر التحويل <span class="req">*</span></label><input type="text" id="bie-f" placeholder="اسم المحوِّل"></div>
+    <div class="fld"><label>رقم العملية</label><input type="text" id="bie-rf" placeholder="رقم المرجع"></div>
+    <div class="fld"><label>البيان</label><input type="text" id="bie-ds" placeholder="بيان التحويل"></div>
+  </div>
+  <input type="hidden" id="bie-id">
+  <div class="mft"><button class="btn" onclick="CM('biEM')">إلغاء</button><button class="btn bss" onclick="saveEditBI()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+<!-- EDIT BANK OUT MODAL -->
+<div class="mo2" id="boEM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">✏️ تعديل صادر بنكي</div><button class="mcl" onclick="CM('boEM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>الحساب البنكي <span class="req">*</span></label><select id="boe-acc" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر الحساب —</option></select></div>
+    <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="boe-d"></div>
+    <div class="fld"><label>المبلغ <span class="req">*</span></label><input type="number" id="boe-a" placeholder="0"></div>
+    <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="boe-t" placeholder="اسم المستفيد"></div>
+    <div class="fld"><label>رقم العملية</label><input type="text" id="boe-rf" placeholder="رقم المرجع"></div>
+    <div class="fld"><label>البيان</label><input type="text" id="boe-ds" placeholder="بيان التحويل"></div>
+  </div>
+  <input type="hidden" id="boe-id">
+  <div class="mft"><button class="btn" onclick="CM('boEM')">إلغاء</button><button class="btn bg3" onclick="saveEditBO()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+</body></htmlvar csv='\uFEFF'+headers.join(',')+'\n';<!DOCTYPE html>
+<!--
+  ╔═══════════════════════════════════════════════════════════╗
+  ║  FIREBASE REALTIME DATABASE RULES                        ║
+  ║  Go to Firebase Console → Database → Rules               ║
+  ║  Paste these rules to allow read/write:                  ║
+  ║                                                          ║
+  ║  {                                                       ║
+  ║    "rules": {                                            ║
+  ║      "qawafil": {                                        ║
+  ║        ".read": true,                                    ║
+  ║        ".write": true                                    ║
+  ║      }                                                   ║
+  ║    }                                                     ║
+  ║  }                                                       ║
+  ╚═══════════════════════════════════════════════════════════╝
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>القوافل الخمسة &#8212; نظام الإدارة المتكامل</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<style>
+:root{--nv:#0B1F4B;--ry:#1A56DB;--ry2:#1E40AF;--sky:#3B82F6;--lt:#EBF2FF;--ltr:#F5F9FF;--gd:#F0A500;--wh:#fff;--gr:#6B7280;--gr2:#9CA3AF;--bd:#DBEAFE;--sc:#059669;--scb:#D1FAE5;--wn:#D97706;--wnb:#FEF3C7;--dn:#DC2626;--dnb:#FEE2E2;--pu:#7C3AED;--pub:#EDE9FE;--fn:"Cairo",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:var(--fn);background:var(--ltr);color:var(--nv);min-height:100vh;direction:rtl}
+.shell{display:flex;min-height:100vh}
+.sb{width:248px;background:var(--nv);position:fixed;top:0;right:0;bottom:0;z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.mn{margin-right:248px;flex:1;display:flex;flex-direction:column}
+.tb{background:var(--wh);border-bottom:1px solid var(--bd);height:62px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 1px 8px rgba(26,86,219,.07)}
+.ct{padding:22px;flex:1}
+.sbb{padding:18px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
+.sbbi{width:40px;height:40px;background:var(--ry);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.sbbn{font-size:13px;font-weight:700;color:#fff;line-height:1.3}.sbbs{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px}
+.sbs{padding:13px 14px 4px;font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.3);text-transform:uppercase}
+.sbi{display:flex;align-items:center;gap:9px;padding:9px 14px;margin:1px 7px;border-radius:8px;font-size:13px;font-weight:500;color:rgba(255,255,255,.65);cursor:pointer;border:none;background:transparent;width:calc(100% - 14px);text-align:right;font-family:var(--fn);transition:all .18s}
+.sbi:hover{background:rgba(255,255,255,.08);color:#fff}.sbi.on{background:var(--ry);color:#fff}
+.sbdg{margin-right:auto;background:var(--dn);color:#fff;font-size:10px;padding:1px 6px;border-radius:100px;font-weight:700}
+.sbf{margin-top:auto;padding:12px 10px;border-top:1px solid rgba(255,255,255,.07)}
+.sbav{width:34px;height:34px;border-radius:50%;background:var(--ry);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.pg{display:none}.pg.on{display:block}
+.card{background:var(--wh);border:1px solid var(--bd);border-radius:14px;padding:20px;margin-bottom:16px}
+.cht{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.mets{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:13px;margin-bottom:20px}
+.met{background:var(--wh);border:1px solid var(--bd);border-radius:14px;padding:17px;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s}
+.met:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(26,86,219,.1)}
+.met::before{content:"";position:absolute;top:0;right:0;width:3px;height:100%;border-radius:0 14px 14px 0;background:var(--mc,var(--ry))}
+.mb{--mc:var(--ry)}.mg{--mc:var(--sc)}.mo{--mc:var(--gd)}.mr{--mc:var(--dn)}.mp{--mc:var(--pu)}
+.mi2{font-size:26px;margin-bottom:10px}.ml2{font-size:12px;color:var(--gr);margin-bottom:4px}.mv2{font-size:22px;font-weight:700;line-height:1}.ms2{font-size:11px;margin-top:5px;color:var(--gr2)}
+.tw{overflow-x:auto;border-radius:12px;border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:right;padding:10px 13px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gr);background:var(--ltr);border-bottom:1px solid var(--bd);white-space:nowrap}
+td{padding:10px 13px;border-bottom:1px solid var(--bd);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--ltr)}
+.bdg{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;white-space:nowrap}
+.bb{background:var(--lt);color:var(--ry2)}.bn{background:var(--scb);color:#065F46}.bo{background:var(--wnb);color:#92400E}.br{background:var(--dnb);color:#991B1B}.bg2{background:#F3F4F6;color:#4B5563}.bpu{background:var(--pub);color:#5B21B6}
+.btn{padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;font-family:var(--fn);cursor:pointer;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--bd);background:var(--wh);color:var(--nv);transition:all .18s}
+.btn:hover{background:var(--ltr)}
+.bp{background:var(--ry);border-color:var(--ry);color:#fff}.bp:hover{background:var(--ry2)}
+.bss{background:var(--sc);border-color:var(--sc);color:#fff}.bss:hover{background:#047857}
+.bd2{background:var(--dnb);border-color:#FCA5A5;color:#991B1B}
+.bg3{background:var(--gd);border-color:var(--gd);color:var(--nv)}
+.bsm{padding:5px 11px;font-size:12px}.bxs{padding:3px 8px;font-size:11px}
+.fg{display:flex;flex-direction:column;gap:13px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld label{font-size:12px;font-weight:600;color:var(--nv)}.req{color:var(--dn)}
+.fld input,.fld select,.fld textarea{padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-family:var(--fn);font-size:13px;color:var(--nv);outline:none;transition:border-color .2s;background:var(--wh)}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--ry)}
+.fld textarea{min-height:75px;resize:vertical}
+.fsep{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gr);padding:10px 0 5px;border-bottom:1px solid var(--bd);margin-bottom:4px}
+.mo2{display:none;position:fixed;inset:0;background:rgba(11,31,75,.55);z-index:300;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
+.mo2.on{display:flex}
+.mb2{background:var(--wh);border-radius:16px;padding:24px;width:600px;max-width:100%;margin-bottom:30px}
+.mb2.lg{width:820px}.mb2.sm{width:420px}
+.mhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.mtt{font-size:16px;font-weight:700}
+.mcl{background:none;border:none;font-size:24px;color:var(--gr);cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px;font-family:var(--fn)}.mcl:hover{background:var(--ltr)}
+.mft{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--bd)}
+.tc{display:flex;flex-direction:column;gap:8px;position:fixed;bottom:24px;left:24px;z-index:999}
+.tst{padding:12px 17px;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;animation:si .3s ease;box-shadow:0 8px 24px rgba(0,0,0,.15);max-width:340px}
+@keyframes si{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.ts{background:var(--sc);color:#fff}.te{background:var(--dn);color:#fff}.ti{background:var(--nv);color:#fff}.tw2{background:var(--gd);color:var(--nv)}
+.tabs{display:flex;gap:4px;background:var(--ltr);border:1px solid var(--bd);border-radius:10px;padding:4px;margin-bottom:18px;width:fit-content;flex-wrap:wrap}
+.tabb{padding:7px 16px;border-radius:7px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:var(--fn);color:var(--gr);background:transparent;transition:all .18s}
+.tabb.on,.tabb:hover{background:var(--wh);color:var(--ry);box-shadow:0 1px 4px rgba(26,86,219,.12)}
+.tabc{display:none}.tabc.on{display:block}
+.al{border-radius:10px;padding:12px 15px;font-size:13px;display:flex;gap:10px;margin-bottom:13px}
+.ai{background:var(--lt);color:var(--ry2);border:1px solid #BFDBFE}
+.aw{background:var(--wnb);color:#92400E;border:1px solid #FDE68A}
+.as{background:var(--scb);color:#065F46;border:1px solid #6EE7B7}
+.ac{border:1px solid #FDE68A;background:#FFFBEB;border-radius:12px;padding:15px;margin-bottom:12px}
+.ahd{font-size:14px;font-weight:700;color:#92400E;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.aro{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}.ak{color:#B45309}.av{font-weight:600;color:#78350F}
+.ab2{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #FDE68A}
+.lb{display:flex;align-items:center;justify-content:center;padding:50px;gap:12px;color:var(--gr);font-size:14px}
+.sp{width:24px;height:24px;border:3px solid var(--bd);border-top-color:var(--ry);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.es{text-align:center;padding:50px 20px}.esic{font-size:44px;margin-bottom:12px}.esti{font-size:15px;font-weight:700;margin-bottom:4px}.essb{font-size:13px;color:var(--gr)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.stb{height:6px;background:var(--bd);border-radius:4px;overflow:hidden;margin-top:5px}
+.stf{height:100%;border-radius:4px}
+.stgs{display:flex;gap:0;margin:16px 0;overflow-x:auto}
+.stg{flex:1;min-width:85px;text-align:center;padding:10px 5px;border-top:3px solid var(--bd)}
+.stg.dn{border-top-color:var(--sc)}.stg.on2{border-top-color:var(--ry)}
+.stgl{font-size:10px;font-weight:600;color:var(--gr)}.stg.dn .stgl{color:var(--sc)}.stg.on2 .stgl{color:var(--ry)}
+.kpi{width:90px;height:90px;border-radius:50%;background:conic-gradient(var(--ry) var(--p,0%),var(--bd) 0);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;position:relative;margin:0 auto 10px}
+.kpi::after{content:"";position:absolute;inset:8px;background:var(--wh);border-radius:50%}
+.kpi span{position:relative;z-index:1}
+.lp{min-height:100vh;background:linear-gradient(135deg,#0B1F4B 0%,#1A56DB 100%);display:flex;align-items:center;justify-content:center;padding:20px}
+.lb2{background:var(--wh);border-radius:20px;padding:40px;width:440px;max-width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.llo{text-align:center;margin-bottom:28px}
+.llic{width:72px;height:72px;background:linear-gradient(135deg,var(--ry),var(--ry2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 14px;box-shadow:0 8px 24px rgba(26,86,219,.4)}
+.llnm{font-size:22px;font-weight:900;color:var(--nv)}.llsb{font-size:13px;color:var(--gr);margin-top:4px}
+.srch-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.srch-inp{padding:8px 12px;border:1px solid var(--bd);border-radius:9px;font-family:var(--fn);font-size:13px;outline:none;flex:1;min-width:140px}
+.page-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.page-hdr h2{font-size:18px;font-weight:700}
+.notif-banner{background:var(--dnb);border:1px solid #FCA5A5;border-radius:12px;padding:12px 16px;font-size:13px;color:#991B1B;display:flex;align-items:center;gap:10px;margin-bottom:16px;display:none}
+@media print{.sb,.tb,.btn,.mo2,.tc{display:none!important}.mn{margin-right:0!important}.ct{padding:10px!important}}
+@media(max-width:1024px){.sb{width:210px}.mn{margin-right:210px}}
+@media(max-width:768px){.sb{transform:translateX(110%);transition:transform .3s}.sb.open{transform:none}.mn{margin-right:0}.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:580px){.mets,.g2,.g3{grid-template-columns:1fr}.fr,.fr3{grid-template-columns:1fr}.mb2.lg{width:100%}}
+</style>
+</head>
+<body>
+<div class="tc" id="TC"></div>
+<!-- LOGIN -->
+<div id="FBLoad" style="position:fixed;inset:0;background:linear-gradient(135deg,#0B1F4B,#1A56DB);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;color:#fff">
+  <div style="font-size:48px;margin-bottom:20px">&#x1F69B;</div>
+  <div style="font-size:20px;font-weight:700;margin-bottom:8px">القوافل الخمسة</div>
+  <div style="font-size:13px;opacity:.7;margin-bottom:30px">جاري الاتصال بالسيرفر...</div>
+  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite"></div>
+</div>
+</div><!-- /FBLoad -->
+<div id="LP" class="lp" style="display:none">
+  <div class="lb2">
+    <div class="llo">
+      <div class="llic">&#x1F69B;</div>
+      <div class="llnm">القوافل الخمسة</div>
+      <div class="llsb">نظام الإدارة المتكامل للخدمات اللوجستية</div>
+    </div>
+    <div class="fg">
+      <div class="fld"><label>اسم المستخدم</label><input type="text" id="lgu" placeholder="أدخل اسم المستخدم" autocomplete="username"></div>
+      <div class="fld"><label>كلمة المرور</label><input type="password" id="lgp" placeholder="أدخل كلمة المرور" autocomplete="current-password"></div>
+      <div id="lgE" style="display:none" class="al" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">&#x274C; اسم المستخدم أو كلمة المرور غير صحيحة</div>
+      <button class="btn bp" style="width:100%;padding:13px;font-size:15px;justify-content:center" onclick="doLogin()">&#x1F511; دخول للنظام</button>
+    </div>
+  </div>
+</div>
+<!-- APP -->
+<div id="APP" style="display:none">
+<div class="shell">
+<aside class="sb" id="SB">
+  <div class="sbb"><div class="sbbi">&#x1F69B;</div><div><div class="sbbn">القوافل الخمسة</div><div class="sbbs">للخدمات اللوجستية</div></div></div>
+  <div class="sbs">الرئيسية</div>
+  <button class="sbi on" onclick="N('dash',this)">&#x1F4CA; لوحة التحكم</button>
+  <div class="sbs">التشغيل</div>
+  <button class="sbi" onclick="N('ops',this)" data-pg="ops">&#x1F69B; العمليات اليومية</button>
+  <button class="sbi" onclick="N('veh',this)" data-pg="veh">&#x1F697; سجل السيارات</button>
+  <button class="sbi" onclick="N('rev',this)" data-pg="rev">&#x1F4B0; الإيرادات والتقارير</button>
+  <button class="sbi" onclick="N('prices',this)" data-pg="prices">&#x1F3F7;&#xFE0F; إدارة الأسعار</button>
+  <div class="sbs">المالية</div>
+  <button class="sbi" onclick="N('tr',this)" data-pg="tr">&#x1F3E6; الخزينة</button>
+  <button class="sbi" onclick="N('cc',this)" data-pg="cc">&#x1F3F7;&#xFE0F; مراكز التكلفة</button>
+  <button class="sbi" onclick="N('bk',this)" data-pg="bk">&#x1F3DB;&#xFE0F; البنك</button>
+  <button class="sbi" onclick="N('ba',this)" data-pg="ba">&#x1F4B3; الحسابات البنكية</button>
+  <button class="sbi" id="apNav" onclick="N('ap',this)" style="display:none">&#x2705; الاعتمادات <span class="sbdg" id="apCnt">0</span></button>
+  <div class="sbs">العهد والمطالبات</div>
+  <button class="sbi" onclick="N('emps',this)" data-pg="emps">&#x1F464; سجل الموظفين</button>
+  <button class="sbi" onclick="N('cu',this)" data-pg="cu">&#x1F45B; العهد الشخصية</button>
+  <button class="sbi" onclick="N('cl',this)" data-pg="cl">&#x1F6E1;&#xFE0F; مطالبات التأمين</button>
+  <div class="sbs">إدارة النظام</div>
+  <button class="sbi" onclick="N('rp',this)" data-pg="rp">&#x1F4CB; التقارير الشاملة</button>
+  <button class="sbi" id="usNav" onclick="N('us',this)" style="display:none">&#x1F465; المستخدمون</button>
+  <button class="sbi" id="auNav" onclick="N('au',this)" style="display:none">&#x1F4DC; سجل العمليات</button>
+  <div class="sbf">
+    <div style="display:flex;align-items:center;gap:9px;padding:8px">
+      <div class="sbav" id="SBAv">م</div>
+      <div><div style="font-size:12px;font-weight:600;color:#fff" id="SBNm">—</div><div style="font-size:10px;color:rgba(255,255,255,.4)" id="SBRl">—</div></div>
+      <button class="btn bsm" style="background:rgba(255,255,255,.1);border-color:transparent;color:#fff;font-size:11px;padding:5px 10px" onclick="openChangePass(false)" title="تغيير كلمة المرور">&#x1F512;</button>
+      <button class="btn bsm" style="margin-right:auto;background:rgba(255,255,255,.1);border-color:transparent;color:#fff;font-size:11px;padding:5px 10px" onclick="doLogout()">خروج</button>
+    </div>
+    <div style="font-size:10px;color:rgba(255,255,255,.2);text-align:center;margin-top:4px">v3.0 — Firebase &#x1F525;</div>
+  </div>
+</aside>
+<div class="mn">
+  <div class="tb">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button id="menuBtn" class="btn bsm" style="display:none;padding:6px 10px" onclick="document.getElementById('SB').classList.toggle('open')">&#x2630;</button>
+      <div style="font-size:16px;font-weight:700" id="PGT">لوحة التحكم</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div id="TPD" style="font-size:12px;color:var(--gr);background:var(--ltr);padding:6px 12px;border-radius:8px;white-space:nowrap"></div>
+      <div id="ntfBtn" style="position:relative;cursor:pointer;font-size:20px;padding:4px" title="تنبيهات">&#x1F514;<span id="ntfDt" style="display:none;position:absolute;top:2px;left:2px;width:9px;height:9px;border-radius:50%;background:var(--dn);border:2px solid #fff"></span></div>
+      <div id="syncIcon" style="font-size:14px;padding:4px 8px;background:var(--scb);border-radius:8px;color:var(--sc);cursor:default" title="حالة المزامنة">&#x2601;&#xFE0F;</div>
+      <button class="btn bsm" onclick="window.print()" title="طباعة">&#x1F5A8;&#xFE0F;</button>
+      <button class="btn bsm" onclick="backupData()" title="نسخ احتياطي">&#x1F4BE;</button>
+      <button class="btn bsm bp" onclick="openAddModal()">&#x2795; إضافة</button>
+    </div>
+  </div>
+  <div class="ct" id="MC">
+<!-- ═══ DASHBOARD ═══ -->
+<div class="pg on" id="pg-dash">
+  <div class="notif-banner" id="alertBanner">&#x26A0;&#xFE0F; <span id="alertMsg"></span></div>
+  <div class="mets" id="DM"><div class="lb"><div class="sp"></div></div></div>
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card"><div class="cht">&#x1F4C8; إيرادات 6 أشهر</div><canvas id="chRev" height="220"></canvas></div>
+    <div class="card"><div class="cht">&#x1F69B; السيارات يومياً (14 يوم)</div><canvas id="chCar" height="220"></canvas></div>
+  </div>
+  <div class="g3">
+    <div class="card"><div class="cht">&#x26A0;&#xFE0F; طلبات تحتاج اعتماد</div><div id="DPend"></div></div>
+    <div class="card"><div class="cht">&#x1F6E1;&#xFE0F; مطالبات نشطة</div><div id="DClms"></div></div>
+    <div class="card"><div class="cht">&#x1F4A1; نشاط اليوم</div><div id="DAct"></div></div>
+  </div>
+</div>
+<!-- ═══ OPERATIONS ═══ -->
+<div class="pg" id="pg-ops">
+  <div class="page-hdr"><h2>العمليات اليومية</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="month" id="opMon" onchange="loadOps()" style="padding:8px 12px;border:1px solid var(--bd);border-radius:9px;font-family:var(--fn);font-size:13px;outline:none">
+      <button class="btn bp" onclick="OM('opM')">&#x2795; تسجيل عملية</button>
+    </div>
+  </div>
+  <div class="mets">
+    <div class="met mb"><div class="mi2">&#x1F69B;</div><div class="ml2">سيارات اليوم</div><div class="mv2" id="opTdC">—</div></div>
+    <div class="met mb"><div class="mi2">&#x1F4C5;</div><div class="ml2">سيارات الشهر</div><div class="mv2" id="opMnC">—</div></div>
+    <div class="met mg"><div class="mi2">&#x1F4B0;</div><div class="ml2">إيراد اليوم</div><div class="mv2" id="opTdR">—</div></div>
+    <div class="met mg"><div class="mi2">&#x1F4CA;</div><div class="ml2">إيراد الشهر</div><div class="mv2" id="opMnR">—</div></div>
+  </div>
+  <div class="card">
+    <div class="cht">&#x1F4CB; سجل العمليات
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input class="srch-inp" id="opSr" placeholder="بحث..." oninput="FT('opTbl',this.value)" style="width:140px">
+        <select id="opClF" onchange="loadOps()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"></select>
+        <button class="btn bsm" onclick="ET('opTbl')">&#x1F4E5; Excel</button>
+      </div>
+    </div>
+    <div class="tw"><table id="opTbl" style="min-width:850px">
+      <thead><tr><th>التاريخ</th><th>العميل</th><th>السيارات</th><th>السعر/سيارة</th><th>الإيراد</th><th>العقد</th><th>ملاحظات</th><th>المسجِّل</th><th></th></tr></thead>
+      <tbody id="opTbd"></tbody>
+    </table></div>
+  </div>
+</div>
+<!-- ═══ REVENUE ═══ -->
+<div class="pg" id="pg-rev">
+  <div class="page-hdr"><h2>تقارير الإيرادات</h2>
+    <select id="rvYr" onchange="loadRev()" style="padding:8px 12px;border:1px solid var(--bd);border-radius:9px;font-size:13px;outline:none;font-family:var(--fn)"></select>
+  </div>
+  <div class="mets">
+    <div class="met mg"><div class="mi2">&#x1F4B0;</div><div class="ml2">إيراد اليوم</div><div class="mv2" id="rvD">—</div></div>
+    <div class="met mg"><div class="mi2">&#x1F4C5;</div><div class="ml2">إيراد الشهر</div><div class="mv2" id="rvM">—</div></div>
+    <div class="met mg"><div class="mi2">&#x1F4CA;</div><div class="ml2">إيراد السنة</div><div class="mv2" id="rvY">—</div></div>
+    <div class="met mb"><div class="mi2">&#x1F4C8;</div><div class="ml2">متوسط يومي</div><div class="mv2" id="rvAv">—</div></div>
+  </div>
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card"><div class="cht">إيرادات 12 شهر</div><canvas id="ch12" height="260"></canvas></div>
+    <div class="card"><div class="cht">&#x1F4CA; حسب العميل</div><div id="rvCli"></div></div>
+  </div>
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card"><div class="cht">مقارنة أشهر السنة الحالية بالسابقة</div><canvas id="chCmp" height="240"></canvas></div>
+    <div class="card"><div class="cht">&#x1F4C4; تقرير حسب العقد</div><div id="rvContr"></div></div>
+  </div>
+  <div class="card"><div class="cht">التفصيل الشهري <button class="btn bsm" onclick="ET('rvMTbl')">&#x1F4E5; تصدير</button></div>
+    <div class="tw"><table id="rvMTbl" style="min-width:650px"><thead><tr><th>الشهر</th><th>أيام العمل</th><th>السيارات</th><th>الإيراد</th><th>المتوسط اليومي</th><th>التغير</th></tr></thead><tbody id="rvMTbd"></tbody></table></div>
+  </div>
+</div>
+<!-- ═══ PRICES ═══ -->
+<div class="pg" id="pg-prices">
+  <div class="page-hdr"><h2>إدارة الأسعار</h2>
+    <button class="btn bp" onclick="OM('prM')">&#x2795; إضافة سعر</button>
+  </div>
+  <div class="al ai">&#x1F4A1; يمكن تحديد سعر مختلف لكل عميل. تحديد تاريخ السريان يضمن عدم التأثير على الفترات السابقة.</div>
+  <div class="card"><div class="tw"><table id="prTbl" style="min-width:750px">
+    <thead><tr><th>العميل</th><th>السعر (ريال/سيارة)</th><th>تاريخ السريان</th><th>تاريخ الانتهاء</th><th>الحالة</th><th>ملاحظات</th><th>المسجِّل</th><th></th></tr></thead>
+    <tbody id="prTbd"></tbody>
+  </table></div></div>
+</div>
+<!-- ═══ TREASURY ═══ -->
+<div class="pg" id="pg-tr">
+  <div class="page-hdr"><h2>إدارة الخزينة</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="OM('rcM')">&#x1F4E5; تسجيل مقبوض</button>
+      <button class="btn bg3" onclick="OM('exM')">&#x1F4E4; طلب صرف</button>
+    </div>
+  </div>
+  <div class="mets">
+    <div class="met mg"><div class="mi2">&#x1F4B5;</div><div class="ml2">رصيد الخزينة</div><div class="mv2" id="trBal">—</div></div>
+    <div class="met mb"><div class="mi2">&#x1F4E5;</div><div class="ml2">الوارد اليوم</div><div class="mv2" id="trIn">—</div></div>
+    <div class="met mr"><div class="mi2">&#x1F4E4;</div><div class="ml2">الصادر اليوم</div><div class="mv2" id="trOut">—</div></div>
+    <div class="met mo"><div class="mi2">&#x23F3;</div><div class="ml2">معلقة للاعتماد</div><div class="mv2" id="trPen">—</div></div>
+  </div>
+  <div class="tabs" id="trTabBar">
+    <button class="tabb on" onclick="ST('trTbs','trRc',this)">المقبوضات</button>
+    <button class="tabb" onclick="ST('trTbs','trEx',this)">المصروفات</button>
+    <button class="tabb" onclick="ST('trTbs','trStm',this)">كشف الخزينة</button>
+    <button class="tabb" onclick="ST('trTbs','trCC',this)">حسب مركز التكلفة</button>
+  </div>
+  <div id="trTbs">
+    <div class="tabc on" id="trRc">
+      <div class="card"><div class="cht">&#x1F4E5; سجل المقبوضات
+        <div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('rcTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('rcTbl')">&#x1F4E5;</button></div>
+      </div>
+      <div class="tw"><table id="rcTbl" style="min-width:900px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>الجهة</th><th>البيان</th><th>المبلغ</th><th>طريقة السداد</th><th>المرجع</th><th>المسجِّل</th><th>المراجعة</th><th>إجراء</th></tr></thead><tbody id="rcTbd"></tbody></table></div>
+    </div></div>
+    <div class="tabc" id="trEx">
+      <div class="card"><div class="cht">&#x1F4E4; سجل المصروفات
+        <div style="display:flex;gap:8px">
+          <input class="srch-inp" placeholder="بحث..." oninput="FT('exTbl',this.value)" style="width:130px">
+          <select id="exStF" onchange="loadTr()" style="padding:6px 9px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل الحالات</option><option value="pending">معلق</option><option value="approved">معتمد</option><option value="rejected">مرفوض</option></select>
+          <button class="btn bsm" onclick="ET('exTbl')">&#x1F4E5;</button>
+        </div>
+      </div>
+      <div class="tw"><table id="exTbl" style="min-width:1050px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المستفيد</th><th>البيان</th><th>المبلغ</th><th>مركز التكلفة</th><th>الطريقة</th><th>الحالة</th><th>المسجِّل</th><th>المراجعة</th><th>إجراء</th></tr></thead><tbody id="exTbd"></tbody></table></div>
+    </div></div>
+    <div class="tabc" id="trStm">
+      <div class="card"><div class="cht">&#x1F4CA; كشف الخزينة
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="date" id="stF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+          <input type="date" id="stT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+          <button class="btn bsm bp" onclick="loadStm()">&#x1F50E; عرض</button>
+          <button class="btn bsm" onclick="window.print()">&#x1F5A8;&#xFE0F;</button>
+        </div>
+      </div><div id="stmC"></div>
+    </div></div>
+    <div class="tabc" id="trCC">
+      <div class="card"><div class="cht">&#x1F4CA; تحليل حسب مركز التكلفة</div><div id="trCCC"></div></div>
+    </div>
+  </div>
+</div>
+<!-- ═══ BANK ═══ -->
+<div class="pg" id="pg-bk">
+  <div class="page-hdr"><h2>إدارة البنك</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="OM('biM')">&#x1F4E5; وارد بنكي</button>
+      <button class="btn bg3" onclick="OM('boM')">&#x1F4E4; صادر بنكي</button>
+      <button class="btn bss" id="bkRvBtn" onclick="markBkRev()">&#x2705; تمت مراجعة اليوم</button>
+    </div>
+  </div>
+  <div class="mets">
+    <div class="met mb"><div class="mi2">&#x1F3DB;&#xFE0F;</div><div class="ml2">رصيد البنك</div><div class="mv2" id="bkBal">—</div></div>
+    <div class="met mg"><div class="mi2">&#x1F4E5;</div><div class="ml2">وارد الشهر</div><div class="mv2" id="bkInM">—</div></div>
+    <div class="met mr"><div class="mi2">&#x1F4E4;</div><div class="ml2">صادر الشهر</div><div class="mv2" id="bkOutM">—</div></div>
+    <div class="met mo"><div class="mi2">&#x274C;</div><div class="ml2">أيام لم تراجع</div><div class="mv2" id="bkUnRv">—</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="cht">&#x1F4C5; لوحة مراجعة البنك — آخر 30 يوم
+      <span id="bkRevInfo" style="font-size:12px;color:var(--gr);font-weight:400"></span>
+    </div>
+    <div id="bkCal" style="display:grid;grid-template-columns:repeat(10,1fr);gap:5px"></div>
+  </div>
+  <div class="tabs">
+    <button class="tabb on" onclick="ST('bkTbs','bkIn',this)">الوارد البنكي</button>
+    <button class="tabb" onclick="ST('bkTbs','bkOut',this)">الصادر البنكي</button>
+    <button class="tabb" onclick="ST('bkTbs','bkAp',this);loadBkAp()">&#x23F3; طلبات الاعتماد <span class="sbdg" id="bkApCnt" style="display:none">0</span></button>
+    <button class="tabb" onclick="ST('bkTbs','bkStm',this)">كشف الحساب</button>
+    <button class="tabb" onclick="ST('bkTbs','bkFlow',this)">التدفق النقدي</button>
+  </div>
+  <div id="bkTbs">
+    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="bkStm"><div class="card"><div class="cht">كشف الحساب البنكي<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="date" id="bkStF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><input type="date" id="bkStT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><button class="btn bsm bp" onclick="loadBkStm()">&#x1F50E; عرض</button></div></div><div id="bkStmC"></div></div></div>
+    <div class="tabc" id="bkAp">
+      <div class="al aw">&#x26A0;&#xFE0F; الصادرات التالية تنتظر اعتمادك. بعد الاعتماد يتم تأثيرها على رصيد الحساب.</div>
+      <div id="bkApList"><div class="lb"><div class="sp"></div></div></div>
+    </div>
+    <div class="tabc" id="bkFlow"><div class="card"><div class="cht">التدفق النقدي البنكي — 6 أشهر</div><canvas id="chFlow" height="260"></canvas></div></div>
+  </div>
+</div>
+<!-- ═══ APPROVALS ═══ -->
+<div class="pg" id="pg-ap">
+  <div class="page-hdr"><h2>اعتماد المصروفات</h2></div>
+  <div class="al aw">&#x26A0;&#xFE0F; المصروفات التالية تنتظر اعتمادك. بعد الاعتماد فقط يتم ترحيلها للخزينة وتأثيرها على الرصيد.</div>
+  <div id="apList"><div class="lb"><div class="sp"></div></div></div>
+</div>
+
+
+<!-- ═══ COST CENTERS ═══ -->
+<div class="pg" id="pg-cc">
+  <div class="page-hdr"><h2>مراكز التكلفة</h2>
+    <button class="btn bp" onclick="OM('ccM')">&#x2795; مركز جديد</button>
+  </div>
+  <div class="al ai">&#x1F4A1; مراكز التكلفة تُستخدم لتصنيف المصروفات وتحليلها في التقارير. يمكنك إضافة وتعديل وإلغاء تفعيل أي مركز.</div>
+  <div class="mets">
+    <div class="met mb"><div class="mi2">&#x1F3F7;&#xFE0F;</div><div class="ml2">إجمالي المراكز</div><div class="mv2" id="cc-total">—</div></div>
+    <div class="met mg"><div class="mi2">&#x2705;</div><div class="ml2">مراكز نشطة</div><div class="mv2" id="cc-active">—</div></div>
+    <div class="met mr"><div class="mi2">&#x1F4B8;</div><div class="ml2">إجمالي المصروفات (معتمدة)</div><div class="mv2" id="cc-spent">—</div></div>
+    <div class="met mo"><div class="mi2">&#x1F4CA;</div><div class="ml2">أكثر مركز صرفاً</div><div class="mv2" id="cc-top">—</div></div>
+  </div>
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="cht">&#x1F3F7;&#xFE0F; قائمة مراكز التكلفة</div>
+      <div id="cc-list"></div>
+    </div>
+    <div class="card">
+      <div class="cht">&#x1F4CA; توزيع المصروفات حسب المركز</div>
+      <div id="cc-chart-area"></div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ═══ BANK ACCOUNTS ═══ -->
+<div class="pg" id="pg-ba">
+  <div class="page-hdr"><h2>&#x1F4B3; الحسابات البنكية</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="assignOldTxns()" title="تعيين حساب للحركات القديمة">&#x1F504; تعيين حساب للبيانات القديمة</button>
+      <button class="btn bp" onclick="OM('baM')">&#x2795; حساب جديد</button>
+    </div>
+  </div>
+  <div id="ba-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:20px"></div>
+  <div class="tabs">
+    <button class="tabb on" onclick="ST('baTbs','baList',this)">حركات الحسابات</button>
+    <button class="tabb" onclick="ST('baTbs','baStm',this)">كشف حساب مقارن</button>
+  </div>
+  <div id="baTbs">
+    <div class="tabc on" id="baList">
+      <div class="card">
+        <div class="cht">&#x1F4CA; حركات الحسابات
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="ba-filter" onchange="loadBA()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل الحسابات</option></select>
+            <input type="month" id="ba-month" onchange="loadBA()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <button class="btn bsm" onclick="ET('baTbl')">&#x1F4E5;</button>
+          </div>
+        </div>
+        <div class="tw"><table id="baTbl">
+          <thead><tr><th>التاريخ</th><th>الحساب</th><th>النوع</th><th>المبلغ</th><th>الرصيد</th><th>المستفيد/المصدر</th><th>رقم العملية</th><th>البيان</th></tr></thead>
+          <tbody id="baTbd"></tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="tabc" id="baStm">
+      <div class="card">
+        <div class="cht">&#x1F4CA; مقارنة الحسابات
+          <div style="display:flex;gap:8px">
+            <input type="date" id="baStF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <input type="date" id="baStT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <button class="btn bsm bp" onclick="loadBAStm()">&#x1F50E; عرض</button>
+          </div>
+        </div>
+        <div id="baStmC"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VEHICLES ═══ -->
+<div class="pg" id="pg-veh">
+  <div class="page-hdr"><h2>&#x1F697; سجل السيارات</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="downloadVehTemplate()">&#x1F4E5; تنزيل القالب</button>
+      <label class="btn" style="cursor:pointer" title="رفع ملف Excel مملوء">
+        &#x1F4E4; رفع ملف Excel
+        <input type="file" id="vehImportFile" accept=".csv,.xlsx,.xls" onchange="importVehFile(this)" style="display:none">
+      </label>
+      <button class="btn bp" onclick="OM('vehM')">&#x2795; إضافة سيارة</button>
+    </div>
+  </div>
+  <div class="mets">
+    <div class="met mb"><div class="mi2">&#x1F697;</div><div class="ml2">إجمالي السيارات</div><div class="mv2" id="veh-total">—</div></div>
+    <div class="met mg"><div class="mi2">&#x26FD;</div><div class="ml2">بنزين</div><div class="mv2" id="veh-petrol">—</div></div>
+    <div class="met mo"><div class="mi2">&#x1F6E2;&#xFE0F;</div><div class="ml2">ديزل</div><div class="mv2" id="veh-diesel">—</div></div>
+    <div class="met mp"><div class="mi2">&#x1F50B;</div><div class="ml2">كهربائية</div><div class="mv2" id="veh-electric">—</div></div>
+  </div>
+  <div class="card">
+    <div class="cht">قائمة السيارات
+      <div style="display:flex;gap:8px">
+        <input class="srch-inp" placeholder="بحث بالرقم أو الموديل..." oninput="FT('vehTbl',this.value)" style="width:200px">
+        <select id="veh-fuel-f" onchange="loadVeh()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)">
+          <option value="">كل الأنواع</option>
+          <option value="بنزين">بنزين</option>
+          <option value="ديزل">ديزل</option>
+          <option value="كهربائي">كهربائي</option>
+          <option value="هجين">هجين</option>
+        </select>
+        <button class="btn bsm" onclick="ET('vehTbl')">&#x1F4E5; تصدير</button>
+      </div>
+    </div>
+    <div class="tw"><table id="vehTbl" style="min-width:950px">
+      <thead><tr><th>رقم اللوحة</th><th>الحروف</th><th>الموديل</th><th>النوع/الماركة</th><th>السنة</th><th>نوع الوقود</th><th>اللون</th><th>الحالة</th><th>ملاحظات</th><th>إجراء</th></tr></thead>
+      <tbody id="vehTbd"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ═══ EMPLOYEES ═══ -->
+<div class="pg" id="pg-emps">
+  <div class="page-hdr"><h2>سجل الموظفين</h2>
+    <button class="btn bp" onclick="OM('empM')">&#x2795; إضافة موظف</button>
+  </div>
+  <div class="mets">
+    <div class="met mb"><div class="mi2">&#x1F464;</div><div class="ml2">إجمالي الموظفين</div><div class="mv2" id="emp-total">—</div></div>
+    <div class="met mg"><div class="mi2">&#x1F45B;</div><div class="ml2">لديهم عهدة مفتوحة</div><div class="mv2" id="emp-with-custody">—</div></div>
+    <div class="met mo"><div class="mi2">&#x1F4CB;</div><div class="ml2">بدون عهدة</div><div class="mv2" id="emp-no-custody">—</div></div>
+    <div class="met mr"><div class="mi2">&#x1F4B8;</div><div class="ml2">إجمالي العهد المفتوحة</div><div class="mv2" id="emp-custody-total">—</div></div>
+  </div>
+  <div class="card">
+    <div class="cht">&#x1F4CB; قائمة الموظفين
+      <div style="display:flex;gap:8px">
+        <input class="srch-inp" placeholder="بحث بالاسم أو الرقم أو الوظيفة..." oninput="FT('empTbl',this.value)" style="width:200px">
+        <button class="btn bsm" onclick="ET('empTbl')">&#x1F4E5; تصدير</button>
+      </div>
+    </div>
+    <div class="tw"><table id="empTbl" style="min-width:850px">
+      <thead><tr><th>اسم الموظف</th><th>رقم الموظف</th><th>الوظيفة</th><th>القسم</th><th>رقم الهاتف</th><th>حالة العهدة</th><th>رصيد العهدة</th><th>تاريخ الإضافة</th><th>إجراء</th></tr></thead>
+      <tbody id="empTbd"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ═══ CUSTODY ═══ -->
+<div class="pg" id="pg-cu">
+  <div class="page-hdr"><h2>العهد الشخصية</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="OM('cuM')">&#x2795; عهدة جديدة</button>
+      <button class="btn bp" onclick="OM('ceM')">&#x1F4B8; تسجيل مصروف</button>
+    </div>
+  </div>
+  <div class="mets">
+    <div class="met mb"><div class="mi2">&#x1F45B;</div><div class="ml2">عهد مفتوحة</div><div class="mv2" id="cuOpn">—</div></div>
+    <div class="met mr"><div class="mi2">&#x1F4B8;</div><div class="ml2">إجمالي المصروف</div><div class="mv2" id="cuSpt">—</div></div>
+    <div class="met mg"><div class="mi2">&#x1F4B0;</div><div class="ml2">الأرصدة المتبقية</div><div class="mv2" id="cuRem">—</div></div>
+    <div class="met mo"><div class="mi2">&#x2705;</div><div class="ml2">عهد مسواة</div><div class="mv2" id="cuSet">—</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tabb on" onclick="ST('cuTbs','cuLst',this)">قائمة العهد</button>
+    <button class="tabb" onclick="ST('cuTbs','cuEnt',this)">سجل المصروفات</button>
+    <button class="tabb" onclick="ST('cuTbs','cuCar',this)">تقرير حسب السيارة</button>
+    <button class="tabb" onclick="ST('cuTbs','cuBal',this)">أرصدة العهد</button>
+    <button class="tabb" onclick="ST('cuTbs','cuRep',this);loadCuReport()">&#x1F4CB; تقرير التقفيلات</button>
+    <button class="tabb" onclick="ST('cuTbs','cuItemRep',this);loadCuItemReport()">&#x1F4CA; تقرير البنود</button>
+  </div>
+  <div id="cuTbs">
+    <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl" style="min-width:850px"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="cuEnt"><div class="card"><div class="cht">سجل مصروفات العهد<div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('cuEnTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('cuEnTbl')">&#x1F4E5;</button></div></div><div class="tw"><table id="cuEnTbl" style="min-width:750px"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البند</th><th>المبلغ</th><th>رقم السيارة</th><th>اللوحة</th><th>البيان</th></tr></thead><tbody id="cuEnTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="cuCar"><div class="card"><div class="cht">تقرير المصروفات حسب السيارة</div><div id="cuCarC"></div></div></div>
+    <div class="tabc" id="cuBal"><div class="card"><div class="cht">ملخص أرصدة العهد الحالية</div><div id="cuBalC"></div></div></div>
+    <div class="tabc" id="cuRep">
+      <div class="card">
+        <div class="cht">&#x1F4CB; تقرير التقفيلات والعهد
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="cuRepEmp" onchange="loadCuReport()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل الموظفين</option></select>
+            <input type="date" id="cuRepF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <input type="date" id="cuRepT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <button class="btn bsm bp" onclick="loadCuReport()">&#x1F50E; عرض</button>
+            <button class="btn bsm" onclick="window.print()">&#x1F5A8;&#xFE0F; طباعة</button>
+          </div>
+        </div>
+        <div id="cuRepC"></div>
+      </div>
+    </div>
+    <!-- تقرير البنود -->
+    <div class="tabc" id="cuItemRep">
+      <div class="card">
+        <div class="cht">&#x1F4CA; تقرير البنود
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input type="date" id="ciRepF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <span style="font-size:13px;color:var(--gr)">إلى</span>
+            <input type="date" id="ciRepT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <button class="btn bsm bp" onclick="loadCuItemReport()">&#x1F50E; عرض</button>
+            <button class="btn bsm" onclick="window.print()">&#x1F5A8;&#xFE0F; طباعة</button>
+            <button class="btn bsm" onclick="exportCuItemReport()">&#x1F4E5; Excel</button>
+          </div>
+        </div>
+        <!-- فلاتر البنود -->
+        <div style="background:var(--ltr);border-radius:10px;padding:14px;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--nv);margin-bottom:10px">&#x1F3F7;&#xFE0F; اختر البنود (يمكن اختيار أكثر من بند)</div>
+          <div id="ciFilterItems" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn bxs" onclick="ciSelectAll(true)">تحديد الكل</button>
+            <button class="btn bxs" onclick="ciSelectAll(false)">إلغاء الكل</button>
+            <div style="border-right:1px solid var(--bd);margin:0 4px"></div>
+            <select id="ciRepEmp" style="padding:5px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)">
+              <option value="">كل الموظفين</option>
+            </select>
+            <select id="ciRepVeh" style="padding:5px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)">
+              <option value="">كل السيارات</option>
+            </select>
+          </div>
+        </div>
+        <div id="cuItemRepC"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ═══ CLAIMS ═══ -->
+<div class="pg" id="pg-cl">
+  <div class="page-hdr"><h2>مطالبات التأمين</h2>
+    <button class="btn bp" onclick="OM('clM')">&#x2795; مطالبة جديدة</button>
+  </div>
+  <div class="mets">
+    <div class="met mb"><div class="mi2">&#x1F4CB;</div><div class="ml2">إجمالي المطالبات</div><div class="mv2" id="clTot">—</div></div>
+    <div class="met mo"><div class="mi2">&#x1F504;</div><div class="ml2">تحت المراجعة</div><div class="mv2" id="clRev">—</div></div>
+    <div class="met mg"><div class="mi2">&#x2705;</div><div class="ml2">تم التحصيل</div><div class="mv2" id="clCol">—</div></div>
+    <div class="met mr"><div class="mi2">&#x1F4B0;</div><div class="ml2">قيد التحصيل (ريال)</div><div class="mv2" id="clPAm">—</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="srch-bar">
+      <input class="srch-inp" id="clSr" placeholder="بحث بأي حقل..." oninput="FT('clTbl',this.value)">
+      <select id="clStF" onchange="loadClaims()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)">
+        <option value="">كل المراحل</option>
+        <option>حادث جديد</option><option>تم رفع المستندات</option><option>تم تقديم المطالبة</option>
+        <option>تحت المراجعة</option><option>تمت الموافقة</option><option>تم استلام التعويض</option><option>مغلقة</option>
+      </select>
+      <select id="clInsF" onchange="loadClaims()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل شركات التأمين</option></select>
+      <button class="btn bsm" onclick="ET('clTbl')">&#x1F4E5; تصدير</button>
+    </div>
+  </div>
+  <div class="card"><div class="cht">قائمة المطالبات</div>
+    <div class="tw"><table id="clTbl" style="min-width:1000px">
+      <thead><tr><th>رقم المطالبة</th><th>تاريخ الحادث</th><th>السيارة / اللوحة</th><th>السائق</th><th>شركة التأمين</th><th>قيمة التقدير</th><th>نسبة الخطأ</th><th>المرحلة</th><th>أيام الحادث</th><th>أيام التأمين</th><th></th></tr></thead>
+      <tbody id="clTbd"></tbody>
+    </table></div>
+  </div>
+</div>
+<!-- ═══ REPORTS ═══ -->
+<div class="pg" id="pg-rp">
+  <div class="page-hdr"><h2>التقارير الشاملة ومؤشرات الأداء</h2></div>
+  <div class="tabs">
+    <button class="tabb on" onclick="ST('rpTbs','rpRv',this)">الإيرادات</button>
+    <button class="tabb" onclick="ST('rpTbs','rpTr',this)">الخزينة</button>
+    <button class="tabb" onclick="ST('rpTbs','rpBk',this)">البنك</button>
+    <button class="tabb" onclick="ST('rpTbs','rpCu',this)">العهد</button>
+    <button class="tabb" onclick="ST('rpTbs','rpCl',this)">المطالبات</button>
+    <button class="tabb" onclick="ST('rpTbs','rpKpi',this)">مؤشرات KPI</button>
+    <button class="tabb" onclick="ST('rpTbs','rpVeh',this);loadRpVeh()">&#x1F697; مصروفات السيارات</button>
+  </div>
+  <div id="rpTbs">
+    <div class="tabc on" id="rpRv">
+      <div class="g2" style="margin-bottom:16px">
+        <div class="card"><div class="cht">&#x1F4CA; إيرادات حسب العميل</div><div id="rpCli"></div></div>
+        <div class="card"><div class="cht">&#x1F4C4; إيرادات حسب العقد</div><div id="rpContr"></div></div>
+      </div>
+    </div>
+    <div class="tabc" id="rpTr">
+      <div class="g2" style="margin-bottom:16px">
+        <div class="card"><div class="cht">&#x1F4CA; حسب مركز التكلفة</div><div id="rpCC"></div></div>
+        <div class="card"><div class="cht">&#x1F4CA; حسب المستفيد (أعلى 10)</div><div id="rpBen"></div></div>
+      </div>
+      <div class="g3">
+        <div class="card"><div class="cht">&#x2705; المعتمدة</div><div id="rpAppr"></div></div>
+        <div class="card"><div class="cht">&#x274C; المرفوضة</div><div id="rpRjct"></div></div>
+        <div class="card"><div class="cht">&#x23F3; قيد الاعتماد</div><div id="rpPend"></div></div>
+      </div>
+    </div>
+    <div class="tabc" id="rpBk">
+      <div class="card"><div class="cht">&#x1F4CA; التدفق النقدي البنكي (12 شهر)</div><canvas id="rpCf" height="260"></canvas></div>
+    </div>
+    <div class="tabc" id="rpCu">
+      <div class="g2">
+        <div class="card"><div class="cht">&#x1F45B; العهد المفتوحة</div><div id="rpCuOpen"></div></div>
+        <div class="card"><div class="cht">&#x2705; العهد المسواة</div><div id="rpCuSett"></div></div>
+      </div>
+    </div>
+    <div class="tabc" id="rpCl">
+      <div class="g2" style="margin-bottom:16px">
+        <div class="card"><div class="cht">&#x1F4CA; حسب شركة التأمين</div><div id="rpIns"></div></div>
+        <div class="card"><div class="cht">&#x1F69B; حسب السيارة</div><div id="rpClCar"></div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="cht">&#x1F464; حسب السائق</div><div id="rpClDrv"></div></div>
+        <div class="card"><div class="cht">&#x1F4B0; ملخص التعويضات</div><div id="rpComp"></div></div>
+      </div>
+    </div>
+    <div class="tabc" id="rpKpi">
+      <div class="g3" style="margin-bottom:16px" id="rpKpiC"></div>
+      <div class="card"><div class="cht">&#x1F4CA; مقارنة الأداء الشهري</div><canvas id="chKpi" height="260"></canvas></div>
+    </div>
+    <div class="tabc" id="rpVeh">
+      <div class="card">
+        <div class="cht">&#x1F697; مصروفات السيارات
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input type="date" id="rpVehF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <span style="color:var(--gr);font-size:13px">إلى</span>
+            <input type="date" id="rpVehT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <select id="rpVehSel" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل السيارات</option></select>
+            <button class="btn bsm bp" onclick="loadRpVeh()">&#x1F50E; عرض</button>
+            <button class="btn bsm" onclick="window.print()">&#x1F5A8;&#xFE0F;</button>
+            <button class="btn bsm" onclick="ET('rpVehTbl')">&#x1F4E5; Excel</button>
+          </div>
+        </div>
+        <div id="rpVehSummary" style="margin-bottom:16px"></div>
+        <div class="tw"><table id="rpVehTbl" style="min-width:750px">
+          <thead><tr><th>السيارة</th><th>الموديل</th><th>من العهد</th><th>من الخزينة</th><th>من البنك</th><th>الإجمالي</th><th>عدد القيود</th></tr></thead>
+          <tbody id="rpVehTbd"></tbody>
+        </table></div>
+        <div id="rpVehDetail" style="margin-top:16px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ═══ USERS ═══ -->
+<div class="pg" id="pg-us">
+  <div class="page-hdr"><h2>إدارة المستخدمين</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn bp" onclick="OM('usM')">&#x2795; مستخدم جديد</button>
+      <button class="btn bd2" onclick="resetAllData()" title="مسح جميع البيانات وبدء من الصفر">&#x1F5D1;&#xFE0F; مسح كل البيانات</button>
+    </div>
+  </div>
+  <div class="card"><div class="tw"><table id="usTbl">
+    <thead><tr><th>المستخدم</th><th>الدور</th><th>آخر دخول</th><th>وقت الخروج</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+    <tbody id="usTbd"></tbody>
+  </table></div></div>
+</div>
+<!-- ═══ AUDIT ═══ -->
+<div class="pg" id="pg-au">
+  <div class="page-hdr"><h2>سجل العمليات</h2>
+    <button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button>
+  </div>
+  <div class="card">
+    <div class="srch-bar">
+      <input class="srch-inp" id="auSr" placeholder="بحث في السجل..." oninput="FT('auTbl',this.value)">
+      <input type="date" id="auDt" onchange="loadAudit()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+      <select id="auUsr" onchange="loadAudit()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل المستخدمين</option></select>
+    </div>
+    <div class="tw"><table id="auTbl" style="min-width:800px">
+      <thead><tr><th>التاريخ والوقت</th><th>المستخدم</th><th>الدور</th><th>العملية</th><th>التفاصيل</th><th>النتيجة</th></tr></thead>
+      <tbody id="auTbd"></tbody>
+    </table></div>
+  </div>
+</div>
+</div></div></div>
+<!-- ══ MODALS ══ -->
+<div class="mo2" id="opM"><div class="mb2"><div class="mhd"><div class="mtt">&#x1F69B; تسجيل عملية يومية</div><button class="mcl" onclick="CM('opM')">×</button></div>
+<div class="fg">
+  <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="op-d"></div><div class="fld"><label>العميل <span class="req">*</span></label><select id="op-c"><option value="">اختر العميل</option></select></div></div>
+  <div class="fr"><div class="fld"><label>عدد السيارات <span class="req">*</span></label><input type="number" id="op-n" min="1" placeholder="0" oninput="calcOpRev()"></div><div class="fld"><label>السعر/سيارة (اختياري)</label><input type="number" id="op-p" placeholder="يُحسب تلقائياً" oninput="calcOpRev()"></div></div>
+  <div class="fld"><label>الإيراد المحسوب</label><input type="text" id="op-r" readonly style="background:var(--ltr);font-weight:700;color:var(--sc);font-size:15px"></div>
+  <div class="fr"><div class="fld"><label>رقم العقد</label><input type="text" id="op-ct" placeholder="رقم العقد"></div><div class="fld"><label>ملاحظات</label><input type="text" id="op-nt" placeholder="ملاحظات"></div></div>
+</div>
+<div class="mft"><button class="btn" onclick="CM('opM')">إلغاء</button><button class="btn bp" onclick="saveOp()">&#x1F4BE; حفظ العملية</button></div></div></div>
+
+<div class="mo2" id="prM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F3F7;&#xFE0F; إضافة/تعديل سعر</div><button class="mcl" onclick="CM('prM')">×</button></div>
+<div class="fg">
+  <div class="fld"><label>العميل <span class="req">*</span></label><select id="pr-c"><option value="">اختر العميل</option></select></div>
+  <div class="fld"><label>السعر (ريال/سيارة) <span class="req">*</span></label><input type="number" id="pr-p" placeholder="0"></div>
+  <div class="fld"><label>تاريخ السريان <span class="req">*</span></label><input type="date" id="pr-f"></div>
+  <div class="fld"><label>تاريخ الانتهاء (فارغ = مفتوح)</label><input type="date" id="pr-t"></div>
+  <div class="fld"><label>ملاحظات</label><textarea id="pr-n" style="min-height:60px"></textarea></div>
+</div>
+<div class="mft"><button class="btn" onclick="CM('prM')">إلغاء</button><button class="btn bp" onclick="savePr()">&#x1F4BE; حفظ</button></div></div></div>
+
+<div class="mo2" id="rcM"><div class="mb2"><div class="mhd"><div class="mtt">&#x1F4E5; تسجيل مقبوض</div><button class="mcl" onclick="CM('rcM')">×</button></div>
+<div class="fg">
+  <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="rc-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="rc-a" placeholder="0" oninput="rcAutoFillAmt()"></div></div>
+  <div class="fld"><label>الجهة الدافعة <span class="req">*</span></label><input type="text" id="rc-f" placeholder="اسم الجهة أو الشركة"></div>
+  <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="rc-ds" placeholder="بيان المقبوض"></div>
+  <div class="fr"><div class="fld"><label>طريقة السداد</label><select id="rc-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option><option>بطاقة</option></select></div><div class="fld"><label>رقم مرجعي</label><input type="text" id="rc-rf" placeholder="رقم الشيك / التحويل"></div></div>
+  <div class="fld"><label>ملاحظات</label><textarea id="rc-nt" style="min-height:55px"></textarea></div>
+  <!-- CUSTODY RETURN SECTION -->
+  <div style="border-top:2px dashed var(--bd);padding-top:14px;margin-top:4px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--nv)">
+        <input type="checkbox" id="rc-custody-chk" onchange="toggleRcCustody()" style="width:16px;height:16px;cursor:pointer">
+        &#x1F45B; هذا المقبوض إرجاع من عهدة موظف
+      </label>
+    </div>
+    <div id="rc-custody-section" style="display:none">
+      <div class="al as" style="margin-bottom:10px">&#x2139;&#xFE0F; سيتم خصم المبلغ تلقائياً من رصيد العهدة كتسوية جزئية أو كاملة.</div>
+      <div class="fld">
+        <label>اختر الموظف صاحب العهدة <span class="req">*</span></label>
+        <select id="rc-custody-emp" onchange="rcSelectCustody()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+          <option value="">— اختر الموظف —</option>
+        </select>
+      </div>
+      <div id="rc-custody-info" style="display:none;margin-top:10px;background:var(--ltr);border-radius:10px;padding:12px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:var(--gr)">الرصيد الابتدائي:</span>
+          <span id="rc-cu-opening" style="font-weight:600"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:var(--gr)">إجمالي المصروف:</span>
+          <span id="rc-cu-spent" style="font-weight:600;color:var(--dn)"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding-top:6px;border-top:1px solid var(--bd)">
+          <span style="color:var(--gr)">المتبقي في العهدة:</span>
+          <span id="rc-cu-rem" style="font-weight:700;font-size:15px;color:var(--sc)"></span>
+        </div>
+      </div>
+      <div id="rc-settle-type" style="display:none;margin-top:10px">
+        <div class="fld">
+          <label>نوع التسوية</label>
+          <select id="rc-settle-sel" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+            <option value="partial">تسوية جزئية (خصم المبلغ فقط)</option>
+            <option value="full">تسوية كاملة (إغلاق العهدة)</option>
+          </select>
+        </div>
+      </div>
+      <input type="hidden" id="rc-custody-id">
+    </div>
+  </div>
+</div>
+<div class="mft"><button class="btn" onclick="CM('rcM')">إلغاء</button><button class="btn bss" onclick="saveRc()">&#x1F4BE; تسجيل المقبوض</button></div></div></div>
+
+<div class="mo2" id="exM"><div class="mb2"><div class="mhd"><div class="mtt">&#x1F4E4; طلب صرف</div><button class="mcl" onclick="CM('exM')">×</button></div>
+<div class="al aw">&#x26A0;&#xFE0F; سيُرسل للمدير المالي للاعتماد. لن يُرحَّل للخزينة قبل الموافقة.</div>
+<div class="fg">
+  <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="ex-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ex-a" placeholder="0"></div></div>
+  <div class="fld"><label>المستفيد <span class="req">*</span></label>
+    <div style="display:flex;gap:8px">
+      <select id="ex-emp-sel" onchange="fillExFromEmp()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none">
+        <option value="">— اختر من سجل الموظفين (اختياري) —</option>
+      </select>
+    </div>
+    <input type="text" id="ex-t" placeholder="اسم المستفيد" style="margin-top:6px">
+  </div>
+  <div class="fld" id="ex-custody-link-row" style="display:none">
+    <label>ربط بعهدة موظف (اختياري)</label>
+    <select id="ex-custody-link" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— لا تربط بعهدة —</option>
+    </select>
+    <div class="hint" style="font-size:11px;color:var(--sc);margin-top:3px">✓ عند الاعتماد سيُضاف المبلغ تلقائياً كمصروف على عهدة الموظف</div>
+  </div>
+  <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="ex-ds" placeholder="وصف واضح للمصروف"></div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="ex-cc" onchange="fillExItems()" style="font-family:var(--fn)"></select></div>
+      <div class="fld"><label>البند (اختياري)</label><select id="ex-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر البند —</option></select></div>
+      <div class="fld"><label>طريقة الصرف</label><select id="ex-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fld"><label>السيارة (اختياري)</label>
+    <select id="ex-veh-sel" onchange="fillExVeh()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— بدون سيارة —</option>
+    </select>
+  </div>
+  <div class="fld"><label>ملاحظات</label><textarea id="ex-nt" style="min-height:55px"></textarea></div>
+</div>
+<div class="mft"><button class="btn" onclick="CM('exM')">إلغاء</button><button class="btn bg3" onclick="saveEx()">&#x1F4E4; إرسال للاعتماد</button></div></div></div>
+
+<div class="mo2" id="biM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F4E5; وارد بنكي</div><button class="mcl" onclick="CM('biM')">×</button></div>
+<div class="fg">
+  <div class="fld"><label>الحساب البنكي <span class="req">*</span></label><select id="bi-acc" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر الحساب —</option></select></div>
+  <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="bi-d"></div>
+  <div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="bi-a" placeholder="0"></div>
+  <div class="fld"><label>مصدر التحويل <span class="req">*</span></label><input type="text" id="bi-f" placeholder="اسم المحوِّل"></div>
+  <div class="fld"><label>رقم العملية</label><input type="text" id="bi-rf" placeholder="رقم المرجع"></div>
+  <div class="fld"><label>البيان</label><input type="text" id="bi-ds" placeholder="بيان التحويل"></div>
+</div>
+<div class="mft"><button class="btn" onclick="CM('biM')">إلغاء</button><button class="btn bss" onclick="saveBi()">&#x1F4BE; تسجيل</button></div></div></div>
+
+<div class="mo2" id="boM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F4E4; صادر بنكي</div><button class="mcl" onclick="CM('boM')">×</button></div>
+<div class="fg">
+  <div class="fld"><label>الحساب البنكي <span class="req">*</span></label><select id="bo-acc" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر الحساب —</option></select></div>
+  <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="bo-d"></div>
+  <div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="bo-a" placeholder="0"></div>
+  <div class="fld"><label>المستفيد <span class="req">*</span></label>
+    <select id="bo-emp-sel" onchange="fillBoFromEmp()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none;margin-bottom:6px">
+      <option value="">— اختر من سجل الموظفين (اختياري) —</option>
+    </select>
+    <input type="text" id="bo-t" placeholder="اسم المستفيد">
+  </div>
+  <div class="fld" id="bo-custody-link-row" style="display:none">
+    <label>ربط بعهدة موظف (اختياري)</label>
+    <select id="bo-custody-link" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— لا تربط بعهدة —</option>
+    </select>
+    <div class="hint" style="font-size:11px;color:var(--sc);margin-top:3px">✓ عند الحفظ سيُضاف المبلغ تلقائياً كمصروف على عهدة الموظف</div>
+  </div>
+  <div class="fld"><label>رقم العملية</label><input type="text" id="bo-rf" placeholder="رقم المرجع"></div>
+  <div class="fld"><label>البيان</label><input type="text" id="bo-ds" placeholder="بيان التحويل"></div>
+  <div class="fld"><label>السيارة (اختياري)</label>
+    <select id="bo-veh-sel" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— بدون سيارة —</option>
+    </select>
+  </div>
+</div>
+<div class="mft"><button class="btn" onclick="CM('boM')">إلغاء</button><button class="btn bg3" onclick="saveBo()">&#x1F4BE; تسجيل</button></div></div></div>
+
+<div class="mo2" id="cuM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F45B; إنشاء عهدة جديدة</div><button class="mcl" onclick="CM('cuM')">×</button></div>
+<div class="fg">
+  <div class="fld"><label>الموظف <span class="req">*</span></label>
+    <select id="cu-emp-sel" onchange="fillCuFromEmp()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— اختر الموظف من السجل —</option>
+    </select>
+    <div class="hint" style="font-size:11px;color:var(--gr2);margin-top:3px">أضف الموظف من صفحة "سجل الموظفين" أولاً ثم اختره هنا</div>
+  </div>
+  <div class="fr">
+    <div class="fld"><label>الاسم</label><input type="text" id="cu-nm" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr)"></div>
+    <div class="fld"><label>رقم الموظف</label><input type="text" id="cu-id" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr)"></div>
+  </div>
+  <div class="fld"><label>تاريخ إنشاء العهدة <span class="req">*</span></label><input type="date" id="cu-d"></div>
+  <div class="fld"><label>الرصيد الابتدائي (ريال) <span class="req">*</span></label><input type="number" id="cu-op" placeholder="0"></div>
+  <div class="fld"><label>ملاحظات</label><textarea id="cu-nt" style="min-height:55px"></textarea></div>
+</div>
+<div class="mft"><button class="btn" onclick="CM('cuM')">إلغاء</button><button class="btn bp" onclick="saveCu()">&#x1F4BE; إنشاء العهدة</button></div></div></div>
+
+<div class="mo2" id="ceM"><div class="mb2"><div class="mhd"><div class="mtt">&#x1F4B8; تسجيل مصروف على عهدة</div><button class="mcl" onclick="CM('ceM')">×</button></div>
+<div class="fg">
+  <div class="fr"><div class="fld"><label>الموظف <span class="req">*</span></label><select id="ce-c"><option value="">اختر الموظف</option></select></div><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="ce-d"></div></div>
+  <div class="fr"><div class="fld"><label>البند <span class="req">*</span></label><input type="text" id="ce-it" placeholder="نوع المصروف"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ce-a" placeholder="0"></div></div>
+  <div class="fld"><label>البيان التفصيلي</label><input type="text" id="ce-ds" placeholder="وصف تفصيلي للمصروف"></div>
+  <div style="background:var(--ltr);border-radius:10px;padding:12px">
+    <div style="font-size:12px;font-weight:700;color:var(--gr);margin-bottom:8px">&#x1F697; السيارة (اختياري)</div>
+    <div class="fld">
+      <label>اختر السيارة</label>
+      <select id="ce-veh-sel" onchange="fillCeFromVeh()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+        <option value="">— بدون سيارة —</option>
+      </select>
+    </div>
+    <div class="fr" style="margin-top:8px">
+      <div class="fld"><label>رقم اللوحة</label><input type="text" id="ce-cr" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr);font-family:monospace"></div>
+      <div class="fld"><label>الحروف</label><input type="text" id="ce-pl" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr)"></div>
+    </div>
+  </div>
+</div>
+<div class="mft"><button class="btn" onclick="CM('ceM')">إلغاء</button><button class="btn bp" onclick="saveCe()">&#x1F4BE; تسجيل المصروف</button></div></div></div>
+
+<div class="mo2" id="clM"><div class="mb2 lg"><div class="mhd"><div class="mtt">&#x1F6E1;&#xFE0F; تسجيل مطالبة تأمينية جديدة</div><button class="mcl" onclick="CM('clM')">×</button></div>
+<div class="fg">
+  <div class="fsep">&#x1F4CD; بيانات الحادث</div>
+  <div class="fr3"><div class="fld"><label>تاريخ الحادث <span class="req">*</span></label><input type="date" id="cl-d"></div><div class="fld"><label>السيارة <span class="req">*</span></label>
+      <select id="cl-veh-sel" onchange="fillClFromVeh()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+        <option value="">— اختر السيارة —</option>
+      </select>
+    </div>
+    <div class="fr">
+      <div class="fld"><label>رقم اللوحة</label><input type="text" id="cl-cr" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr);font-family:monospace"></div>
+      <div class="fld"><label>الحروف</label><input type="text" id="cl-pl" placeholder="يُملأ تلقائياً" readonly style="background:var(--ltr)"></div>
+    </div></div>
+  <div class="fr3"><div class="fld"><label>اسم السائق <span class="req">*</span></label><input type="text" id="cl-dr" placeholder="الاسم الكامل"></div><div class="fld"><label>رقم الهوية</label><input type="text" id="cl-idd" placeholder="رقم الهوية الوطنية"></div><div class="fld"><label>رقم تقرير نجم</label><input type="text" id="cl-nj" placeholder="رقم التقرير"></div></div>
+  <div class="fr"><div class="fld"><label>نسبة الخطأ %</label><input type="number" id="cl-ft" placeholder="100" min="0" max="100"></div><div class="fld"><label>الطرف المتسبب</label><input type="text" id="cl-af" placeholder="اسم الطرف المتسبب"></div></div>
+  <div class="fld"><label>وصف الحادث</label><textarea id="cl-ds" placeholder="وصف تفصيلي للحادث والأضرار..."></textarea></div>
+  <div class="fsep">&#x1F4B0; بيانات التقدير</div>
+  <div class="fr3"><div class="fld"><label>جهة التقدير</label><input type="text" id="cl-eb" placeholder="اسم الجهة"></div><div class="fld"><label>رقم التقدير</label><input type="text" id="cl-en" placeholder="رقم التقدير"></div><div class="fld"><label>قيمة التقدير (ريال) <span class="req">*</span></label><input type="number" id="cl-ev" placeholder="0"></div></div>
+  <div class="fsep">&#x1F3E2; بيانات التأمين</div>
+  <div class="fr3"><div class="fld"><label>شركة التأمين</label><input type="text" id="cl-ic" placeholder="اسم الشركة"></div><div class="fld"><label>رقم المطالبة لدى التأمين</label><input type="text" id="cl-in" placeholder="رقم المطالبة"></div><div class="fld"><label>تاريخ تقديم المطالبة</label><input type="date" id="cl-sb"></div></div>
+</div>
+<div class="mft"><button class="btn" onclick="CM('clM')">إلغاء</button><button class="btn bp" onclick="saveCl()">&#x1F4BE; حفظ المطالبة</button></div></div></div>
+
+<div class="mo2" id="clDM"><div class="mb2 lg"><div class="mhd"><div class="mtt" id="clDT">تفاصيل المطالبة</div><button class="mcl" onclick="CM('clDM')">×</button></div>
+<div id="clDC"></div>
+<div class="mft"><button class="btn" onclick="CM('clDM')">إغلاق</button><button class="btn bp" onclick="updClStg()">&#x1F504; تحديث المرحلة</button></div></div></div>
+
+<div class="mo2" id="cuDM"><div class="mb2"><div class="mhd"><div class="mtt" id="cuDT">تفاصيل العهدة</div><button class="mcl" onclick="CM('cuDM')">×</button></div>
+<div id="cuDC"></div>
+<div class="mft"><button class="btn" onclick="CM('cuDM')">إغلاق</button><button class="btn bg3" id="cuDSetBtn" onclick="openCuSettle()">&#x1F4CB; تقفيل العهدة</button></div></div></div>
+
+<div class="mo2" id="usM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F464; إضافة مستخدم جديد</div><button class="mcl" onclick="CM('usM')">×</button></div>
+<div class="fg">
+  <div class="fld"><label>الاسم الكامل <span class="req">*</span></label><input type="text" id="us-n" placeholder="الاسم الكامل"></div>
+  <div class="fld"><label>اسم المستخدم <span class="req">*</span></label><input type="text" id="us-u" placeholder="للدخول (بالإنجليزية)"></div>
+  <div class="fld"><label>كلمة المرور <span class="req">*</span></label><input type="password" id="us-p" placeholder="كلمة مرور قوية"></div>
+  <div class="fld"><label>الدور الوظيفي <span class="req">*</span></label>
+    <select id="us-r"><option value="admin">مدير النظام</option><option value="finance">المدير المالي</option><option value="treasury">أمين الخزينة</option><option value="ops">موظف التشغيل</option><option value="claims">مسؤول المطالبات</option></select>
+  </div>
+</div>
+<div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
+
 <!-- EDIT RECEIPT MODAL -->
 <div class="mo2" id="rcEM"><div class="mb2"><div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل مقبوض</div><button class="mcl" onclick="CM('rcEM')">×</button></div>
 <div class="fg">
