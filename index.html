@@ -134,14 +134,7 @@ tbody tr:hover td{background:var(--ltr)}
 <body>
 <div class="tc" id="TC"></div>
 <!-- LOGIN -->
-<div id="FBLoad" style="position:fixed;inset:0;background:linear-gradient(135deg,#0B1F4B,#1A56DB);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;color:#fff">
-  <div style="font-size:48px;margin-bottom:20px">&#x1F69B;</div>
-  <div style="font-size:20px;font-weight:700;margin-bottom:8px">القوافل الخمسة</div>
-  <div id="FBLoadMsg" style="font-size:13px;opacity:.7;margin-bottom:30px">جاري الاتصال بالسيرفر...</div>
-  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite"></div>
-</div>
-</div><!-- /FBLoad -->
-<div id="LP" class="lp" style="display:none">
+<div id="LP" class="lp">
   <div class="lb2">
     <div class="llo">
       <div class="llic">&#x1F69B;</div>
@@ -152,7 +145,11 @@ tbody tr:hover td{background:var(--ltr)}
       <div class="fld"><label>اسم المستخدم</label><input type="text" id="lgu" placeholder="أدخل اسم المستخدم" autocomplete="username"></div>
       <div class="fld"><label>كلمة المرور</label><input type="password" id="lgp" placeholder="أدخل كلمة المرور" autocomplete="current-password"></div>
       <div id="lgE" style="display:none" class="al" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">&#x274C; اسم المستخدم أو كلمة المرور غير صحيحة</div>
-      <button class="btn bp" style="width:100%;padding:13px;font-size:15px;justify-content:center" onclick="doLogin()">&#x1F511; دخول للنظام</button>
+      <div id="lpLoadingBar" style="text-align:center;padding:10px;color:var(--gr);font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <div style="width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--ry);border-radius:50%;animation:spin .8s linear infinite"></div>
+        <span id="lpLoadingMsg">جاري الاتصال بالسيرفر...</span>
+      </div>
+      <button class="btn bp" id="lpLoginBtn" style="width:100%;padding:13px;font-size:15px;justify-content:center;display:none" onclick="doLogin()">&#x1F511; دخول للنظام</button>
     </div>
   </div>
 </div>
@@ -1005,8 +1002,8 @@ function setSyncIcon(status){
   el.innerHTML=icons[status]||'';
   el.style.color=colors[status]||'var(--gr)';
   el.title=status==='saving'?'جاري الحفظ...':status==='ok'?'محفوظ في السيرفر':'خطأ في الحفظ';
-  // Update loading screen message
-  var lm=document.getElementById('FBLoadMsg');
+  // Update loading message in LP
+  var lm=document.getElementById('lpLoadingMsg');
   if(lm){
     if(status==='error')lm.textContent='تعذّر الاتصال — جاري التحميل محلياً...';
     else if(status==='ok')lm.textContent='تم الاتصال بالسيرفر ✓';
@@ -1062,20 +1059,13 @@ function _loadLocal(){
 }
 
 function _showLoginPage(){
-  // Hide FBLoad with multiple methods
-  var fb=document.getElementById('FBLoad');
-  if(fb){
-    fb.style.display='none';
-    fb.style.visibility='hidden';
-    fb.style.zIndex='-1';
-    fb.style.opacity='0';
-    try{if(fb.parentNode)fb.parentNode.removeChild(fb);}catch(e){}
-  }
-  // Show login page
-  var lp=document.getElementById('LP');
-  if(lp){
-    lp.style.cssText='display:flex!important;visibility:visible!important;opacity:1!important;z-index:200!important;position:relative!important;';
-  }
+  // Hide loading bar, show login button
+  var lb=document.getElementById('lpLoadingBar');
+  var btn=document.getElementById('lpLoginBtn');
+  var msg=document.getElementById('lpLoadingMsg');
+  if(lb)lb.style.display='none';
+  if(btn)btn.style.display='';
+  if(msg)msg.textContent='';
 }
 
 /* ── Realtime listener: sync changes from other users ── */
@@ -4449,7 +4439,7 @@ tbody tr:hover td{background:var(--ltr)}
   <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite"></div>
 </div>
 </div><!-- /FBLoad -->
-<div id="LP" class="lp" style="display:none">
+<div id="LP" class="lp">
   <div class="lb2">
     <div class="llo">
       <div class="llic">&#x1F69B;</div>
@@ -4460,7 +4450,11 @@ tbody tr:hover td{background:var(--ltr)}
       <div class="fld"><label>اسم المستخدم</label><input type="text" id="lgu" placeholder="أدخل اسم المستخدم" autocomplete="username"></div>
       <div class="fld"><label>كلمة المرور</label><input type="password" id="lgp" placeholder="أدخل كلمة المرور" autocomplete="current-password"></div>
       <div id="lgE" style="display:none" class="al" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">&#x274C; اسم المستخدم أو كلمة المرور غير صحيحة</div>
-      <button class="btn bp" style="width:100%;padding:13px;font-size:15px;justify-content:center" onclick="doLogin()">&#x1F511; دخول للنظام</button>
+      <div id="lpLoadingBar" style="text-align:center;padding:10px;color:var(--gr);font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <div style="width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--ry);border-radius:50%;animation:spin .8s linear infinite"></div>
+        <span id="lpLoadingMsg">جاري الاتصال بالسيرفر...</span>
+      </div>
+      <button class="btn bp" id="lpLoginBtn" style="width:100%;padding:13px;font-size:15px;justify-content:center;display:none" onclick="doLogin()">&#x1F511; دخول للنظام</button>
     </div>
   </div>
 </div>
