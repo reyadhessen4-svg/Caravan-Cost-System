@@ -1068,10 +1068,14 @@ function _loadLocal(){
 }
 
 function _showLoginPage(){
+  console.log('_showLoginPage called');
   var fb=document.getElementById('FBLoad');
   var lp=document.getElementById('LP');
+  console.log('FBLoad:', fb?fb.style.display:'NOT FOUND');
+  console.log('LP:', lp?lp.style.display:'NOT FOUND');
   if(fb)fb.style.display='none';
   if(lp)lp.style.display='flex';
+  console.log('After: FBLoad=', fb?fb.style.display:'', 'LP=', lp?lp.style.display:'');
 }
 
 /* ── Realtime listener: sync changes from other users ── */
