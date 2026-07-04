@@ -137,7 +137,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div id="FBLoad" style="position:fixed;inset:0;background:linear-gradient(135deg,#0B1F4B,#1A56DB);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;color:#fff">
   <div style="font-size:48px;margin-bottom:20px">&#x1F69B;</div>
   <div style="font-size:20px;font-weight:700;margin-bottom:8px">القوافل الخمسة</div>
-  <div style="font-size:13px;opacity:.7;margin-bottom:30px">جاري الاتصال بالسيرفر...</div>
+  <div id="FBLoadMsg" style="font-size:13px;opacity:.7;margin-bottom:30px">جاري الاتصال بالسيرفر...</div>
   <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite"></div>
 </div>
 </div><!-- /FBLoad -->
@@ -1006,30 +1006,44 @@ function setSyncIcon(status){
   el.innerHTML=icons[status]||'';
   el.style.color=colors[status]||'var(--gr)';
   el.title=status==='saving'?'جاري الحفظ...':status==='ok'?'محفوظ في السيرفر':'خطأ في الحفظ';
+  // Update loading screen message
+  var lm=document.getElementById('FBLoadMsg');
+  if(lm){
+    if(status==='error')lm.textContent='تعذّر الاتصال — جاري التحميل محلياً...';
+    else if(status==='ok')lm.textContent='تم الاتصال بالسيرفر ✓';
+  }
 }
 
 /* ── Load: Firebase primary, localStorage fallback ── */
 function ld(){
   if(DB){
     setSyncIcon('saving');
+    // Timeout: if Firebase doesn't respond in 8 seconds, use localStorage
+    var _fbTimeout=setTimeout(function(){
+      console.warn('Firebase timeout — falling back to localStorage');
+      setSyncIcon('error');
+      _loadLocal();
+      _startListener();
+      toast('تعذّر الاتصال بالسيرفر — تم التحميل من الذاكرة المحلية','w');
+    },8000);
+
     DB.ref(DB_REF).once('value').then(function(snap){
+      clearTimeout(_fbTimeout);
       var d=snap.val();
       if(d&&d.users&&d.users.length){
         S.data=Object.assign({},S.data,d);
         setSyncIcon('ok');
       } else {
-        // No data in Firebase — load from localStorage or seed
         _loadLocal();
-        // Push seed data to Firebase
         sv();
       }
       _showLoginPage();
-      // Start realtime listener
       _startListener();
     }).catch(function(err){
+      clearTimeout(_fbTimeout);
       console.warn('Firebase read failed, using localStorage:',err);
       setSyncIcon('error');
-      _loadLocal();  // _loadLocal calls _showLoginPage
+      _loadLocal();
       _startListener();
     });
   } else {
@@ -4414,7 +4428,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div id="FBLoad" style="position:fixed;inset:0;background:linear-gradient(135deg,#0B1F4B,#1A56DB);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;color:#fff">
   <div style="font-size:48px;margin-bottom:20px">&#x1F69B;</div>
   <div style="font-size:20px;font-weight:700;margin-bottom:8px">القوافل الخمسة</div>
-  <div style="font-size:13px;opacity:.7;margin-bottom:30px">جاري الاتصال بالسيرفر...</div>
+  <div id="FBLoadMsg" style="font-size:13px;opacity:.7;margin-bottom:30px">جاري الاتصال بالسيرفر...</div>
   <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite"></div>
 </div>
 </div><!-- /FBLoad -->
