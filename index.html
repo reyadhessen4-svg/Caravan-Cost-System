@@ -1030,16 +1030,21 @@ function ld(){
     DB.ref(DB_REF).once('value').then(function(snap){
       clearTimeout(_fbTimeout);
       var d=snap.val();
+      console.log('📦 Firebase data received:', d?'has data':'null', d?Object.keys(d):[]);
       if(d&&d.users){
         S.data=Object.assign({},S.data,d);
         var arrFields=['users','employees','vehicles','bankAccounts','clients','costCenters','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
         arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
+        console.log('✅ Users loaded:', S.data.users.length);
         setSyncIcon('ok');
       } else {
+        console.log('⚠️ No users in Firebase - loading local');
         _loadLocal();
         sv();
       }
+      console.log('📄 Calling _showLoginPage...');
       _showLoginPage();
+      console.log('📄 _showLoginPage called - LP display:', document.getElementById('LP')?document.getElementById('LP').style.display:'NOT FOUND');
       _startListener();
     }).catch(function(err){
       clearTimeout(_fbTimeout);
