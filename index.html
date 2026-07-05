@@ -1203,7 +1203,8 @@ function doLogin(){
   S.cu=user;
   alog('تسجيل الدخول','المستخدم: '+user.name);
   sv();
-  var lpEl=G('LP');if(lpEl){lpEl.style.display='none';lpEl.style.visibility='hidden';}
+  var lpEl=G('LP');
+  if(lpEl&&lpEl.parentNode)lpEl.parentNode.removeChild(lpEl);
   G('APP').style.display='block';
   initApp();
 }
@@ -1211,7 +1212,8 @@ function doLogout(){
   if(S.cu){S.cu.lo=new Date().toISOString();alog('تسجيل الخروج','المستخدم: '+S.cu.name);sv();}
   S.cu=null;
   G('APP').style.display='none';
-  var lpEl2=G('LP');if(lpEl2){lpEl2.style.display='flex';lpEl2.style.visibility='visible';}
+  // Reload page on logout to reset everything cleanly
+  location.reload();
   // Clear login fields
   if(G('lgu'))G('lgu').value='';
   if(G('lgp'))G('lgp').value='';
