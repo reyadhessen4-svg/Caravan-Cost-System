@@ -4041,7 +4041,9 @@ ld();
     var _autoTry=0;
     var _autoInt=setInterval(function(){
       _autoTry++;
-      if(_autoTry>20){clearInterval(_autoInt);return;}
+      if(_autoTry>60){clearInterval(_autoInt);return;}
+      // Ensure arrays
+      if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);
       if(!S.data.users||!S.data.users.length)return;
       clearInterval(_autoInt);
       var user=S.data.users.find(function(x){return x.u===s.u&&x.active;});
@@ -4054,7 +4056,7 @@ ld();
       G('APP').style.display='block';
       try{localStorage.setItem('qawafil_session',JSON.stringify({u:user.u,id:user.id,t:Date.now()}));}catch(e){}
       initApp();
-    },500);
+    },300);
   }catch(e){}
 })();
 </script>
