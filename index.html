@@ -1679,7 +1679,8 @@ function delRc(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف م
 
 /* ─── EXPENSE EDIT / DELETE ─── */
 function editEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}G('exe-id').value=id;G('exe-d').value=e.date;G('exe-a').value=e.amount;G('exe-t').value=e.to;G('exe-ds').value=e.desc;var cc=G('exe-cc');for(var i=0;i<cc.options.length;i++){if(cc.options[i].value===e.cc||cc.options[i].text===e.cc)cc.selectedIndex=i;}var em=G('exe-m');for(var i=0;i<em.options.length;i++){if(em.options[i].value===e.method||em.options[i].text===e.method)em.selectedIndex=i;}G('exe-nt').value=e.notes||'';OM('exEM');}
-function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — التعديل للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.desc=d;e.cc=V('exe-cc');e.item=V('exe-item')||e.item||'';e.method=V('exe-m');e.notes=V('exe-nt');if(!can('all')){e.status='pending';e.apBy='';e.apAt='';}e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
+function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — التعديل للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.desc=d;e.cc=V('exe-cc');e.item=V('exe-item')||e.item||'';e.method=V('exe-m');e.notes=V('exe-nt');// Always reset to pending if was rejected
+if(e.status==='rejected'||e.status==='pending'){e.status='pending';e.apBy='';e.apAt='';e.rjBy='';e.rjAt='';e.rjRsn='';}e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
 function delEx(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — الحذف للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('لا يمكن حذف مصروف معتمد — محمي من الحذف','e');return;}if(!confirm('حذف طلب صرف رقم '+e.num+' بقيمة '+fR(e.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.expenses=S.data.expenses.filter(x=>x.id!==id);alog('حذف مصروف','سند '+e.num+' — '+fR(e.amount)+' — لـ '+e.to);sv();loadTr();updApCnt();loadDash();toast('تم حذف المصروف','w');}
 
 
@@ -4167,7 +4168,16 @@ ld();
   <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="exe-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="exe-a" placeholder="0"></div></div>
   <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="exe-t" placeholder="اسم المستفيد"></div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="exe-ds" placeholder="وصف واضح للمصروف"></div>
-  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc" style="font-family:var(--fn)"></select></div><div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label>
+      <select id="exe-cc" onchange="fillExeItems()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"></select>
+    </div>
+    <div class="fld"><label>البند (اختياري)</label>
+      <div style="display:flex;gap:6px">
+        <select id="exe-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
+        <button type="button" onclick="addItemFromModal('exe-cc','exe-item')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px" title="إضافة بند جديد">+</button>
+      </div>
+    </div>
+    <div class="fld"><label>طريقة الصرف</label><select id="exe-m" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div>
   <div class="fld"><label>ملاحظات</label><textarea id="exe-nt" style="min-height:55px"></textarea></div>
 </div>
 <input type="hidden" id="exe-id">
@@ -5415,7 +5425,16 @@ tbody tr:hover td{background:var(--ltr)}
   <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="exe-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="exe-a" placeholder="0"></div></div>
   <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="exe-t" placeholder="اسم المستفيد"></div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="exe-ds" placeholder="وصف واضح للمصروف"></div>
-  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc" style="font-family:var(--fn)"></select></div><div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label>
+      <select id="exe-cc" onchange="fillExeItems()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"></select>
+    </div>
+    <div class="fld"><label>البند (اختياري)</label>
+      <div style="display:flex;gap:6px">
+        <select id="exe-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
+        <button type="button" onclick="addItemFromModal('exe-cc','exe-item')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px" title="إضافة بند جديد">+</button>
+      </div>
+    </div>
+    <div class="fld"><label>طريقة الصرف</label><select id="exe-m" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div>
   <div class="fld"><label>ملاحظات</label><textarea id="exe-nt" style="min-height:55px"></textarea></div>
 </div>
 <input type="hidden" id="exe-id">
