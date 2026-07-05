@@ -1103,16 +1103,38 @@ function _startListener(){
     S.data=Object.assign({},S.data,d);
     // Refresh current page if app is open
     if(S.cu){
-      var pg=document.querySelector('.pg.on');
-      if(pg){
-        var pgId=pg.id.replace('pg-','');
-        var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,
-               ap:loadAp,veh:loadVeh,ba:loadBA,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,
-               rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};
-        if(L[pgId])L[pgId]();
-      }
-      updApCnt();updBkApCnt();checkAlerts();
+      try{
+        var pg=document.querySelector('.pg.on');
+        if(pg){
+          var pgId=pg.id.replace('pg-','');
+          var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,
+                 ap:loadAp,veh:loadVeh,ba:loadBA,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,
+                 rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};
+          if(L[pgId])L[pgId]();
+        }
+        updApCnt();checkAlerts();
+      }catch(e){}
       setSyncIcon('ok');
+    } else {
+      setSyncIcon('ok');
+      // Auto-login from saved session
+      try{
+        var sess=localStorage.getItem('qawafil_session');
+        if(sess){
+          var sObj=JSON.parse(sess);
+          if(sObj&&sObj.u&&(Date.now()-sObj.t)<30*24*60*60*1000){
+            var usr=S.data.users.find(function(x){return x.u===sObj.u&&x.active;});
+            if(usr){
+              S.cu=usr;usr.ll=new Date().toISOString();
+              var lpAL=G('LP');
+              if(lpAL&&lpAL.parentNode)lpAL.parentNode.removeChild(lpAL);
+              G('APP').style.display='block';
+              localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now()}));
+              initApp();
+            }
+          }
+        }
+      }catch(e){}
     }
   },function(err){
     console.error('Firebase listener error:',err);
@@ -4027,38 +4049,7 @@ G('lgp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 G('lgu').addEventListener('keydown',e=>{if(e.key==='Enter')G('lgp').focus();});
 window.addEventListener('resize',()=>{if(window.innerWidth>768)G('SB').classList.remove('open');G('menuBtn').style.display=window.innerWidth<=768?'':'none';});
 ld();
-// Auto-login from saved session
-(function(){
-  try{
-    var sess=localStorage.getItem('qawafil_session');
-    if(!sess)return;
-    var s=JSON.parse(sess);
-    // Session valid for 30 days
-    if(!s||!s.u||!s.t||(Date.now()-s.t)>30*24*60*60*1000){
-      localStorage.removeItem('qawafil_session');return;
-    }
-    // Wait for Firebase to load then auto-login
-    var _autoTry=0;
-    var _autoInt=setInterval(function(){
-      _autoTry++;
-      if(_autoTry>60){clearInterval(_autoInt);return;}
-      // Ensure arrays
-      if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);
-      if(!S.data.users||!S.data.users.length)return;
-      clearInterval(_autoInt);
-      var user=S.data.users.find(function(x){return x.u===s.u&&x.active;});
-      if(!user){localStorage.removeItem('qawafil_session');return;}
-      // Auto login
-      user.ll=new Date().toISOString();
-      S.cu=user;
-      var lpEl=G('LP');
-      if(lpEl&&lpEl.parentNode){lpEl.parentNode.removeChild(lpEl);}
-      G('APP').style.display='block';
-      try{localStorage.setItem('qawafil_session',JSON.stringify({u:user.u,id:user.id,t:Date.now()}));}catch(e){}
-      initApp();
-    },300);
-  }catch(e){}
-})();
+
 </script>
 <!-- EDIT RECEIPT MODAL -->
 <div class="mo2" id="rcEM"><div class="mb2"><div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل مقبوض</div><button class="mcl" onclick="CM('rcEM')">×</button></div>
