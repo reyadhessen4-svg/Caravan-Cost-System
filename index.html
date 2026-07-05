@@ -1303,6 +1303,7 @@ function OM(id){
     G('rc-f').value='';G('rc-ds').value='';G('rc-a').value='';
     G('rc-rf').value='';G('rc-nt').value='';
   }
+  if(id==='exEM'){fillCCDropdowns();}
   if(id==='exM'){fillAllEmpDropdowns();G('ex-custody-link-row').style.display='none';fillExItems();
     var exvs=G('ex-veh-sel');if(exvs){exvs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+(v.model&&v.model!==v.make?' '+v.model:'')+'</option>';}).join('');}
   }
@@ -1689,46 +1690,34 @@ function editEx(id){
     G('exe-t').value=e.to;
     G('exe-ds').value=e.desc;
     G('exe-nt').value=e.notes||'';
+    // Fill dropdowns BEFORE opening modal
+    fillCCDropdowns();
+    var ccSel=G('exe-cc');
+    if(ccSel&&e.cc){
+      for(var i=0;i<ccSel.options.length;i++){
+        if(ccSel.options[i].value===e.cc||ccSel.options[i].text===e.cc){ccSel.selectedIndex=i;break;}
+      }
+    }
+    fillExeItems();
+    var itemSel=G('exe-item');
+    if(itemSel&&e.item){
+      var found=false;
+      for(var j=0;j<itemSel.options.length;j++){
+        if(itemSel.options[j].value===e.item){itemSel.selectedIndex=j;found=true;break;}
+      }
+      if(!found){
+        var opt=document.createElement('option');
+        opt.value=e.item;opt.textContent=e.item;opt.selected=true;
+        itemSel.appendChild(opt);
+      }
+    }
+    var em=G('exe-m');
+    if(em&&e.method){
+      for(var k=0;k<em.options.length;k++){
+        if(em.options[k].value===e.method||em.options[k].text===e.method){em.selectedIndex=k;break;}
+      }
+    }
     OM('exEM');
-    // Fill dropdowns after modal opens
-    setTimeout(function(){
-      try{
-        // Fill CC
-        fillCCDropdowns();
-        var ccSel=G('exe-cc');
-        if(ccSel&&e.cc){
-          for(var i=0;i<ccSel.options.length;i++){
-            if(ccSel.options[i].value===e.cc||ccSel.options[i].text===e.cc){ccSel.selectedIndex=i;break;}
-          }
-        }
-        // Fill items based on CC
-        fillExeItems();
-        // Set item value
-        setTimeout(function(){
-          try{
-            var itemSel=G('exe-item');
-            if(itemSel&&e.item){
-              var found=false;
-              for(var j=0;j<itemSel.options.length;j++){
-                if(itemSel.options[j].value===e.item){itemSel.selectedIndex=j;found=true;break;}
-              }
-              if(!found){
-                var opt=document.createElement('option');
-                opt.value=e.item;opt.textContent=e.item;opt.selected=true;
-                itemSel.appendChild(opt);
-              }
-            }
-            // Fill method
-            var em=G('exe-m');
-            if(em&&e.method){
-              for(var k=0;k<em.options.length;k++){
-                if(em.options[k].value===e.method||em.options[k].text===e.method){em.selectedIndex=k;break;}
-              }
-            }
-          }catch(e2){console.warn('editEx item fill error:',e2);}
-        },100);
-      }catch(e1){console.warn('editEx dropdown fill error:',e1);}
-    },50);
   }catch(err){console.error('editEx error:',err);toast('خطأ في فتح نافذة التعديل','e');}
 }
 function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — التعديل للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.desc=d;e.cc=V('exe-cc');e.item=V('exe-item')||e.item||'';e.method=V('exe-m');e.notes=V('exe-nt');// Always reset to pending if was rejected
@@ -3431,6 +3420,26 @@ function fillExItems(){
     sel.innerHTML='<option value="">— اختر البند —</option>'+
       items.map(function(i){return'<option value="'+i+'">'+i+'</option>';}).join('');
   }catch(e){}
+}
+
+function fillExeItems(){
+  try{
+    var cc=document.getElementById('exe-cc')?document.getElementById('exe-cc').value:'';
+    var ccs=S.data.costCenters||[];
+    var items=[];
+    if(cc){
+      var found=ccs.find(function(c){return c.name===cc;});
+      if(found&&found.items)items=found.items.slice();
+    } else {
+      ccs.forEach(function(c){if(c.items)c.items.forEach(function(i){if(items.indexOf(i)<0)items.push(i);});});
+    }
+    var sel=document.getElementById('exe-item');
+    if(!sel)return;
+    var cur=sel.value;
+    sel.innerHTML='<option value="">— اختر البند —</option>'+
+      items.map(function(i){return'<option value="'+i+'">'+i+'</option>';}).join('');
+    if(cur)sel.value=cur;
+  }catch(e){console.warn('fillExeItems:',e);}
 }
 
 function fillExVeh(){
