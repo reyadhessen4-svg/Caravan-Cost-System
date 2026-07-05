@@ -4138,16 +4138,9 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
 document.addEventListener('click',e=>{if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
 G('lgp').addEventListener('keydown',e=>{
   if(e.key==='Enter'){
-    if(!S.data.users||!S.data.users.length){
-      // Data not ready - wait up to 5 seconds
-      var _tries=0;
-      var _wait=setInterval(function(){
-        if(S.data.users&&S.data.users.length){clearInterval(_wait);doLogin();}
-        if(++_tries>10)clearInterval(_wait);
-      },500);
-    } else {
-      doLogin();
-    }
+    // Ensure arrays before checking
+    if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);
+    doLogin();
   }
 });
 G('lgu').addEventListener('keydown',e=>{if(e.key==='Enter')G('lgp').focus();});
