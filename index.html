@@ -77,7 +77,7 @@ tbody tr:hover td{background:var(--ltr)}
 .fld textarea{min-height:75px;resize:vertical}
 .fsep{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gr);padding:10px 0 5px;border-bottom:1px solid var(--bd);margin-bottom:4px}
 .mo2{display:none;position:fixed;inset:0;background:rgba(11,31,75,.55);z-index:300;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
-.mo2.on{display:flex}#cuSetM.on{z-index:400}
+.mo2.on{display:flex}#cuSetM.on{z-index:9999!important}
 .mb2{background:var(--wh);border-radius:16px;padding:24px;width:600px;max-width:100%;margin-bottom:30px}
 .mb2.lg{width:820px}.mb2.sm{width:420px}
 .mhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
@@ -2843,7 +2843,6 @@ function openCuSettle(){
     '<div class="met mg"><div class="ml2">المتبقي الحالي</div><div class="mv2">'+fR(rem)+'</div></div>';
   renderCuSetRows();
   fillVehDropdowns();
-  G('cuDM').classList.remove('on');
   OM('cuSetM');
   }catch(err){console.error('openCuSettle error:',err);toast('خطأ في فتح نافذة التقفيل: '+err.message,'e');}
 }
@@ -2999,7 +2998,7 @@ function saveCuSettle(){
     toast('✅ تم التقفيل الجزئي — العهدة لا تزال مفتوحة');
   }
 
-  sv();CM('cuSetM');var csmEl=document.getElementById('cuSetM');if(csmEl){csmEl.style.display='';csmEl.style.position='';}loadCu();
+  sv();CM('cuSetM');loadCu();CM('cuDM');
   if(G('trBal'))loadTr();
 }
 
@@ -4404,7 +4403,7 @@ ld();
 <div class="mo2" id="cuSetM"><div class="mb2 lg">
   <div class="mhd">
     <div class="mtt">&#x1F4CB; تقفيل عهدة — <span id="cuSetName"></span></div>
-    <button class="mcl" onclick="CM('cuSetM')">×</button>
+    <button class="mcl" onclick="CM('cuSetM');OM('cuDM')">×</button>
   </div>
   <!-- Summary -->
   <div class="g3" style="margin-bottom:16px" id="cuSetSummary"></div>
@@ -4608,7 +4607,7 @@ tbody tr:hover td{background:var(--ltr)}
 .fld textarea{min-height:75px;resize:vertical}
 .fsep{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gr);padding:10px 0 5px;border-bottom:1px solid var(--bd);margin-bottom:4px}
 .mo2{display:none;position:fixed;inset:0;background:rgba(11,31,75,.55);z-index:300;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
-.mo2.on{display:flex}#cuSetM.on{z-index:400}
+.mo2.on{display:flex}#cuSetM.on{z-index:9999!important}
 .mb2{background:var(--wh);border-radius:16px;padding:24px;width:600px;max-width:100%;margin-bottom:30px}
 .mb2.lg{width:820px}.mb2.sm{width:420px}
 .mhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
@@ -5661,7 +5660,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mo2" id="cuSetM"><div class="mb2 lg">
   <div class="mhd">
     <div class="mtt">&#x1F4CB; تقفيل عهدة — <span id="cuSetName"></span></div>
-    <button class="mcl" onclick="CM('cuSetM')">×</button>
+    <button class="mcl" onclick="CM('cuSetM');OM('cuDM')">×</button>
   </div>
   <!-- Summary -->
   <div class="g3" style="margin-bottom:16px" id="cuSetSummary"></div>
