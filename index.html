@@ -1574,8 +1574,9 @@ function loadCu(){
   var tSp=en.filter(e=>e.amount>0).reduce((s,e)=>s+e.amount,0),tRm=cu.reduce((s,c)=>{
     var cEn=en.filter(e=>e.cid===c.id);
     var sp=cEn.filter(e=>e.amount>0&&!e.isTopup).reduce((ss,e)=>ss+e.amount,0);
-    var ret=cEn.filter(e=>e.isReturn).reduce((ss,e)=>ss+Math.abs(e.addedToOpening||0),0);
-    return s+(c.opening-sp-ret);
+    var retOld=cEn.filter(e=>e.amount<0).reduce((ss,e)=>ss+Math.abs(e.amount),0);
+    var retNew=cEn.filter(e=>e.isReturn&&e.amount===0).reduce((ss,e)=>ss+Math.abs(e.addedToOpening||0),0);
+    return s+(c.opening-sp-retOld-retNew);
   },0);
   G('cuOpn').textContent=open.length;G('cuSpt').textContent=fR(tSp);G('cuRem').textContent=fR(tRm);G('cuSet').textContent=sett.length;
   fillDrops();
@@ -1603,8 +1604,9 @@ function loadCu(){
 function saveCe(){var cid=V('ce-c'),a=Nv('ce-a'),it=V('ce-it');if(!cid||!a||!it){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var cu=S.data.custodies.find(c=>c.id===cid);if(!cu){toast('الموظف غير موجود','e');return;}var sp=S.data.custodyEnts.filter(e=>e.cid===cid).reduce((s,e)=>s+e.amount,0);if(sp+a>cu.opening*1.1)toast('تحذير: المبلغ سيتجاوز رصيد العهدة','w');S.data.custodyEnts.push({id:uid(),cid:cid,empName:cu.name,date:V('ce-d')||td2(),item:it,amount:a,desc:V('ce-ds'),car:V('ce-cr'),plate:V('ce-pl'),by:S.cu.u,at:new Date().toISOString()});alog('قيد عهدة',cu.name+' — '+it+' — '+fR(a));sv();CM('ceM');loadCu();toast('تم تسجيل مصروف العهدة');}
 var curCuId=null;
 function vwCu(id){curCuId=id;var cu=S.data.custodies.find(c=>c.id===id);var en=S.data.custodyEnts.filter(e=>e.cid===id);var sp=en.filter(e=>e.amount>0&&!e.isTopup).reduce((s,e)=>s+e.amount,0);
-  var ret=en.filter(function(e){return e.isReturn;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-  var rm=cu.opening-sp-ret;G('cuDT').textContent='عهدة '+cu.name;G('cuDSetBtn').style.display=cu.status==='open'?'':'none';G('cuDC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div><div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(sp)+'</div></div><div class="met '+(rm<0?'mr':'mg')+'"><div class="ml2">المتبقي</div><div class="mv2">'+fR(rm)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th></tr></thead><tbody>'+en.sort((a,b)=>b.date.localeCompare(a.date)).map(function(e){
+  var retOld=en.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0);
+  var retNew=en.filter(e=>e.isReturn&&e.amount===0).reduce((s,e)=>s+Math.abs(e.addedToOpening||0),0);
+  var rm=cu.opening-sp-retOld-retNew;G('cuDT').textContent='عهدة '+cu.name;G('cuDSetBtn').style.display=cu.status==='open'?'':'none';G('cuDC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div><div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(sp)+'</div></div><div class="met '+(rm<0?'mr':'mg')+'"><div class="ml2">المتبقي</div><div class="mv2">'+fR(rm)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th></tr></thead><tbody>'+en.sort((a,b)=>b.date.localeCompare(a.date)).map(function(e){
   var isReturn=e.isReturn||e.amount<0;
   var isTopup=e.isTopup;
   var dispAmt=isTopup?(e.addedToOpening||0):e.amount;
@@ -2521,8 +2523,9 @@ function saveRc(){
     if(cu){
       var cEnV=S.data.custodyEnts.filter(function(e){return e.cid===custodyId;});
       var sp=cEnV.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
-      var retVal=cEnV.filter(function(e){return e.isReturn;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-      var rem=cu.opening-sp-retVal;
+      var retOld=cEnV.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
+      var retNew=cEnV.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
+      var rem=cu.opening-sp-retOld-retNew;
       if(a>rem+0.01){
         toast('المبلغ ('+fR(a)+') أكبر من الرصيد المتبقي في العهدة ('+fR(rem)+')','e');
         return;
@@ -2819,8 +2822,9 @@ function openCuSettle(){
   // Summary
   var en=S.data.custodyEnts.filter(function(e){return e.cid===curCuId;});
   var sp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
-  var ret2=en.filter(function(e){return e.isReturn;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-  var rem=cu.opening-sp-ret2;
+  var retOld=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
+  var retNew=en.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
+  var rem=cu.opening-sp-retOld-retNew;
   document.getElementById('cuSetSummary').innerHTML=
     '<div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div>'+
     '<div class="met mr"><div class="ml2">مصروف سابق</div><div class="mv2">'+fR(sp)+'</div></div>'+
