@@ -2515,12 +2515,15 @@ function saveRc(){
     if(cu2){
       var settleType=V('rc-settle-sel')||'partial';
       
-      // Add negative entry to custody (return/deduction)
+      // Reduce custody opening by return amount
+      cu2.opening = cu2.opening - a;
+      // Record the return as a topup entry for history
       S.data.custodyEnts.push({
         id:uid(),cid:custodyId,empName:cu2.name,
         date:V('rc-d')||td2(),
         item:'إرجاع لخزينة',
-        amount:-a,  // negative = return
+        amount:0,
+        addedToOpening:-a,
         desc:'إرجاع مبلغ للخزينة — سند '+S.data.ctr.rc,
         car:'',plate:'',
         isReturn:true,
@@ -2913,9 +2916,12 @@ function saveCuSettle(){
       by:S.cu?S.cu.u:'',at:new Date().toISOString()
     });
     // Deduct from custody
+    // Reduce custody opening by returned amount
+    cu.opening = cu.opening - ret;
     S.data.custodyEnts.push({
       id:uid(),cid:cuid,empName:cu.name,
-      date:settDate,item:'إرجاع للخزينة',amount:-ret,
+      date:settDate,item:'إرجاع للخزينة',amount:0,
+      addedToOpening:-ret,
       desc:'مبلغ مُرجَع ضمن تقفيل '+settDate,
       car:'',plate:'',isReturn:true,
       receiptNum:S.data.ctr.rc,settleId:'sett_'+settDate,
