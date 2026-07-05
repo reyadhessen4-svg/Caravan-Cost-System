@@ -819,7 +819,12 @@ tbody tr:hover td{background:var(--ltr)}
   </div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="ex-ds" placeholder="وصف واضح للمصروف"></div>
   <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="ex-cc" onchange="fillExItems()" style="font-family:var(--fn)"></select></div>
-      <div class="fld"><label>البند (اختياري)</label><select id="ex-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر البند —</option></select></div>
+      <div class="fld"><label>البند (اختياري)</label>
+        <div style="display:flex;gap:6px">
+          <select id="ex-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
+          <button type="button" onclick="addItemFromModal('ex-cc','ex-item')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px;font-family:var(--fn)" title="إضافة بند جديد">+</button>
+        </div>
+      </div>
       <div class="fld"><label>طريقة الصرف</label><select id="ex-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
   <div class="fld"><label>السيارة (اختياري)</label>
     <select id="ex-veh-sel" onchange="fillExVeh()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
@@ -890,7 +895,15 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mo2" id="ceM"><div class="mb2"><div class="mhd"><div class="mtt">&#x1F4B8; تسجيل مصروف على عهدة</div><button class="mcl" onclick="CM('ceM')">×</button></div>
 <div class="fg">
   <div class="fr"><div class="fld"><label>الموظف <span class="req">*</span></label><select id="ce-c"><option value="">اختر الموظف</option></select></div><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="ce-d"></div></div>
-  <div class="fr"><div class="fld"><label>البند <span class="req">*</span></label><input type="text" id="ce-it" placeholder="نوع المصروف"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ce-a" placeholder="0"></div></div>
+  <div class="fld"><label>مركز التكلفة</label>
+    <select id="ce-cc-sel" onchange="fillCeItems()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر المركز —</option></select>
+  </div>
+  <div class="fr"><div class="fld"><label>البند <span class="req">*</span></label>
+      <div style="display:flex;gap:6px">
+        <select id="ce-it" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
+        <button type="button" onclick="addItemFromModal('ce-cc-sel','ce-it')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px" title="إضافة بند جديد">+</button>
+      </div>
+    </div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ce-a" placeholder="0"></div></div>
   <div class="fld"><label>البيان التفصيلي</label><input type="text" id="ce-ds" placeholder="وصف تفصيلي للمصروف"></div>
   <div style="background:var(--ltr);border-radius:10px;padding:12px">
     <div style="font-size:12px;font-weight:700;color:var(--gr);margin-bottom:8px">&#x1F697; السيارة (اختياري)</div>
@@ -1334,7 +1347,14 @@ function OM(id){
   if(id==='exM'){fillAllEmpDropdowns();G('ex-custody-link-row').style.display='none';fillExItems();
     var exvs=G('ex-veh-sel');if(exvs){exvs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+(v.model&&v.model!==v.make?' '+v.model:'')+'</option>';}).join('');}
   }
-  if(id==='ceM'){fillVehDropdowns();var cs=G('ce-veh-sel');if(cs)cs.value='';}
+  if(id==='ceM'){
+    fillVehDropdowns();
+    fillCeCCDropdown();
+    fillCeItems();
+    var cs=G('ce-veh-sel');if(cs)cs.value='';
+    var ccs=G('ce-cc-sel');if(ccs)ccs.value='';
+    var cit=G('ce-it');if(cit)cit.innerHTML='<option value="">— اختر البند —</option>';
+  }
   if(id==='clM'){fillVehDropdowns();var cvs=G('cl-veh-sel');if(cvs)cvs.value='';}
   if(id==='biM'||id==='boM'){
     var accSel=G(id==='biM'?'bi-acc':'bo-acc');
@@ -2515,12 +2535,15 @@ function saveRc(){
     if(cu2){
       var settleType=V('rc-settle-sel')||'partial';
       
-      // Add negative entry to custody (return/deduction)
+      // Reduce custody opening by return amount
+      cu2.opening = cu2.opening - a;
+      // Record the return as a topup entry for history
       S.data.custodyEnts.push({
         id:uid(),cid:custodyId,empName:cu2.name,
         date:V('rc-d')||td2(),
         item:'إرجاع لخزينة',
-        amount:-a,  // negative = return
+        amount:0,
+        addedToOpening:-a,
         desc:'إرجاع مبلغ للخزينة — سند '+S.data.ctr.rc,
         car:'',plate:'',
         isReturn:true,
@@ -2913,9 +2936,12 @@ function saveCuSettle(){
       by:S.cu?S.cu.u:'',at:new Date().toISOString()
     });
     // Deduct from custody
+    // Reduce custody opening by returned amount
+    cu.opening = cu.opening - ret;
     S.data.custodyEnts.push({
       id:uid(),cid:cuid,empName:cu.name,
-      date:settDate,item:'إرجاع للخزينة',amount:-ret,
+      date:settDate,item:'إرجاع للخزينة',amount:0,
+      addedToOpening:-ret,
       desc:'مبلغ مُرجَع ضمن تقفيل '+settDate,
       car:'',plate:'',isReturn:true,
       receiptNum:S.data.ctr.rc,settleId:'sett_'+settDate,
@@ -4056,6 +4082,61 @@ function parseCSVLine(line){
   return result;
 }
 
+
+/* ─── Add item from inside modal ─── */
+function addItemFromModal(ccFieldId, itemFieldId, cuSetRowIdx){
+  var ccName='';
+  if(ccFieldId){
+    var ccSel=document.getElementById(ccFieldId);
+    ccName=ccSel?ccSel.value:'';
+  }
+  var name=prompt('اسم البند الجديد'+(ccName?' لمركز "'+ccName+'"':'')+':');
+  if(!name||!name.trim())return;
+  name=name.trim();
+  if(!S.data.costCenters)S.data.costCenters=[];
+  // Add to matching cost center or first available
+  var cc=ccName?S.data.costCenters.find(function(c){return c.name===ccName;}):null;
+  if(!cc&&S.data.costCenters.length)cc=S.data.costCenters[0];
+  if(cc){
+    if(!cc.items)cc.items=[];
+    if(cc.items.indexOf(name)<0){
+      cc.items.push(name);
+      sv();
+      toast('✅ تم إضافة البند: '+name);
+    }
+  }
+  // Refresh the item dropdown
+  if(itemFieldId){
+    fillExItems();
+    var sel=document.getElementById(itemFieldId);
+    if(sel)sel.value=name;
+  }
+  // Refresh settlement rows if applicable
+  if(cuSetRowIdx!==undefined){
+    if(cuSetRows[cuSetRowIdx])cuSetRows[cuSetRowIdx].item=name;
+    renderCuSetRows();
+  }
+}
+
+
+function fillCeItems(){
+  var cc=document.getElementById('ce-cc-sel')?document.getElementById('ce-cc-sel').value:'';
+  var items=getCustodyItems(cc);
+  var sel=document.getElementById('ce-it');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— اختر البند —</option>'+
+    items.map(function(i){return'<option value="'+i.name+'">'+i.name+'</option>';}).join('');
+}
+
+function fillCeCCDropdown(){
+  var sel=document.getElementById('ce-cc-sel');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— اختر المركز —</option>'+
+    (S.data.costCenters||[]).filter(function(c){return c.active;}).map(function(cc){
+      return'<option value="'+cc.name+'">'+cc.name+'</option>';
+    }).join('');
+}
+
 /* ─── KEYBOARD & EVENTS ─── */
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo2.on').forEach(m=>m.classList.remove('on'));});
 document.addEventListener('click',e=>{if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
@@ -5174,7 +5255,12 @@ tbody tr:hover td{background:var(--ltr)}
   </div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="ex-ds" placeholder="وصف واضح للمصروف"></div>
   <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="ex-cc" onchange="fillExItems()" style="font-family:var(--fn)"></select></div>
-      <div class="fld"><label>البند (اختياري)</label><select id="ex-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر البند —</option></select></div>
+      <div class="fld"><label>البند (اختياري)</label>
+        <div style="display:flex;gap:6px">
+          <select id="ex-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
+          <button type="button" onclick="addItemFromModal('ex-cc','ex-item')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px;font-family:var(--fn)" title="إضافة بند جديد">+</button>
+        </div>
+      </div>
       <div class="fld"><label>طريقة الصرف</label><select id="ex-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
   <div class="fld"><label>السيارة (اختياري)</label>
     <select id="ex-veh-sel" onchange="fillExVeh()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
@@ -5245,7 +5331,15 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mo2" id="ceM"><div class="mb2"><div class="mhd"><div class="mtt">&#x1F4B8; تسجيل مصروف على عهدة</div><button class="mcl" onclick="CM('ceM')">×</button></div>
 <div class="fg">
   <div class="fr"><div class="fld"><label>الموظف <span class="req">*</span></label><select id="ce-c"><option value="">اختر الموظف</option></select></div><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="ce-d"></div></div>
-  <div class="fr"><div class="fld"><label>البند <span class="req">*</span></label><input type="text" id="ce-it" placeholder="نوع المصروف"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ce-a" placeholder="0"></div></div>
+  <div class="fld"><label>مركز التكلفة</label>
+    <select id="ce-cc-sel" onchange="fillCeItems()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر المركز —</option></select>
+  </div>
+  <div class="fr"><div class="fld"><label>البند <span class="req">*</span></label>
+      <div style="display:flex;gap:6px">
+        <select id="ce-it" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
+        <button type="button" onclick="addItemFromModal('ce-cc-sel','ce-it')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px" title="إضافة بند جديد">+</button>
+      </div>
+    </div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ce-a" placeholder="0"></div></div>
   <div class="fld"><label>البيان التفصيلي</label><input type="text" id="ce-ds" placeholder="وصف تفصيلي للمصروف"></div>
   <div style="background:var(--ltr);border-radius:10px;padding:12px">
     <div style="font-size:12px;font-weight:700;color:var(--gr);margin-bottom:8px">&#x1F697; السيارة (اختياري)</div>
