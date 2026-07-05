@@ -2817,10 +2817,11 @@ var cuSetRows = [];
 
 function openCuSettle(){
   try{
+  console.log('Step 1: curCuId=',curCuId);
   if(!curCuId){toast('يرجى فتح تفاصيل العهدة أولاً','w');return;}
   var cu=S.data.custodies.find(function(c){return c.id===curCuId;});
+  console.log('Step 2: cu=',cu?cu.name:'NOT FOUND');
   if(!cu){toast('عهدة غير موجودة','e');return;}
-  // Reset
   cuSetRows=[];
   document.getElementById('cuSet-cuid').value=curCuId;
   document.getElementById('cuSetName').textContent=cu.name;
@@ -2828,6 +2829,7 @@ function openCuSettle(){
   document.getElementById('cuSet-return').value='';
   document.getElementById('cuSet-notes').value='';
   document.getElementById('cuSet-type').value='partial';
+  console.log('Step 3: fields set');
   // Summary
   var en=S.data.custodyEnts.filter(function(e){return e.cid===curCuId;});
   var sp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
@@ -2838,12 +2840,14 @@ function openCuSettle(){
     '<div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div>'+
     '<div class="met mr"><div class="ml2">مصروف سابق</div><div class="mv2">'+fR(sp)+'</div></div>'+
     '<div class="met mg"><div class="ml2">المتبقي الحالي</div><div class="mv2">'+fR(rem)+'</div></div>';
-  // Render rows
+  console.log('Step 4: summary done, rendering rows');
   renderCuSetRows();
-  // Fill vehicle dropdown in settlement
+  console.log('Step 5: rows rendered');
   fillVehDropdowns();
+  console.log('Step 6: closing cuDM, opening cuSetM');
   G('cuDM').classList.remove('on');
   OM('cuSetM');
+  console.log('Step 7: cuSetM class=',document.getElementById('cuSetM').className);
   }catch(err){console.error('openCuSettle error:',err);toast('خطأ في فتح نافذة التقفيل: '+err.message,'e');}
 }
 
