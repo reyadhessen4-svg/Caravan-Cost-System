@@ -1332,7 +1332,14 @@ function OM(id){
   }
   if(id==='ccM'){G('cc-id').value='';G('cc-name').value='';G('cc-desc').value='';G('cc-color').value='#1A56DB';}
   G(id).classList.add('on');
-}function CM(id){G(id).classList.remove('on');}
+}function CM(id){
+  var el=G(id);
+  if(!el)return;
+  el.classList.remove('on');
+  // Reset inline styles if any
+  if(el.style.display)el.style.display='';
+  if(el.style.position)el.style.position='';
+}
 function FT(tid,q){var t=G(tid);if(!t)return;var rows=t.querySelectorAll('tbody tr');q=q.toLowerCase();rows.forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';});}
 function ET(tid){var t=G(tid);if(!t){toast('لا يوجد بيانات','w');return;}var csv='';t.querySelectorAll('tr').forEach(r=>{csv+=Array.from(r.querySelectorAll('th,td')).map(c=>'"'+c.textContent.trim().replace(/"/g,'""')+'"').join(',')+'\n';});var b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=tid+'_'+td2()+'.csv';a.click();toast('تم التصدير بنجاح');}
 function ST(cid,tid,btn){var c=G(cid);if(!c)return;c.querySelectorAll('.tabc').forEach(t=>t.classList.remove('on'));var t=G(tid);if(t)t.classList.add('on');var tabs=btn?btn.closest('.tabs'):null;if(tabs)tabs.querySelectorAll('.tabb').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');}
@@ -2835,21 +2842,8 @@ function openCuSettle(){
   renderCuSetRows();
   // Fill vehicle dropdown in settlement
   fillVehDropdowns();
-  // Open settlement modal directly
-  var csm=document.getElementById('cuSetM');
-  if(csm){
-    csm.classList.add('on');
-    csm.style.display='flex';
-    csm.style.position='fixed';
-    csm.style.inset='0';
-    csm.style.zIndex='400';
-    csm.style.background='rgba(11,31,75,.55)';
-    csm.style.alignItems='flex-start';
-    csm.style.justifyContent='center';
-    csm.style.padding='30px 16px';
-    csm.style.overflowY='auto';
-  }
   G('cuDM').classList.remove('on');
+  OM('cuSetM');
   }catch(err){console.error('openCuSettle error:',err);toast('خطأ في فتح نافذة التقفيل: '+err.message,'e');}
 }
 
@@ -3004,7 +2998,7 @@ function saveCuSettle(){
     toast('✅ تم التقفيل الجزئي — العهدة لا تزال مفتوحة');
   }
 
-  sv();CM('cuSetM');loadCu();
+  sv();CM('cuSetM');var csmEl=document.getElementById('cuSetM');if(csmEl){csmEl.style.display='';csmEl.style.position='';}loadCu();
   if(G('trBal'))loadTr();
 }
 
