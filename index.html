@@ -1583,7 +1583,8 @@ function loadCu(){
     var cEn=en.filter(e=>e.cid===c.id);
     var sp=cEn.filter(e=>e.amount>0&&!e.isTopup).reduce((s,e)=>s+e.amount,0);
     var ret=cEn.filter(e=>e.isReturn).reduce((s,e)=>s+Math.abs(e.addedToOpening||0),0);
-    var rm=c.opening-sp-ret,pct=c.opening?Math.round(sp/c.opening*100):0,rc=pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)';return'<tr><td style="font-weight:600">'+c.name+'</td><td style="font-family:monospace;font-size:12px">'+(c.num||'—')+'</td><td>'+c.date+'</td><td style="color:var(--ry)">'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(sp)+'</td><td style="font-weight:700;color:'+rc+'">'+fR(rm)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="stb" style="width:80px;flex-shrink:0"><div class="stf" style="width:'+pct+'%;background:'+rc+'"></div></div><span style="font-size:11px;color:'+rc+'">'+pct+'%</span></div></td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="vwCu(\''+c.id+'\')">&#x1F4CB; تفاصيل</button>'+(c.status==='open'?'<button class="btn bg3 bxs" onclick="prepSetCu(\''+c.id+'\')">تسوية</button>':'')+'</div></td></tr>';}).join('')||'<tr><td colspan="9"><div class="es"><div class="essb">لا توجد عهد مسجَّلة</div></div></td></tr>';
+    var cRet=(S.data.custodyEnts||[]).filter(function(e){return e.cid===c.id&&e.isReturn;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
+    var rm=c.opening-sp-cRet,pct=c.opening?Math.round((sp+cRet)/c.opening*100):0,rc=pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)';return'<tr><td style="font-weight:600">'+c.name+'</td><td style="font-family:monospace;font-size:12px">'+(c.num||'—')+'</td><td>'+c.date+'</td><td style="color:var(--ry)">'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(sp)+'</td><td style="font-weight:700;color:'+rc+'">'+fR(rm)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="stb" style="width:80px;flex-shrink:0"><div class="stf" style="width:'+pct+'%;background:'+rc+'"></div></div><span style="font-size:11px;color:'+rc+'">'+pct+'%</span></div></td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="vwCu(\''+c.id+'\')">&#x1F4CB; تفاصيل</button>'+(c.status==='open'?'<button class="btn bg3 bxs" onclick="prepSetCu(\''+c.id+'\')">تسوية</button>':'')+'</div></td></tr>';}).join('')||'<tr><td colspan="9"><div class="es"><div class="essb">لا توجد عهد مسجَّلة</div></div></td></tr>';
   G('cuEnTbd').innerHTML=en.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{
     var isReturn=e.isReturn||e.amount<0;
     var isTopup=e.isTopup;
@@ -1602,7 +1603,7 @@ function loadCu(){
 function saveCe(){var cid=V('ce-c'),a=Nv('ce-a'),it=V('ce-it');if(!cid||!a||!it){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var cu=S.data.custodies.find(c=>c.id===cid);if(!cu){toast('الموظف غير موجود','e');return;}var sp=S.data.custodyEnts.filter(e=>e.cid===cid).reduce((s,e)=>s+e.amount,0);if(sp+a>cu.opening*1.1)toast('تحذير: المبلغ سيتجاوز رصيد العهدة','w');S.data.custodyEnts.push({id:uid(),cid:cid,empName:cu.name,date:V('ce-d')||td2(),item:it,amount:a,desc:V('ce-ds'),car:V('ce-cr'),plate:V('ce-pl'),by:S.cu.u,at:new Date().toISOString()});alog('قيد عهدة',cu.name+' — '+it+' — '+fR(a));sv();CM('ceM');loadCu();toast('تم تسجيل مصروف العهدة');}
 var curCuId=null;
 function vwCu(id){curCuId=id;var cu=S.data.custodies.find(c=>c.id===id);var en=S.data.custodyEnts.filter(e=>e.cid===id);var sp=en.filter(e=>e.amount>0&&!e.isTopup).reduce((s,e)=>s+e.amount,0);
-  var ret=en.filter(e=>e.isReturn).reduce((s,e)=>s+Math.abs(e.addedToOpening||0),0);
+  var ret=en.filter(function(e){return e.isReturn;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
   var rm=cu.opening-sp-ret;G('cuDT').textContent='عهدة '+cu.name;G('cuDSetBtn').style.display=cu.status==='open'?'':'none';G('cuDC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div><div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(sp)+'</div></div><div class="met '+(rm<0?'mr':'mg')+'"><div class="ml2">المتبقي</div><div class="mv2">'+fR(rm)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th></tr></thead><tbody>'+en.sort((a,b)=>b.date.localeCompare(a.date)).map(function(e){
   var isReturn=e.isReturn||e.amount<0;
   var isTopup=e.isTopup;
@@ -2520,8 +2521,8 @@ function saveRc(){
     if(cu){
       var cEnV=S.data.custodyEnts.filter(function(e){return e.cid===custodyId;});
       var sp=cEnV.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
-      var retV=cEnV.filter(function(e){return e.isReturn;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-      var rem=cu.opening-sp-retV;
+      var retVal=cEnV.filter(function(e){return e.isReturn;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
+      var rem=cu.opening-sp-retVal;
       if(a>rem+0.01){
         toast('المبلغ ('+fR(a)+') أكبر من الرصيد المتبقي في العهدة ('+fR(rem)+')','e');
         return;
@@ -2549,9 +2550,7 @@ function saveRc(){
     if(cu2){
       var settleType=V('rc-settle-sel')||'partial';
       
-      // Reduce custody opening by return amount
-      cu2.opening = cu2.opening - a;
-      // Record the return as a topup entry for history
+      // Record the return - DON'T change opening (calculated dynamically)
       S.data.custodyEnts.push({
         id:uid(),cid:custodyId,empName:cu2.name,
         date:V('rc-d')||td2(),
@@ -2820,8 +2819,8 @@ function openCuSettle(){
   // Summary
   var en=S.data.custodyEnts.filter(function(e){return e.cid===curCuId;});
   var sp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
-  var ret=en.filter(function(e){return e.isReturn;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-  var rem=cu.opening-sp-ret;
+  var ret2=en.filter(function(e){return e.isReturn;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
+  var rem=cu.opening-sp-ret2;
   document.getElementById('cuSetSummary').innerHTML=
     '<div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div>'+
     '<div class="met mr"><div class="ml2">مصروف سابق</div><div class="mv2">'+fR(sp)+'</div></div>'+
@@ -2951,8 +2950,6 @@ function saveCuSettle(){
       by:S.cu?S.cu.u:'',at:new Date().toISOString()
     });
     // Deduct from custody
-    // Reduce custody opening by returned amount
-    cu.opening = cu.opening - ret;
     S.data.custodyEnts.push({
       id:uid(),cid:cuid,empName:cu.name,
       date:settDate,item:'إرجاع للخزينة',amount:0,
