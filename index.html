@@ -1175,6 +1175,14 @@ function alog(a,det){S.data.audit.unshift({id:uid(),dt:new Date().toISOString(),
 function getPr(cid,date){var p=S.data.prices.filter(x=>x.cid===cid&&x.from<=date&&(!x.to||x.to>=date));p.sort((a,b)=>b.from.localeCompare(a.from));return p.length?p[0].price:0;}
 function doLogin(){
   var u=V('lgu').trim(),p=V('lgp');
+  if(!u||!p){G('lgE').style.display='block';return;}
+  // If data not loaded yet, wait and retry
+  if(!S.data.users||!S.data.users.length){
+    var msg=document.getElementById('lpLoadingMsg');
+    if(msg)msg.textContent='جاري تحميل البيانات...';
+    setTimeout(function(){doLogin();},1500);
+    return;
+  }
   var user=S.data.users.find(x=>x.u===u&&x.p===p&&x.active);
   if(!user){G('lgE').style.display='block';return;}
   G('lgE').style.display='none';
