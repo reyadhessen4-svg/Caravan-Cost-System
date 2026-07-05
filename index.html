@@ -1037,9 +1037,9 @@ function ld(){
       clearTimeout(_fbTimeout);
       var d=snap.val();
       if(d&&d.users){
-        S.data=Object.assign({},S.data,d);
         var arrFields=['users','employees','vehicles','bankAccounts','clients','costCenters','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
-        arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
+        arrFields.forEach(function(f){if(d[f]&&!Array.isArray(d[f]))d[f]=Object.values(d[f]);if(!d[f])d[f]=[];});
+        S.data=Object.assign({},S.data,d);
         setSyncIcon('ok');
       } else {
         _loadLocal();
@@ -1092,15 +1092,15 @@ function _startListener(){
     var d=snap.val();
     if(!d||!d.users)return;
     clearTimeout(_saveTimer);
-    S.data=Object.assign({},S.data,d);
-    // Ensure arrays
+    // Convert all arrays before merging
     var arrF=['users','employees','vehicles','bankAccounts','clients','costCenters',
       'prices','ops','receipts','expenses','bankIn','bankOut','bankRevs',
       'custodies','custodyEnts','claims','audit'];
     arrF.forEach(function(f){
-      if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);
-      if(!S.data[f])S.data[f]=[];
+      if(d[f]&&!Array.isArray(d[f]))d[f]=Object.values(d[f]);
+      if(!d[f])d[f]=[];
     });
+    S.data=Object.assign({},S.data,d);
     // Refresh current page if app is open
     if(S.cu){
       var pg=document.querySelector('.pg.on');
