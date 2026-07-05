@@ -1088,9 +1088,15 @@ var _listenerActive=false;
 function _startListener(){
   if(_listenerActive||!DB)return;
   _listenerActive=true;
+  var _firstFire=true;
   DB.ref(DB_REF).on('value',function(snap){
     var d=snap.val();
     if(!d||!d.users)return;
+    // Skip first fire if user already logged in (avoid double-load)
+    if(_firstFire){
+      _firstFire=false;
+      if(S.cu)return;
+    }
     clearTimeout(_saveTimer);
     // Convert all arrays before merging
     var arrF=['users','employees','vehicles','bankAccounts','clients','costCenters',
