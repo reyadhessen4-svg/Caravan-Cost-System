@@ -1040,7 +1040,6 @@ function ld(){
         sv();
       }
       _showLoginPage();
-      _startListener();
     }).catch(function(err){
       clearTimeout(_fbTimeout);
       console.warn('Firebase read failed, using localStorage:',err);
@@ -1267,6 +1266,8 @@ function initApp(){
   }
   var firstBtn=document.querySelector('.sbi[data-pg="'+firstPage+'"]')||document.querySelector('.sbi.on');
   N(firstPage,firstBtn);
+  // Start Firebase listener only after login
+  _startListener();
   // Force password change if flagged
   if(S.cu.mustChangePass){
     setTimeout(function(){openChangePass(true);},400);
