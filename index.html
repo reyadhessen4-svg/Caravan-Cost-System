@@ -1583,9 +1583,9 @@ function loadCu(){
   G('cuTbd').innerHTML=cu.map(c=>{
     var cEn=en.filter(e=>e.cid===c.id);
     var sp=cEn.filter(e=>e.amount>0&&!e.isTopup).reduce((s,e)=>s+e.amount,0);
-    var ret=cEn.filter(e=>e.isReturn).reduce((s,e)=>s+Math.abs(e.addedToOpening||0),0);
-    var cRet=(S.data.custodyEnts||[]).filter(function(e){return e.cid===c.id&&e.isReturn;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-    var rm=c.opening-sp-cRet,pct=c.opening?Math.round((sp+cRet)/c.opening*100):0,rc=pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)';return'<tr><td style="font-weight:600">'+c.name+'</td><td style="font-family:monospace;font-size:12px">'+(c.num||'—')+'</td><td>'+c.date+'</td><td style="color:var(--ry)">'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(sp)+'</td><td style="font-weight:700;color:'+rc+'">'+fR(rm)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="stb" style="width:80px;flex-shrink:0"><div class="stf" style="width:'+pct+'%;background:'+rc+'"></div></div><span style="font-size:11px;color:'+rc+'">'+pct+'%</span></div></td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="vwCu(\''+c.id+'\')">&#x1F4CB; تفاصيل</button>'+(c.status==='open'?'<button class="btn bg3 bxs" onclick="prepSetCu(\''+c.id+'\')">تسوية</button>':'')+'</div></td></tr>';}).join('')||'<tr><td colspan="9"><div class="es"><div class="essb">لا توجد عهد مسجَّلة</div></div></td></tr>';
+    var retOld=cEn.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0);
+    var retNew=cEn.filter(e=>e.isReturn&&e.amount===0).reduce((s,e)=>s+Math.abs(e.addedToOpening||0),0);
+    var rm=c.opening-sp-retOld-retNew,pct=c.opening?Math.round((sp+cRet)/c.opening*100):0,rc=pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)';return'<tr><td style="font-weight:600">'+c.name+'</td><td style="font-family:monospace;font-size:12px">'+(c.num||'—')+'</td><td>'+c.date+'</td><td style="color:var(--ry)">'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(sp)+'</td><td style="font-weight:700;color:'+rc+'">'+fR(rm)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="stb" style="width:80px;flex-shrink:0"><div class="stf" style="width:'+pct+'%;background:'+rc+'"></div></div><span style="font-size:11px;color:'+rc+'">'+pct+'%</span></div></td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="vwCu(\''+c.id+'\')">&#x1F4CB; تفاصيل</button>'+(c.status==='open'?'<button class="btn bg3 bxs" onclick="prepSetCu(\''+c.id+'\')">تسوية</button>':'')+'</div></td></tr>';}).join('')||'<tr><td colspan="9"><div class="es"><div class="essb">لا توجد عهد مسجَّلة</div></div></td></tr>';
   G('cuEnTbd').innerHTML=en.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{
     var isReturn=e.isReturn||e.amount<0;
     var isTopup=e.isTopup;
@@ -2808,7 +2808,8 @@ function fillClFromVeh(){
 var cuSetRows = [];
 
 function openCuSettle(){
-  if(!curCuId)return;
+  try{
+  if(!curCuId){toast('يرجى فتح تفاصيل العهدة أولاً','w');return;}
   var cu=S.data.custodies.find(function(c){return c.id===curCuId;});
   if(!cu){toast('عهدة غير موجودة','e');return;}
   // Reset
@@ -2835,6 +2836,7 @@ function openCuSettle(){
   fillVehDropdowns();
   CM('cuDM');
   OM('cuSetM');
+  }catch(err){console.error('openCuSettle error:',err);toast('خطأ في فتح نافذة التقفيل: '+err.message,'e');}
 }
 
 function addCuSetRow(){
@@ -2843,6 +2845,7 @@ function addCuSetRow(){
 }
 
 function renderCuSetRows(){
+  try{
   var vehs=(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';});
   var vehOpts='<option value="">— بدون سيارة —</option>'+vehs.map(function(v){
     return '<option value="'+v.id+'">'+v.num+' '+v.letters+'</option>';
@@ -2873,8 +2876,8 @@ function renderCuSetRows(){
     '</tr>';
   }).join('');
   updateCuSetSummary();
+  }catch(err){console.error('renderCuSetRows:',err);}
 }
-
 function updateCuSetSummary(){
   var total=cuSetRows.reduce(function(s,r){return s+(r.amount||0);},0);
   var ret=parseFloat(document.getElementById('cuSet-return').value)||0;
