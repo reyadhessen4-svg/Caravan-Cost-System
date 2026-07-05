@@ -2835,8 +2835,8 @@ function openCuSettle(){
   renderCuSetRows();
   // Fill vehicle dropdown in settlement
   fillVehDropdowns();
-  CM('cuDM');
   OM('cuSetM');
+  G('cuDM').classList.remove('on');
   }catch(err){console.error('openCuSettle error:',err);toast('خطأ في فتح نافذة التقفيل: '+err.message,'e');}
 }
 
