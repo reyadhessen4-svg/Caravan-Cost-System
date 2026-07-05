@@ -1002,20 +1002,28 @@ function setSyncIcon(status){
   el.innerHTML=icons[status]||'';
   el.style.color=colors[status]||'var(--gr)';
   el.title=status==='saving'?'جاري الحفظ...':status==='ok'?'محفوظ في السيرفر':'خطأ في الحفظ';
-  // Update loading message in LP
-  var lm=document.getElementById('lpLoadingMsg');
-  if(lm){
-    if(status==='error'){
-      lm.textContent='⚠️ تعذّر الاتصال — يمكنك الدخول';
-      lm.style.color='var(--wn)';
-    } else if(status==='ok'){
-      lm.textContent='✅ جاهز للدخول';
-      lm.style.color='var(--sc)';
-      lm.style.fontWeight='700';
-      // Hide spinner
-      var lb=document.getElementById('lpLoadingBar');
-      var spin=lb?lb.querySelector('div'):null;
-      if(spin)spin.style.display='none';
+  // Only update loading message if LP still in DOM and user not logged in
+  if(!S.cu){
+    var lm=document.getElementById('lpLoadingMsg');
+    if(lm){
+      if(status==='error'){
+        lm.textContent='⚠️ تعذّر الاتصال — يمكنك الدخول';
+        lm.style.color='var(--wn)';
+      } else if(status==='ok'){
+        lm.textContent='✅ جاهز للدخول';
+        lm.style.color='var(--sc)';
+        lm.style.fontWeight='700';
+        var lb=document.getElementById('lpLoadingBar');
+        var spin=lb?lb.querySelector('div'):null;
+        if(spin)spin.style.display='none';
+      } else if(status==='saving'){
+        // Don't reset to "جاري الاتصال" if already showing "جاهز"
+        if(lm.textContent!=='✅ جاهز للدخول'){
+          lm.textContent='جاري الاتصال...';
+          lm.style.color='var(--gr)';
+          lm.style.fontWeight='400';
+        }
+      }
     }
   }
 }
