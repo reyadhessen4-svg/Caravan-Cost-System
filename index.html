@@ -1023,7 +1023,6 @@ function ld(){
       console.warn('Firebase timeout — falling back to localStorage');
       setSyncIcon('error');
       _loadLocal();
-      _startListener();
       toast('تعذّر الاتصال بالسيرفر — تم التحميل من الذاكرة المحلية','w');
     },8000);
 
@@ -1040,6 +1039,8 @@ function ld(){
         sv();
       }
       _showLoginPage();
+      // Auto-login from saved session
+      _tryAutoLogin();
     }).catch(function(err){
       clearTimeout(_fbTimeout);
       console.warn('Firebase read failed, using localStorage:',err);
@@ -1055,10 +1056,21 @@ function ld(){
 function _loadLocal(){
   try{
     var d=localStorage.getItem(BK_KEY);
-    if(d)S.data=Object.assign({},S.data,JSON.parse(d));
+    if(d){
+      var parsed=JSON.parse(d);
+      var arrF=['users','employees','vehicles','bankAccounts','clients','costCenters',
+        'prices','ops','receipts','expenses','bankIn','bankOut','bankRevs',
+        'custodies','custodyEnts','claims','audit'];
+      arrF.forEach(function(f){
+        if(parsed[f]&&!Array.isArray(parsed[f]))parsed[f]=Object.values(parsed[f]);
+        if(!parsed[f])parsed[f]=[];
+      });
+      S.data=Object.assign({},S.data,parsed);
+    }
   }catch(e){}
-  if(!S.data.users.length)seed();
+  if(!S.data.users||!S.data.users.length)seed();
   _showLoginPage();
+  _tryAutoLogin();
 }
 
 function _showLoginPage(){
@@ -1107,24 +1119,6 @@ function _startListener(){
       setSyncIcon('ok');
     } else {
       setSyncIcon('ok');
-      // Auto-login from saved session
-      try{
-        var sess=localStorage.getItem('qawafil_session');
-        if(sess){
-          var sObj=JSON.parse(sess);
-          if(sObj&&sObj.u&&(Date.now()-sObj.t)<30*24*60*60*1000){
-            var usr=S.data.users.find(function(x){return x.u===sObj.u&&x.active;});
-            if(usr){
-              S.cu=usr;usr.ll=new Date().toISOString();
-              var lpAL=G('LP');
-              if(lpAL&&lpAL.parentNode)lpAL.parentNode.removeChild(lpAL);
-              G('APP').style.display='block';
-              localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now()}));
-              initApp();
-            }
-          }
-        }
-      }catch(e){}
     }
   },function(err){
     console.error('Firebase listener error:',err);
@@ -4114,6 +4108,29 @@ function fillCeCCDropdown(){
     (S.data.costCenters||[]).filter(function(c){return c.active;}).map(function(cc){
       return'<option value="'+cc.name+'">'+cc.name+'</option>';
     }).join('');
+}
+
+
+/* ─── Auto-login from saved session ─── */
+function _tryAutoLogin(){
+  try{
+    var sess=localStorage.getItem('qawafil_session');
+    if(!sess)return;
+    var sObj=JSON.parse(sess);
+    if(!sObj||!sObj.u||(Date.now()-sObj.t)>30*24*60*60*1000){
+      localStorage.removeItem('qawafil_session');return;
+    }
+    var usr=S.data.users.find(function(x){return x.u===sObj.u&&x.active;});
+    if(!usr){localStorage.removeItem('qawafil_session');return;}
+    // Auto login
+    S.cu=usr;
+    usr.ll=new Date().toISOString();
+    var lpAL=G('LP');
+    if(lpAL&&lpAL.parentNode)lpAL.parentNode.removeChild(lpAL);
+    G('APP').style.display='block';
+    localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now()}));
+    initApp();
+  }catch(e){}
 }
 
 /* ─── KEYBOARD & EVENTS ─── */
