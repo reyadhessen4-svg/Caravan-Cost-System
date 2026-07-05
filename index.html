@@ -1678,7 +1678,59 @@ function saveEditRc(){var id=V('rce-id'),a=Nv('rce-a'),f=V('rce-f'),d=V('rce-ds'
 function delRc(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed&&!can('all')){toast('هذا المقبوض تمت مراجعته — الحذف للمدير فقط','e');return;}if(!confirm('حذف مقبوض رقم '+r.num+' بقيمة '+fR(r.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.receipts=S.data.receipts.filter(x=>x.id!==id);alog('حذف مقبوض','سند '+r.num+' — '+fR(r.amount)+' — من '+r.from);sv();loadTr();loadDash();toast('تم حذف المقبوض','w');}
 
 /* ─── EXPENSE EDIT / DELETE ─── */
-function editEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}G('exe-id').value=id;G('exe-d').value=e.date;G('exe-a').value=e.amount;G('exe-t').value=e.to;G('exe-ds').value=e.desc;var cc=G('exe-cc');for(var i=0;i<cc.options.length;i++){if(cc.options[i].value===e.cc||cc.options[i].text===e.cc)cc.selectedIndex=i;}var em=G('exe-m');for(var i=0;i<em.options.length;i++){if(em.options[i].value===e.method||em.options[i].text===e.method)em.selectedIndex=i;}G('exe-nt').value=e.notes||'';OM('exEM');}
+function editEx(id){
+  try{
+    var e=S.data.expenses.find(x=>x.id===id);
+    if(!e)return;
+    if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}
+    G('exe-id').value=id;
+    G('exe-d').value=e.date;
+    G('exe-a').value=e.amount;
+    G('exe-t').value=e.to;
+    G('exe-ds').value=e.desc;
+    G('exe-nt').value=e.notes||'';
+    OM('exEM');
+    // Fill dropdowns after modal opens
+    setTimeout(function(){
+      try{
+        // Fill CC
+        fillCCDropdowns();
+        var ccSel=G('exe-cc');
+        if(ccSel&&e.cc){
+          for(var i=0;i<ccSel.options.length;i++){
+            if(ccSel.options[i].value===e.cc||ccSel.options[i].text===e.cc){ccSel.selectedIndex=i;break;}
+          }
+        }
+        // Fill items based on CC
+        fillExeItems();
+        // Set item value
+        setTimeout(function(){
+          try{
+            var itemSel=G('exe-item');
+            if(itemSel&&e.item){
+              var found=false;
+              for(var j=0;j<itemSel.options.length;j++){
+                if(itemSel.options[j].value===e.item){itemSel.selectedIndex=j;found=true;break;}
+              }
+              if(!found){
+                var opt=document.createElement('option');
+                opt.value=e.item;opt.textContent=e.item;opt.selected=true;
+                itemSel.appendChild(opt);
+              }
+            }
+            // Fill method
+            var em=G('exe-m');
+            if(em&&e.method){
+              for(var k=0;k<em.options.length;k++){
+                if(em.options[k].value===e.method||em.options[k].text===e.method){em.selectedIndex=k;break;}
+              }
+            }
+          }catch(e2){console.warn('editEx item fill error:',e2);}
+        },100);
+      }catch(e1){console.warn('editEx dropdown fill error:',e1);}
+    },50);
+  }catch(err){console.error('editEx error:',err);toast('خطأ في فتح نافذة التعديل','e');}
+}
 function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — التعديل للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.desc=d;e.cc=V('exe-cc');e.item=V('exe-item')||e.item||'';e.method=V('exe-m');e.notes=V('exe-nt');// Always reset to pending if was rejected
 if(e.status==='rejected'||e.status==='pending'){e.status='pending';e.apBy='';e.apAt='';e.rjBy='';e.rjAt='';e.rjRsn='';}e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
 function delEx(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — الحذف للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('لا يمكن حذف مصروف معتمد — محمي من الحذف','e');return;}if(!confirm('حذف طلب صرف رقم '+e.num+' بقيمة '+fR(e.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.expenses=S.data.expenses.filter(x=>x.id!==id);alog('حذف مصروف','سند '+e.num+' — '+fR(e.amount)+' — لـ '+e.to);sv();loadTr();updApCnt();loadDash();toast('تم حذف المصروف','w');}
@@ -3364,12 +3416,21 @@ function loadRpVeh(){
 
 /* ─── Dynamic item dropdown helpers ─── */
 function fillExItems(){
-  var cc=V('ex-cc');
-  var items=getCustodyItems(cc);
-  var sel=G('ex-item');
-  if(!sel)return;
-  sel.innerHTML='<option value="">— اختر البند —</option>'+
-    items.map(function(i){return'<option value="'+i.name+'">'+i.name+'</option>';}).join('');
+  try{
+    var cc=V('ex-cc');
+    var ccs=S.data.costCenters||[];
+    var items=[];
+    if(cc){
+      var found=ccs.find(function(c){return c.name===cc;});
+      if(found&&found.items)items=found.items;
+    } else {
+      ccs.forEach(function(c){if(c.items)c.items.forEach(function(i){if(items.indexOf(i)<0)items.push(i);});});
+    }
+    var sel=G('ex-item');
+    if(!sel)return;
+    sel.innerHTML='<option value="">— اختر البند —</option>'+
+      items.map(function(i){return'<option value="'+i+'">'+i+'</option>';}).join('');
+  }catch(e){}
 }
 
 function fillExVeh(){
