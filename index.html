@@ -1005,8 +1005,18 @@ function setSyncIcon(status){
   // Update loading message in LP
   var lm=document.getElementById('lpLoadingMsg');
   if(lm){
-    if(status==='error')lm.textContent='تعذّر الاتصال — جاري التحميل محلياً...';
-    else if(status==='ok')lm.textContent='تم الاتصال بالسيرفر ✓';
+    if(status==='error'){
+      lm.textContent='⚠️ تعذّر الاتصال — يمكنك الدخول';
+      lm.style.color='var(--wn)';
+    } else if(status==='ok'){
+      lm.textContent='✅ جاهز للدخول';
+      lm.style.color='var(--sc)';
+      lm.style.fontWeight='700';
+      // Hide spinner
+      var lb=document.getElementById('lpLoadingBar');
+      var spin=lb?lb.querySelector('div'):null;
+      if(spin)spin.style.display='none';
+    }
   }
 }
 
@@ -1061,8 +1071,16 @@ function _loadLocal(){
 function _showLoginPage(){
   var lb=document.getElementById('lpLoadingBar');
   var msg=document.getElementById('lpLoadingMsg');
-  if(lb)lb.style.display='none';
-  if(msg)msg.textContent='';
+  var spin=lb?lb.querySelector('div'):null;
+  if(spin)spin.style.display='none';
+  if(msg){
+    msg.textContent='✅ جاهز للدخول';
+    msg.style.color='var(--sc)';
+    msg.style.fontWeight='700';
+  }
+  // Focus on username field
+  var u=document.getElementById('lgu');
+  if(u)u.focus();
 }
 
 /* ── Realtime listener: sync changes from other users ── */
