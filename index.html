@@ -2835,6 +2835,7 @@ function openCuSettle(){
   renderCuSetRows();
   // Fill vehicle dropdown in settlement
   fillVehDropdowns();
+  CM('cuDM');
   OM('cuSetM');
   }catch(err){console.error('openCuSettle error:',err);toast('خطأ في فتح نافذة التقفيل: '+err.message,'e');}
 }
@@ -4392,7 +4393,7 @@ ld();
 
 
 <!-- CUSTODY SETTLEMENT MODAL -->
-<div class="mo2" id="cuSetM" style="z-index:400"><div class="mb2 lg">
+<div class="mo2" id="cuSetM" style="z-index:500"><div class="mb2 lg">
   <div class="mhd">
     <div class="mtt">&#x1F4CB; تقفيل عهدة — <span id="cuSetName"></span></div>
     <button class="mcl" onclick="CM('cuSetM')">×</button>
@@ -5649,7 +5650,7 @@ tbody tr:hover td{background:var(--ltr)}
 
 
 <!-- CUSTODY SETTLEMENT MODAL -->
-<div class="mo2" id="cuSetM" style="z-index:400"><div class="mb2 lg">
+<div class="mo2" id="cuSetM" style="z-index:500"><div class="mb2 lg">
   <div class="mhd">
     <div class="mtt">&#x1F4CB; تقفيل عهدة — <span id="cuSetName"></span></div>
     <button class="mcl" onclick="CM('cuSetM')">×</button>
