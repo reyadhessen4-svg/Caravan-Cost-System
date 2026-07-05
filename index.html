@@ -145,11 +145,11 @@ tbody tr:hover td{background:var(--ltr)}
       <div class="fld"><label>اسم المستخدم</label><input type="text" id="lgu" placeholder="أدخل اسم المستخدم" autocomplete="username"></div>
       <div class="fld"><label>كلمة المرور</label><input type="password" id="lgp" placeholder="أدخل كلمة المرور" autocomplete="current-password"></div>
       <div id="lgE" style="display:none" class="al" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">&#x274C; اسم المستخدم أو كلمة المرور غير صحيحة</div>
-      <div id="lpLoadingBar" style="text-align:center;padding:10px;color:var(--gr);font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
-        <div style="width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--ry);border-radius:50%;animation:spin .8s linear infinite"></div>
-        <span id="lpLoadingMsg">جاري الاتصال بالسيرفر...</span>
+      <div id="lpLoadingBar" style="text-align:center;padding:6px;color:var(--gr);font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px">
+        <div style="width:14px;height:14px;border:2px solid var(--bd);border-top-color:var(--ry);border-radius:50%;animation:spin .8s linear infinite"></div>
+        <span id="lpLoadingMsg">جاري الاتصال...</span>
       </div>
-      <button class="btn bp" id="lpLoginBtn" style="width:100%;padding:13px;font-size:15px;justify-content:center;display:none" onclick="doLogin()">&#x1F511; دخول للنظام</button>
+      <button class="btn bp" id="lpLoginBtn" style="width:100%;padding:13px;font-size:15px;justify-content:center" onclick="doLogin()">&#x1F511; دخول للنظام</button>
     </div>
   </div>
 </div>
@@ -1059,12 +1059,9 @@ function _loadLocal(){
 }
 
 function _showLoginPage(){
-  // Hide loading bar, show login button
   var lb=document.getElementById('lpLoadingBar');
-  var btn=document.getElementById('lpLoginBtn');
   var msg=document.getElementById('lpLoadingMsg');
   if(lb)lb.style.display='none';
-  if(btn)btn.style.display='';
   if(msg)msg.textContent='';
 }
 
@@ -4439,11 +4436,11 @@ tbody tr:hover td{background:var(--ltr)}
       <div class="fld"><label>اسم المستخدم</label><input type="text" id="lgu" placeholder="أدخل اسم المستخدم" autocomplete="username"></div>
       <div class="fld"><label>كلمة المرور</label><input type="password" id="lgp" placeholder="أدخل كلمة المرور" autocomplete="current-password"></div>
       <div id="lgE" style="display:none" class="al" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">&#x274C; اسم المستخدم أو كلمة المرور غير صحيحة</div>
-      <div id="lpLoadingBar" style="text-align:center;padding:10px;color:var(--gr);font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
-        <div style="width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--ry);border-radius:50%;animation:spin .8s linear infinite"></div>
-        <span id="lpLoadingMsg">جاري الاتصال بالسيرفر...</span>
+      <div id="lpLoadingBar" style="text-align:center;padding:6px;color:var(--gr);font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px">
+        <div style="width:14px;height:14px;border:2px solid var(--bd);border-top-color:var(--ry);border-radius:50%;animation:spin .8s linear infinite"></div>
+        <span id="lpLoadingMsg">جاري الاتصال...</span>
       </div>
-      <button class="btn bp" id="lpLoginBtn" style="width:100%;padding:13px;font-size:15px;justify-content:center;display:none" onclick="doLogin()">&#x1F511; دخول للنظام</button>
+      <button class="btn bp" id="lpLoginBtn" style="width:100%;padding:13px;font-size:15px;justify-content:center" onclick="doLogin()">&#x1F511; دخول للنظام</button>
     </div>
   </div>
 </div>
