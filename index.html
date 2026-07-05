@@ -4207,6 +4207,12 @@ function _tryAutoLogin(){
     if(!sObj||!sObj.u||(Date.now()-sObj.t)>30*24*60*60*1000){
       localStorage.removeItem('qawafil_session');return;
     }
+    // Ensure users is array
+    if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);
+    // If users not loaded yet, retry after delay
+    if(!S.data.users||!S.data.users.length){
+      setTimeout(_tryAutoLogin,500);return;
+    }
     var usr=S.data.users.find(function(x){return x.u===sObj.u&&x.active;});
     if(!usr){localStorage.removeItem('qawafil_session');return;}
     // Auto login
@@ -4217,7 +4223,7 @@ function _tryAutoLogin(){
     G('APP').style.display='block';
     localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now()}));
     initApp();
-  }catch(e){}
+  }catch(e){console.warn('_tryAutoLogin error:',e);}
 }
 
 /* ─── KEYBOARD & EVENTS ─── */
@@ -4668,22 +4674,6 @@ tbody tr:hover td{background:var(--ltr)}
 </head>
 <body>
 <div class="tc" id="TC"></div>
-<!-- LOGIN -->
-<div id="LP" class="lp">
-  <div class="lb2">
-    <div class="llo">
-      <div class="llic">&#x1F69B;</div>
-      <div class="llnm">القوافل الخمسة</div>
-      <div class="llsb">نظام الإدارة المتكامل للخدمات اللوجستية</div>
-    </div>
-    <div class="fg">
-      <div class="fld"><label>اسم المستخدم</label><input type="text" id="lgu" placeholder="أدخل اسم المستخدم" autocomplete="username"></div>
-      <div class="fld"><label>كلمة المرور</label><input type="password" id="lgp" placeholder="أدخل كلمة المرور" autocomplete="current-password"></div>
-      <div id="lgE" style="display:none" class="al" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">&#x274C; اسم المستخدم أو كلمة المرور غير صحيحة</div>
-      <button class="btn bp" style="width:100%;padding:13px;font-size:15px;justify-content:center" onclick="doLogin()">&#x1F511; دخول للنظام</button>
-    </div>
-  </div>
-</div>
 <!-- APP -->
 <div id="APP" style="display:none">
 <div class="shell">
