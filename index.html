@@ -1203,16 +1203,24 @@ function doLogin(){
   S.cu=user;
   alog('تسجيل الدخول','المستخدم: '+user.name);
   sv();
+  // Hide LP completely
   var lpEl=G('LP');
-  if(lpEl&&lpEl.parentNode)lpEl.parentNode.removeChild(lpEl);
+  if(lpEl){
+    lpEl.style.cssText='display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important;z-index:-1!important;';
+    setTimeout(function(){if(lpEl.parentNode)lpEl.parentNode.removeChild(lpEl);},100);
+  }
   G('APP').style.display='block';
+  G('APP').style.visibility='visible';
+  G('APP').style.opacity='1';
+  // Save session to localStorage
+  try{localStorage.setItem('qawafil_session',JSON.stringify({u:user.u,id:user.id,t:Date.now()}));}catch(e){}
   initApp();
 }
 function doLogout(){
   if(S.cu){S.cu.lo=new Date().toISOString();alog('تسجيل الخروج','المستخدم: '+S.cu.name);sv();}
   S.cu=null;
   G('APP').style.display='none';
-  // Reload page on logout to reset everything cleanly
+  try{localStorage.removeItem('qawafil_session');}catch(e){}
   location.reload();
   // Clear login fields
   if(G('lgu'))G('lgu').value='';
@@ -4023,6 +4031,37 @@ G('lgp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 G('lgu').addEventListener('keydown',e=>{if(e.key==='Enter')G('lgp').focus();});
 window.addEventListener('resize',()=>{if(window.innerWidth>768)G('SB').classList.remove('open');G('menuBtn').style.display=window.innerWidth<=768?'':'none';});
 ld();
+// Auto-login from saved session
+(function(){
+  try{
+    var sess=localStorage.getItem('qawafil_session');
+    if(!sess)return;
+    var s=JSON.parse(sess);
+    // Session valid for 30 days
+    if(!s||!s.u||!s.t||(Date.now()-s.t)>30*24*60*60*1000){
+      localStorage.removeItem('qawafil_session');return;
+    }
+    // Wait for Firebase to load then auto-login
+    var _autoTry=0;
+    var _autoInt=setInterval(function(){
+      _autoTry++;
+      if(_autoTry>20){clearInterval(_autoInt);return;}
+      if(!S.data.users||!S.data.users.length)return;
+      clearInterval(_autoInt);
+      var user=S.data.users.find(function(x){return x.u===s.u&&x.active;});
+      if(!user){localStorage.removeItem('qawafil_session');return;}
+      // Auto login
+      user.ll=new Date().toISOString();
+      S.cu=user;
+      var lpEl=G('LP');
+      if(lpEl){lpEl.style.cssText='display:none!important;visibility:hidden!important;z-index:-1!important;';
+        setTimeout(function(){if(lpEl.parentNode)lpEl.parentNode.removeChild(lpEl);},100);}
+      G('APP').style.display='block';
+      try{localStorage.setItem('qawafil_session',JSON.stringify({u:user.u,id:user.id,t:Date.now()}));}catch(e){}
+      initApp();
+    },500);
+  }catch(e){}
+})();
 </script>
 <!-- EDIT RECEIPT MODAL -->
 <div class="mo2" id="rcEM"><div class="mb2"><div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل مقبوض</div><button class="mcl" onclick="CM('rcEM')">×</button></div>
