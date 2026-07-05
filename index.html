@@ -2896,8 +2896,10 @@ function updateCuSetSummary(){
   var cu=S.data.custodies.find(function(c){return c.id===cuid;});
   if(!cu)return;
   var en=S.data.custodyEnts.filter(function(e){return e.cid===cuid;});
-  var prevSp=en.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
-  var rem=cu.opening-prevSp;
+  var prevSp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
+  var prevRetOld=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
+  var prevRetNew=en.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
+  var rem=cu.opening-prevSp-prevRetOld-prevRetNew;
   var newBal=rem-total-ret;
   var alert=document.getElementById('cuSet-balance-alert');
   if(alert){
@@ -2927,8 +2929,10 @@ function saveCuSettle(){
 
   // Validate total
   var en=S.data.custodyEnts.filter(function(e){return e.cid===cuid;});
-  var prevSp=en.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
-  var rem=cu.opening-prevSp;
+  var prevSp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
+  var prevRetOld=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
+  var prevRetNew=en.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
+  var rem=cu.opening-prevSp-prevRetOld-prevRetNew;
   var total=cuSetRows.reduce(function(s,r){return s+(r.amount||0);},0);
   if(total+ret>rem+0.01){toast('إجمالي المصروفات والمبلغ المُرجَع يتجاوز الرصيد المتبقي','e');return;}
 
