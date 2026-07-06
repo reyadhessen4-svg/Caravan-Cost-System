@@ -1308,7 +1308,14 @@ function OM(id){
     G('rc-rf').value='';G('rc-nt').value='';
   }
   if(id==='exEM'){fillCCDropdowns();}
-  if(id==='exM'){fillAllEmpDropdowns();G('ex-custody-link-row').style.display='none';fillExItems();
+  if(id==='exM'){
+    // Reset all fields
+    ['ex-d','ex-a','ex-t','ex-ds','ex-nt'].forEach(function(f){var el=G(f);if(el)el.value='';});
+    G('ex-d').value=td2();
+    var exCCSel=G('ex-cc');if(exCCSel)exCCSel.value='';
+    var exItemSel=G('ex-item');if(exItemSel)exItemSel.innerHTML='<option value="">— اختر البند —</option>';
+    var exVehSel=G('ex-veh-sel');if(exVehSel)exVehSel.value='';
+    fillAllEmpDropdowns();G('ex-custody-link-row').style.display='none';fillExItems();
     var exvs=G('ex-veh-sel');if(exvs){exvs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+(v.model&&v.model!==v.make?' '+v.model:'')+'</option>';}).join('');}
   }
   if(id==='ceM'){
@@ -1320,12 +1327,23 @@ function OM(id){
     var cit=G('ce-it');if(cit)cit.innerHTML='<option value="">— اختر البند —</option>';
   }
   if(id==='clM'){fillVehDropdowns();var cvs=G('cl-veh-sel');if(cvs)cvs.value='';}
-  if(id==='biM'||id==='boM'){
-    var accSel=G(id==='biM'?'bi-acc':'bo-acc');
-    if(accSel){accSel.innerHTML='<option value="">— اختر الحساب —</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+(a.number?' — '+a.number:'')+'</option>';}).join('');}
+  if(id==='biM'){
+    // Reset fields
+    ['bi-d','bi-a','bi-f','bi-rf','bi-ds'].forEach(function(f){var el=G(f);if(el)el.value='';});
+    G('bi-d').value=td2();
+    var biAccSel=G('bi-acc');
+    if(biAccSel){biAccSel.innerHTML='<option value="">— اختر الحساب —</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+(a.number?' — '+a.number:'')+'</option>';}).join('');}
   }
-  if(id==='boM'){fillAllEmpDropdowns();G('bo-custody-link-row').style.display='none';
+  if(id==='boM'){
+    // Reset fields
+    ['bo-d','bo-a','bo-t','bo-rf','bo-ds'].forEach(function(f){var el=G(f);if(el)el.value='';});
+    G('bo-d').value=td2();
+    var boAccSel=G('bo-acc');if(boAccSel)boAccSel.value='';
+    fillAllEmpDropdowns();
+    G('bo-custody-link-row').style.display='none';
     var bovs=G('bo-veh-sel');if(bovs){bovs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+(v.model&&v.model!==v.make?' '+v.model:'')+'</option>';}).join('');}
+    // Fill account dropdown
+    var boAccSel2=G('bo-acc');if(boAccSel2){boAccSel2.innerHTML='<option value="">— اختر الحساب —</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>';}).join('');}
   }
   if(id==='baM'){G('ba-id').value='';G('ba-name').value='';G('ba-number').value='';G('ba-branch').value='';G('ba-opening').value='';G('ba-color').value='#059669';}
   if(id==='vehM'){
