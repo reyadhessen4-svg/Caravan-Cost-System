@@ -1520,6 +1520,7 @@ function loadBk(){
   }).join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
   var fl=[],flI=[],flO=[];for(var i=5;i>=0;i--){var d=new Date();d.setMonth(d.getMonth()-i);var ym3=d.toISOString().slice(0,7);fl.push(d.toLocaleDateString('ar-SA',{month:'short'}));flI.push(bI.filter(b=>b.date.startsWith(ym3)).reduce((s,b)=>s+b.amount,0));flO.push(bO.filter(b=>b.date.startsWith(ym3)).reduce((s,b)=>s+b.amount,0));}
   RC(G('chFlow'),'line',fl,[['وارد',flI,'rgba(5,150,105,.7)'],['صادر',flO,'rgba(220,38,38,.7)']]);
+  setTimeout(loadBkCal,100);
 }
 function markBkRev(){if(!can('all')&&!can('bkRev')){toast('يحتاج صلاحية المدير المالي','e');return;}var tdy=td2();if(S.data.bankRevs.find(r=>r.date===tdy)){toast('تمت مراجعة اليوم مسبقاً بواسطة '+S.data.bankRevs.find(r=>r.date===tdy).by,'i');return;}S.data.bankRevs.push({date:tdy,by:S.cu.name,at:new Date().toISOString()});alog('مراجعة البنك اليومية','يوم '+tdy+' — بواسطة '+S.cu.name);sv();loadBk();toast('✅ تم تسجيل مراجعة البنك ليوم '+tdy);}
 function saveBi(){
