@@ -2160,7 +2160,11 @@ function saveEx(){
   S.data.expenses.unshift(rec);
   alog('طلب صرف','لـ '+t+' — '+fR(a)+(cuLink?' — مربوط بعهدة':'')+' — معلق للاعتماد');
   sv();CM('exM');loadTr();updApCnt();
-  toast('تم إرسال طلب الصرف للمدير المالي للاعتماد','i');
+  toast('تم إرسال طلب الصرف للاعتماد','i');
+  // Print voucher immediately after saving
+  if(confirm('هل تريد طباعة إذن الصرف الآن؟')){
+    printVoucher(rec.id);
+  }
 }
 
 /* ── Override apEx to auto-add to custody when approved ── */
@@ -3817,7 +3821,7 @@ function rjBO(id){
 function printVoucher(id){
   var e=S.data.expenses.find(function(x){return x.id===id;});
   if(!e){toast('لم يتم العثور على السند','e');return;}
-  if(e.status!=='approved'){toast('يمكن طباعة إذن الصرف للمصروفات المعتمدة فقط','w');return;}
+  // Allow printing for both pending and approved
 
   var apUser=S.data.users.find(function(u){return u.u===e.apBy;});
   var apName=apUser?apUser.name:(e.apBy||'—');
@@ -3885,11 +3889,11 @@ function printVoucher(id){
       '<div style="height:40px"></div>'+
       '<div class="sig-line"><div class="sig-name">'+e.to+'</div><div>التوقيع والختم</div></div>'+
     '</div>'+
-    '<div class="sig-box approved-stamp">'+
-      '<div class="sig-title">المعتمد</div>'+
+    '<div class="sig-box" style="border:2px solid '+(e.status==='approved'?'#059669':'#D97706')+';border-radius:8px;padding:12px;text-align:center">'+
+      '<div class="sig-title" style="color:'+(e.status==='approved'?'#059669':'#D97706')+'">المعتمد</div>'+
       '<div style="height:20px"></div>'+
-      '<div style="font-size:18px;font-weight:900;letter-spacing:1px;border-bottom:1px solid #059669;padding-bottom:8px;margin-bottom:8px;color:#059669">MR. Reyad Hussein</div>'+
-      '<div class="sig-line"><div style="font-size:10px;color:#059669">✅ معتمد بتاريخ: '+apDate+'</div></div>'+
+      '<div style="font-size:18px;font-weight:900;letter-spacing:1px;border-bottom:1px solid '+(e.status==='approved'?'#059669':'#D97706')+';padding-bottom:8px;margin-bottom:8px;color:'+(e.status==='approved'?'#059669':'#D97706')+'">MR. Reyad Hussein</div>'+
+      '<div class="sig-line"><div style="font-size:10px;color:'+(e.status==='approved'?'#059669':'#D97706')+'">'+(e.status==='approved'?'✅ معتمد بتاريخ: '+apDate:'⏳ بانتظار الاعتماد')+'</div></div>'+
     '</div>'+
   '</div>'+
 
@@ -4242,6 +4246,91 @@ function _tryAutoLogin(){
     localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now()}));
     initApp();
   }catch(e){console.warn('_tryAutoLogin error:',e);}
+}
+
+
+/* ─── Print Pending Voucher (before approval) ─── */
+function printVoucherPending(e){
+  if(!e)return;
+  var byUser=S.data.users.find(function(u){return u.u===e.by;});
+  var byName=byUser?byUser.name:(e.by||'أمين الخزينة');
+  var printDate=new Date().toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
+
+  var html='<!DOCTYPE html><html dir="rtl" lang="ar">'+
+  '<head><meta charset="UTF-8">'+
+  '<style>'+
+    '@page{margin:15mm}'+
+    'body{font-family:Arial,sans-serif;color:#000;font-size:13px;direction:rtl}'+
+    '.header{text-align:center;border-bottom:3px double #000;padding-bottom:12px;margin-bottom:16px}'+
+    '.co-name{font-size:20px;font-weight:900}'+
+    '.vo-title{font-size:16px;font-weight:700;background:#D97706;color:#fff;display:inline-block;padding:4px 24px;border-radius:4px;margin-top:8px}'+
+    '.vo-num{font-size:13px;color:#555;margin-top:4px}'+
+    '.pending-stamp{background:#FEF3C7;border:2px solid #D97706;border-radius:8px;padding:8px 16px;text-align:center;margin-bottom:16px;color:#92400E;font-weight:700;font-size:14px}'+
+    '.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;border:1px solid #ccc;border-radius:6px;padding:12px}'+
+    '.info-row{display:flex;gap:6px;align-items:baseline}'+
+    '.info-label{font-weight:700;font-size:12px;min-width:90px}'+
+    '.info-val{font-size:13px;border-bottom:1px solid #999;flex:1;padding-bottom:2px}'+
+    '.amount-box{border:2px solid #D97706;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px}'+
+    '.amount-num{font-size:28px;font-weight:900;font-family:monospace;color:#D97706}'+
+    '.amount-words{font-size:13px;color:#555;margin-top:4px}'+
+    '.desc-box{border:1px solid #ccc;border-radius:6px;padding:10px;margin-bottom:16px;min-height:40px}'+
+    '.sigs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:24px}'+
+    '.sig-box{text-align:center;border:1px solid #ccc;border-radius:6px;padding:12px}'+
+    '.sig-title{font-weight:700;font-size:12px;margin-bottom:16px}'+
+    '.sig-line{border-top:1px solid #999;margin-top:20px;padding-top:6px;font-size:11px}'+
+    '.footer{text-align:center;font-size:10px;color:#aaa;border-top:1px solid #ddd;padding-top:8px;margin-top:16px}'+
+    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'+
+  '</style></head><body>'+
+
+  '<div class="header">'+
+    '<div class="co-name">القوافل الخمسة للخدمات اللوجستية</div>'+
+    '<div class="vo-title">⏳ إذن صرف نقدي — معلق للاعتماد</div>'+
+    '<div class="vo-num">رقم الطلب: <strong>'+e.num+'</strong></div>'+
+  '</div>'+
+
+  '<div class="pending-stamp">⚠️ هذا الإذن معلق وبانتظار اعتماد المدير المالي — لا يُصرف قبل الاعتماد</div>'+
+
+  '<div class="info-grid">'+
+    '<div class="info-row"><span class="info-label">التاريخ:</span><span class="info-val">'+e.date+'</span></div>'+
+    '<div class="info-row"><span class="info-label">مركز التكلفة:</span><span class="info-val">'+(e.cc||'—')+'</span></div>'+
+    '<div class="info-row"><span class="info-label">المستفيد:</span><span class="info-val">'+e.to+'</span></div>'+
+    '<div class="info-row"><span class="info-label">طريقة الصرف:</span><span class="info-val">'+(e.method||'نقدي')+'</span></div>'+
+  '</div>'+
+
+  '<div class="amount-box">'+
+    '<div style="font-size:12px;color:#92400E;margin-bottom:4px">المبلغ المطلوب صرفه</div>'+
+    '<div class="amount-num">'+e.amount.toLocaleString('en-US')+' ريال</div>'+
+    '<div class="amount-words">'+numToWords(e.amount)+'</div>'+
+  '</div>'+
+
+  '<div style="font-weight:700;font-size:12px;margin-bottom:4px">البيان:</div>'+
+  '<div class="desc-box">'+e.desc+'</div>'+
+
+  '<div class="sigs">'+
+    '<div class="sig-box">'+
+      '<div class="sig-title">أمين الخزينة</div>'+
+      '<div style="height:40px"></div>'+
+      '<div class="sig-line"><div style="font-weight:700">'+byName+'</div><div>التوقيع</div></div>'+
+    '</div>'+
+    '<div class="sig-box">'+
+      '<div class="sig-title">المستلم</div>'+
+      '<div style="height:40px"></div>'+
+      '<div class="sig-line"><div style="font-weight:700">'+e.to+'</div><div>التوقيع</div></div>'+
+    '</div>'+
+    '<div class="sig-box" style="border:2px dashed #D97706">'+
+      '<div class="sig-title" style="color:#D97706">المعتمد — بانتظار التوقيع</div>'+
+      '<div style="height:40px"></div>'+
+      '<div class="sig-line" style="color:#D97706"><div style="font-weight:700">MR. Reyad Hussein</div><div>بانتظار الاعتماد</div></div>'+
+    '</div>'+
+  '</div>'+
+
+  '<div class="footer">طلب صرف رقم '+e.num+' — بتاريخ '+printDate+' — معلق للاعتماد</div>'+
+  '</body></html>';
+
+  var w=window.open('','_blank','width=800,height=900');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){w.print();},500);
 }
 
 /* ─── KEYBOARD & EVENTS ─── */
