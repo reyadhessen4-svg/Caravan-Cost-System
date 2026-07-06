@@ -1178,8 +1178,8 @@ var ROLES={
             canDel:false, canEdit:false}
 };
 var CL_STGS=['حادث جديد','تم رفع المستندات','تم تقديم المطالبة','تحت المراجعة','تمت الموافقة','تم استلام التعويض','مغلقة'];
-var td2=()=>new Date().toISOString().split('T')[0];
-var ym=()=>new Date().toISOString().slice(0,7);
+var td2=()=>{var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+var ym=()=>{var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');};
 var yr=()=>new Date().getFullYear().toString();
 var fmt=(n,d)=>{d=d||0;if(isNaN(n)||n==null)return'—';return Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});};
 var fR=n=>fmt(n)+' ريال';
@@ -1199,7 +1199,7 @@ var G=id=>document.getElementById(id);
 var V=id=>(G(id)||{}).value||'';
 var Nv=id=>parseFloat(V(id))||0;
 function toast(msg,t){t=t||'s';var c=G('TC'),el=document.createElement('div');el.className='tst t'+t;el.innerHTML='<span>'+(t==='s'?'✅':t==='e'?'❌':t==='w'?'⚠️':'ℹ️')+'</span><span>'+msg+'</span>';c.appendChild(el);setTimeout(()=>{if(el.parentNode)el.remove();},3800);}
-function alog(a,det){S.data.audit.unshift({id:uid(),dt:new Date().toISOString(),user:S.cu?S.cu.name:'نظام',role:S.cu?ROLES[S.cu.r].lbl:'',action:a,details:det||'',res:'نجح'});if(S.data.audit.length>1000)S.data.audit=S.data.audit.slice(0,1000);}
+function alog(a,det){S.data.audit.unshift({id:uid(),dt:new Date().toISOString(),ld:td2(),user:S.cu?S.cu.name:'نظام',role:S.cu?ROLES[S.cu.r].lbl:'',action:a,details:det||'',res:'نجح'});if(S.data.audit.length>1000)S.data.audit=S.data.audit.slice(0,1000);}
 function getPr(cid,date){var p=S.data.prices.filter(x=>x.cid===cid&&x.from<=date&&(!x.to||x.to>=date));p.sort((a,b)=>b.from.localeCompare(a.from));return p.length?p[0].price:0;}
 function doLogin(){
   var u=V('lgu').trim(),p=V('lgp');
@@ -1387,7 +1387,7 @@ function loadDash(){
   G('DPend').innerHTML=pnd.length?pnd.map(e=>'<div class="ac"><div class="ahd"><span>'+e.to+'</span><span class="bdg bo">معلق</span></div><div class="aro"><span class="ak">المبلغ</span><span class="av">'+fR(e.amount)+'</span></div><div class="aro"><span class="ak">البيان</span><span class="av">'+e.desc+'</span></div>'+(can('all')||can('ap')?'<div class="ab2"><button class="btn bss bxs" onclick="apEx(\''+e.id+'\')">✓ اعتماد</button><button class="btn bd2 bxs" onclick="rjEx(\''+e.id+'\')">✗ رفض</button></div>':'')+'</div>').join(''):'<div class="es"><div class="esic">✅</div><div class="essb">لا طلبات معلقة</div></div>';
   var aCl=S.data.claims.filter(c=>c.stage!=='مغلقة'&&c.stage!=='تم استلام التعويض').slice(0,4);
   G('DClms').innerHTML=aCl.length?aCl.map(c=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)"><div><div style="font-size:13px;font-weight:600">'+c.num+'</div><div style="font-size:11px;color:var(--gr)">'+c.car+' — '+c.driver+'</div></div><div style="text-align:left">'+clBadge(c.stage)+'<div style="font-size:10px;color:var(--gr2);margin-top:3px">'+daysB(c.idate)+' يوم</div></div></div>').join(''):'<div class="es"><div class="esic">&#x1F6E1;&#xFE0F;</div><div class="essb">لا مطالبات نشطة</div></div>';
-  var act=S.data.audit.filter(a=>a.dt.startsWith(tdy));
+  var act=S.data.audit.filter(a=>(a.ld||a.dt.substring(0,10))===tdy);
   G('DAct').innerHTML=act.length?act.slice(0,6).map(a=>'<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd);align-items:flex-start"><span style="font-size:15px;flex-shrink:0">&#x1F4CC;</span><div><div style="font-size:12px;font-weight:600">'+a.action+'</div><div style="font-size:11px;color:var(--gr)">'+a.user+' — '+new Date(a.dt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})+'</div></div></div>').join(''):'<div class="es"><div class="esic">&#x1F4A1;</div><div class="essb">لا يوجد نشاط اليوم</div></div>';
 }
 /* ─── OPERATIONS ─── */
