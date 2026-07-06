@@ -359,15 +359,27 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb" onclick="ST('bkTbs','bkOut',this)">الصادر البنكي</button>
     <button class="tabb" onclick="ST('bkTbs','bkAp',this);loadBkAp()">&#x23F3; طلبات الاعتماد <span class="sbdg" id="bkApCnt" style="display:none">0</span></button>
     <button class="tabb" onclick="ST('bkTbs','bkStm',this);fillBkStmAcc()">كشف الحساب</button>
+    <button class="tabb" onclick="ST('bkTbs','bkRevTab',this);loadBkRevTab()">📋 مراجعة يومية <span class="sbdg" id="bkRevBdg" style="display:none">!</span></button>
     <button class="tabb" onclick="ST('bkTbs','bkFlow',this)">التدفق النقدي</button>
   </div>
   <div id="bkTbs">
-    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:700px"><thead><tr><th>السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
-    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:700px"><thead><tr><th>السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
+    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
     <div class="tabc" id="bkStm"><div class="card"><div class="cht">كشف الحساب البنكي<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="bkStmAcc" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none;font-family:var(--fn)"><option value="">كل الحسابات</option></select><input type="date" id="bkStF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><input type="date" id="bkStT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><button class="btn bsm bp" onclick="loadBkStm()">&#x1F50E; عرض</button></div></div><div id="bkStmC"></div></div></div>
     <div class="tabc" id="bkAp">
       <div class="al aw">&#x26A0;&#xFE0F; الصادرات التالية تنتظر اعتمادك. بعد الاعتماد يتم تأثيرها على رصيد الحساب.</div>
       <div id="bkApList"><div class="lb"><div class="sp"></div></div></div>
+    </div>
+    <div class="tabc" id="bkRevTab">
+      <div class="card">
+        <div class="cht">📋 مراجعة البنك اليومية
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="bkRevAccSel" onchange="loadBkRevTab()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل الحسابات</option></select>
+            <input type="month" id="bkRevMonth" onchange="loadBkRevTab()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+          </div>
+        </div>
+        <div id="bkRevTabC"></div>
+      </div>
     </div>
     <div class="tabc" id="bkFlow"><div class="card"><div class="cht">التدفق النقدي البنكي — 6 أشهر</div><canvas id="chFlow" height="260"></canvas></div></div>
   </div>
@@ -711,7 +723,7 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ AUDIT ═══ -->
 <div class="pg" id="pg-au">
   <div class="page-hdr"><h2>سجل العمليات</h2>
-    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="assignMissingSerials()">🔢 تعيين سيريالات</button><button class="btn bsm" onclick="showDeletedSerials()">📋 المحذوفة</button><button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
+    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="assignMissingSerials()">🔢 سيريالات</button><button class="btn bsm" onclick="showDeletedSerials()">📋 المحذوفة</button><button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
   </div>
   <div class="card">
     <div class="srch-bar">
@@ -950,7 +962,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],vehicles:[],bankAccounts:[],deletedSerials:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
+var S={cu:null,data:{users:[],employees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
 var BK_KEY='qawafil_v14'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
@@ -1237,7 +1249,6 @@ function initApp(){
     setTimeout(function(){openChangePass(true);},400);
   }
   if(window.innerWidth<=768)G('menuBtn').style.display='';
-  // Auto-assign serials to old records without num
   setTimeout(function(){assignMissingSerials();},2000);
 }
 function fillDrops(){['op-c','pr-c'].forEach(id=>{var s=G(id);if(!s)return;s.innerHTML='<option value="">اختر العميل</option>';S.data.clients.forEach(c=>{var o=document.createElement('option');o.value=c.id;o.textContent=c.name;s.appendChild(o);});});var cf=G('opClF');if(cf){cf.innerHTML='<option value="">كل العملاء</option>';S.data.clients.forEach(c=>{var o=document.createElement('option');o.value=c.id;o.textContent=c.name;cf.appendChild(o);});}var cs=G('ce-c');if(cs){cs.innerHTML='<option value="">اختر الموظف</option>';S.data.custodies.filter(c=>c.status==='open').forEach(c=>{var o=document.createElement('option');o.value=c.id;o.textContent=c.name;cs.appendChild(o);});}
@@ -1433,95 +1444,8 @@ function saveRc(){var a=Nv('rc-a'),f=V('rc-f'),d=V('rc-ds');if(!a||!f||!d){toast
 
 
 function rjEx(id){if(!can('all')&&!can('ap')){toast('ليس لديك صلاحية','e');return;}var rsn=prompt('سبب الرفض (اختياري):');var e=S.data.expenses.find(x=>x.id===id);if(!e||e.status!=='pending')return;e.status='rejected';e.rjBy=S.cu.u;e.rjAt=new Date().toISOString();e.rjRsn=rsn||'';alog('رفض مصروف',e.desc+' — '+fR(e.amount)+' — السبب: '+(rsn||'غير محدد'));sv();loadTr();loadAp();updApCnt();loadDash();checkAlerts();toast('تم رفض الطلب','w');}
-function loadStm(){
-  var f=V('stF'),t=V('stT');
-  if(!f||!t){toast('يرجى تحديد الفترة','w');return;}
-  
-  // All receipts and approved expenses
-  var allRc=S.data.receipts;
-  var allEx=S.data.expenses.filter(e=>e.status==='approved');
-  
-  // ── Rصيد الافتتاحي (كل المعاملات قبل تاريخ البداية) ──
-  var openingIn=allRc.filter(r=>r.date<f).reduce((s,r)=>s+r.amount,0);
-  var openingOut=allEx.filter(e=>e.date<f).reduce((s,e)=>s+e.amount,0);
-  var openingBal=openingIn-openingOut;
-  
-  // ── معاملات الفترة ──
-  var rc=allRc.filter(r=>r.date>=f&&r.date<=t);
-  var ex=allEx.filter(e=>e.date>=f&&e.date<=t);
-  var tI=rc.reduce((s,r)=>s+r.amount,0);
-  var tO=ex.reduce((s,e)=>s+e.amount,0);
-  var closingBal=openingBal+tI-tO;
-  
-  // ── Build rows ──
-  var rows=[
-    ...rc.map(r=>({d:r.date,num:r.num||'—',desc:r.desc,type:'وارد',in:r.amount,out:0})),
-    ...ex.map(e=>({d:e.date,num:e.num||'—',desc:e.desc,type:'صادر',in:0,out:e.amount}))
-  ].sort((a,b)=>a.d.localeCompare(b.d));
-  
-  var running=openingBal;
-  var rowsHtml=rows.map(function(r){
-    running+=r.in-r.out;
-    return '<tr>'+
-      '<td style="font-family:monospace;white-space:nowrap">'+r.d+'</td>'+
-      '<td style="font-size:11px;color:var(--gr)">'+r.num+'</td>'+
-      '<td>'+r.desc+'</td>'+
-      '<td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td>'+
-      '<td style="color:var(--sc);font-family:monospace">'+(r.in?fR(r.in):'—')+'</td>'+
-      '<td style="color:var(--dn);font-family:monospace">'+(r.out?fR(r.out):'—')+'</td>'+
-      '<td style="font-weight:700;font-family:monospace;color:'+(running>=0?'var(--sc)':'var(--dn)')+'">'+fR(running)+'</td>'+
-    '</tr>';
-  }).join('');
-  
-  G('stmC').innerHTML=
-    '<div class="g3" style="margin-bottom:16px">'+
-      '<div class="met mb"><div class="ml2">رصيد افتتاحي</div><div class="mv2" style="color:var(--ry)">'+fR(openingBal)+'</div><div class="ms2">قبل '+f+'</div></div>'+
-      '<div class="met mg"><div class="ml2">إجمالي الوارد</div><div class="mv2">'+fR(tI)+'</div></div>'+
-      '<div class="met mr"><div class="ml2">إجمالي الصادر</div><div class="mv2">'+fR(tO)+'</div></div>'+
-      '<div class="met '+(closingBal>=0?'mg':'mr')+'"><div class="ml2">رصيد ختامي</div><div class="mv2" style="color:'+(closingBal>=0?'var(--sc)':'var(--dn)')+'">'+fR(closingBal)+'</div></div>'+
-    '</div>'+
-    '<div style="text-align:left;margin-bottom:8px">'+
-      '<button class="btn bsm" onclick="exportStmExcel()">&#x1F4E5; تصدير Excel</button>'+
-    '</div>'+
-    '<div class="tw"><table id="stmTbl"><thead><tr>'+
-      '<th>التاريخ</th><th>السند</th><th>البيان</th><th>النوع</th><th>وارد</th><th>صادر</th><th>الرصيد</th>'+
-    '</tr></thead><tbody>'+
-    '<tr style="background:var(--ltr)"><td colspan="4" style="font-weight:700;text-align:left">رصيد افتتاحي</td><td></td><td></td><td style="font-weight:700;font-family:monospace">'+fR(openingBal)+'</td></tr>'+
-    rowsHtml+
-    '<tr style="background:var(--ltr);border-top:2px solid var(--bd)"><td colspan="4" style="font-weight:700;text-align:left">الرصيد الختامي</td>'+
-    '<td style="color:var(--sc);font-weight:700;font-family:monospace">'+fR(tI)+'</td>'+
-    '<td style="color:var(--dn);font-weight:700;font-family:monospace">'+fR(tO)+'</td>'+
-    '<td style="font-weight:700;font-family:monospace;color:'+(closingBal>=0?'var(--sc)':'var(--dn)')+'">'+fR(closingBal)+'</td></tr>'+
-    '</tbody></table></div>';
-  
-  // Store for export
-  window._stmData={f:f,t:t,openingBal:openingBal,tI:tI,tO:tO,closingBal:closingBal,rows:rows};
-}
-
-function exportStmExcel(){
-  var d=window._stmData;
-  if(!d){toast('يرجى عرض الكشف أولاً','w');return;}
-  var csv='﻿';
-  csv+='كشف الخزينة من '+d.f+' إلى '+d.t+'\n\n';
-  csv+='الرصيد الافتتاحي,'+d.openingBal+'\n\n';
-  csv+='التاريخ,السند,البيان,النوع,وارد,صادر,الرصيد\n';
-  var running=d.openingBal;
-  d.rows.forEach(function(r){
-    running+=r.in-r.out;
-    csv+=r.d+','+r.num+',"'+r.desc+'",'+r.type+','+
-      (r.in||'')+','+(r.out||'')+','+running+'\n';
-  });
-  csv+='\nإجمالي الوارد,'+d.tI+'\n';
-  csv+='إجمالي الصادر,'+d.tO+'\n';
-  csv+='الرصيد الختامي,'+d.closingBal+'\n';
-  var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(b);
-  a.download='كشف_الخزينة_'+d.f+'_'+d.t+'.csv';
-  a.click();
-  toast('تم التصدير ✅');
-}
-
+function loadStm(){var f=V('stF'),t=V('stT');if(!f||!t){toast('يرجى تحديد الفترة','w');return;}var rc=S.data.receipts.filter(r=>r.date>=f&&r.date<=t),ex=S.data.expenses.filter(e=>e.date>=f&&e.date<=t&&e.status==='approved');var tI=rc.reduce((s,r)=>s+r.amount,0),tO=ex.reduce((s,e)=>s+e.amount,0);G('stmC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mg"><div class="ml2">إجمالي الوارد</div><div class="mv2">'+fR(tI)+'</div></div><div class="met mr"><div class="ml2">إجمالي الصادر</div><div class="mv2">'+fR(tO)+'</div></div><div class="met mb"><div class="ml2">الصافي</div><div class="mv2" style="color:'+(tI-tO>=0?'var(--sc)':'var(--dn)')+'">'+fR(tI-tO)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البيان</th><th>النوع</th><th>وارد</th><th>صادر</th><th>رصيد متراكم</th></tr></thead><tbody>'+function(){var rows=[...rc.map(r=>({d:r.date,desc:r.desc,type:'وارد',in:r.amount,out:0})),...ex.map(e=>({d:e.date,desc:e.desc,type:'صادر',in:0,out:e.amount}))].sort((a,b)=>a.d.localeCompare(b.d));var bal=0;return rows.map(r=>{bal+=r.in-r.out;return'<tr><td>'+r.d+'</td><td>'+r.desc+'</td><td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td><td style="color:var(--sc)">'+(r.in?fR(r.in):'—')+'</td><td style="color:var(--dn)">'+(r.out?fR(r.out):'—')+'</td><td style="font-weight:700;color:'+(bal>=0?'var(--sc)':'var(--dn)')+'">'+fR(bal)+'</td></tr>'}).join('')}()+'</tbody></table></div>';}
+/* ─── BANK ─── */
 function loadBk(){
   var bI=S.data.bankIn,bO=S.data.bankOut,ym2=ym();
   var bal=bI.reduce((s,b)=>s+b.amount,0)-bO.reduce((s,b)=>s+b.amount,0);
@@ -1560,7 +1484,6 @@ function loadBk(){
     var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
     var accTag=acc?'<span style="background:'+acc.color+'22;color:'+acc.color+';border:1px solid '+acc.color+'44;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">'+acc.name+'</span>':'<span class="bdg bo" style="font-size:10px">غير مُعيَّن</span>';
     return '<tr>'+
-      '<td style="font-family:monospace;font-size:11px;color:var(--gr2)">'+(b.num||'—')+'</td>'+
       '<td>'+b.date+'</td>'+
       '<td style="font-weight:700;color:var(--sc)">'+fR(b.amount)+'</td>'+
       '<td>'+accTag+'</td>'+
@@ -1578,7 +1501,6 @@ function loadBk(){
     var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
     var accTag=acc?'<span style="background:'+acc.color+'22;color:'+acc.color+';border:1px solid '+acc.color+'44;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">'+acc.name+'</span>':'<span class="bdg bo" style="font-size:10px">غير مُعيَّن</span>';
     return '<tr>'+
-      '<td style="font-family:monospace;font-size:11px;color:var(--gr2)">'+(b.num||'—')+'</td>'+
       '<td>'+b.date+'</td>'+
       '<td style="font-weight:700;color:var(--dn)">'+fR(b.amount)+'</td>'+
       '<td>'+accTag+'</td>'+
@@ -1618,102 +1540,8 @@ function saveBi(){
 
 function delBI(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var b=S.data.bankIn.find(x=>x.id===id);if(!b)return;var rsn=getDeleteReason('وارد بنكي',b.num||'—');if(!rsn)return;logDeletion('وارد بنكي',{...b,to:b.from,desc:b.desc||'وارد'},rsn);S.data.bankIn=S.data.bankIn.filter(x=>x.id!==id);sv();loadBk();loadBA();toast('تم الحذف');}
 function delBO(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var b=S.data.bankOut.find(x=>x.id===id);if(!b)return;var rsn=getDeleteReason('صادر بنكي',b.num||'—');if(!rsn)return;logDeletion('صادر بنكي',{...b,desc:b.desc||'صادر'},rsn);S.data.bankOut=S.data.bankOut.filter(x=>x.id!==id);sv();loadBk();loadBA();toast('تم الحذف');}
-function loadBkStm(){
-  var f=V('bkStF'),t=V('bkStT');
-  if(!f||!t){toast('يرجى تحديد الفترة','w');return;}
-  var accId=V('bkStmAcc')||'';
-  var accName=accId?(S.data.bankAccounts||[]).find(function(a){return a.id===accId;})?.name||'':'كل الحسابات';
-  
-  var allBi=S.data.bankIn.filter(function(b){return !accId||b.accId===accId;});
-  var allBo=S.data.bankOut.filter(function(b){return (!accId||b.accId===accId)&&b.status==='approved';});
-  
-  // ── Opening balance (before start date) ──
-  var openIn=allBi.filter(function(b){return b.date<f;}).reduce(function(s,b){return s+b.amount;},0);
-  var openOut=allBo.filter(function(b){return b.date<f;}).reduce(function(s,b){return s+b.amount;},0);
-  
-  // Add account opening balance if specific account selected
-  var accOpenBal=0;
-  if(accId){
-    var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});
-    if(acc)accOpenBal=acc.balance||0;
-  }
-  var openingBal=accOpenBal+openIn-openOut;
-  
-  // ── Period transactions ──
-  var bI=allBi.filter(function(b){return b.date>=f&&b.date<=t;});
-  var bO=allBo.filter(function(b){return b.date>=f&&b.date<=t;});
-  var tI=bI.reduce(function(s,b){return s+b.amount;},0);
-  var tO=bO.reduce(function(s,b){return s+b.amount;},0);
-  var closingBal=openingBal+tI-tO;
-  
-  var rows=[
-    ...bI.map(function(b){return{d:b.date,num:b.num||'—',desc:b.desc||b.from||'وارد',acc:b.accName||'',type:'وارد',in:b.amount,out:0};}),
-    ...bO.map(function(b){return{d:b.date,num:b.num||'—',desc:b.desc||b.to||'صادر',acc:b.accName||'',type:'صادر',in:0,out:b.amount};})
-  ].sort(function(a,b){return a.d.localeCompare(b.d);});
-  
-  var running=openingBal;
-  var rowsHtml=rows.map(function(r){
-    running+=r.in-r.out;
-    return '<tr>'+
-      '<td style="font-family:monospace;white-space:nowrap">'+r.d+'</td>'+
-      '<td style="font-size:11px;color:var(--gr)">'+r.num+'</td>'+
-      '<td>'+r.desc+'</td>'+
-      (!accId?'<td><span style="font-size:10px;color:var(--gr)">'+r.acc+'</span></td>':'')+
-      '<td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td>'+
-      '<td style="color:var(--sc);font-family:monospace">'+(r.in?fR(r.in):'—')+'</td>'+
-      '<td style="color:var(--dn);font-family:monospace">'+(r.out?fR(r.out):'—')+'</td>'+
-      '<td style="font-weight:700;font-family:monospace;color:'+(running>=0?'var(--sc)':'var(--dn)')+'">'+fR(running)+'</td>'+
-    '</tr>';
-  }).join('');
-  
-  G('bkStmC').innerHTML=
-    '<div class="g3" style="margin-bottom:16px">'+
-      '<div class="met mb"><div class="ml2">رصيد افتتاحي</div><div class="mv2" style="color:var(--ry)">'+fR(openingBal)+'</div><div class="ms2">قبل '+f+'</div></div>'+
-      '<div class="met mg"><div class="ml2">إجمالي الوارد</div><div class="mv2">'+fR(tI)+'</div></div>'+
-      '<div class="met mr"><div class="ml2">إجمالي الصادر</div><div class="mv2">'+fR(tO)+'</div></div>'+
-      '<div class="met '+(closingBal>=0?'mg':'mr')+'"><div class="ml2">رصيد ختامي</div><div class="mv2" style="color:'+(closingBal>=0?'var(--sc)':'var(--dn)')+'">'+fR(closingBal)+'</div></div>'+
-    '</div>'+
-    '<div class="tw"><table id="bkStmTbl"><thead><tr>'+
-      '<th>التاريخ</th><th>السند</th><th>البيان</th>'+(!accId?'<th>الحساب</th>':'')+
-      '<th>النوع</th><th>وارد</th><th>صادر</th><th>الرصيد</th>'+
-    '</tr></thead><tbody>'+
-    '<tr style="background:var(--ltr)"><td colspan="'+(accId?'5':'6')+'" style="font-weight:700;text-align:left">رصيد افتتاحي — '+accName+'</td><td></td><td></td><td style="font-weight:700;font-family:monospace">'+fR(openingBal)+'</td></tr>'+
-    rowsHtml+
-    '<tr style="background:var(--ltr);border-top:2px solid var(--bd)">'+
-    '<td colspan="'+(accId?'5':'6')+'" style="font-weight:700;text-align:left">الرصيد الختامي</td>'+
-    '<td style="color:var(--sc);font-weight:700;font-family:monospace">'+fR(tI)+'</td>'+
-    '<td style="color:var(--dn);font-weight:700;font-family:monospace">'+fR(tO)+'</td>'+
-    '<td style="font-weight:700;font-family:monospace;color:'+(closingBal>=0?'var(--sc)':'var(--dn)')+'">'+fR(closingBal)+'</td></tr>'+
-    '</tbody></table></div>';
-  
-  window._bkStmData={f:f,t:t,accName:accName,openingBal:openingBal,tI:tI,tO:tO,closingBal:closingBal,rows:rows,accId:accId};
-}
-
-function exportBkStmExcel(){
-  var d=window._bkStmData;
-  if(!d){toast('يرجى عرض الكشف أولاً','w');return;}
-  var csv='﻿';
-  csv+='كشف حساب البنك — '+d.accName+'\n';
-  csv+='من '+d.f+' إلى '+d.t+'\n\n';
-  csv+='الرصيد الافتتاحي,'+d.openingBal+'\n\n';
-  csv+='التاريخ,السند,البيان,'+(d.accId?'':'الحساب,')+'النوع,وارد,صادر,الرصيد\n';
-  var running=d.openingBal;
-  d.rows.forEach(function(r){
-    running+=r.in-r.out;
-    csv+=r.d+','+r.num+',"'+r.desc+'",'+(d.accId?'':r.acc+',')+r.type+','+
-      (r.in||'')+','+(r.out||'')+','+running+'\n';
-  });
-  csv+='\nإجمالي الوارد,'+d.tI+'\n';
-  csv+='إجمالي الصادر,'+d.tO+'\n';
-  csv+='الرصيد الختامي,'+d.closingBal+'\n';
-  var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(b);
-  a.download='كشف_بنك_'+d.f+'_'+d.t+'.csv';
-  a.click();
-  toast('تم التصدير ✅');
-}
-
+function loadBkStm(){var f=V('bkStF'),t=V('bkStT');if(!f||!t){toast('يرجى تحديد الفترة','w');return;}var bI=S.data.bankIn.filter(b=>b.date>=f&&b.date<=t),bO=S.data.bankOut.filter(b=>b.date>=f&&b.date<=t);var tI=bI.reduce((s,b)=>s+b.amount,0),tO=bO.reduce((s,b)=>s+b.amount,0);G('bkStmC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mg"><div class="ml2">إجمالي الوارد</div><div class="mv2">'+fR(tI)+'</div></div><div class="met mr"><div class="ml2">إجمالي الصادر</div><div class="mv2">'+fR(tO)+'</div></div><div class="met mb"><div class="ml2">الصافي</div><div class="mv2">'+fR(tI-tO)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البيان</th><th>النوع</th><th>وارد</th><th>صادر</th></tr></thead><tbody>'+[...bI.map(b=>({d:b.date,desc:b.desc||b.from,type:'وارد',in:b.amount,out:0})),...bO.map(b=>({d:b.date,desc:b.desc||b.to,type:'صادر',in:0,out:b.amount}))].sort((a,b)=>a.d.localeCompare(b.d)).map(r=>'<tr><td>'+r.d+'</td><td>'+r.desc+'</td><td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td><td style="color:var(--sc)">'+(r.in?fR(r.in):'—')+'</td><td style="color:var(--dn)">'+(r.out?fR(r.out):'—')+'</td></tr>').join('')+'</tbody></table></div>';}
+/* ─── APPROVALS ─── */
 function loadAp(){var pnd=S.data.expenses.filter(e=>e.status==='pending');var el=G('apList');if(!pnd.length){el.innerHTML='<div class="es"><div class="esic">✅</div><div class="esti">لا توجد طلبات معلقة</div><div class="essb">جميع طلبات الصرف تمت معالجتها</div></div>';return;}el.innerHTML=pnd.map(e=>'<div class="ac"><div class="ahd"><span>&#x1F4E4; سند '+e.num+' — '+e.to+'</span><span class="bdg bo">⏳ معلق</span></div><div class="aro"><span class="ak">المبلغ</span><span class="av" style="font-size:16px;color:var(--dn)">'+fR(e.amount)+'</span></div><div class="aro"><span class="ak">البيان</span><span class="av">'+e.desc+'</span></div><div class="aro"><span class="ak">مركز التكلفة</span><span class="av">'+e.cc+'</span></div><div class="aro"><span class="ak">الطريقة</span><span class="av">'+e.method+'</span></div><div class="aro"><span class="ak">مقدم الطلب</span><span class="av">'+e.by+'</span></div><div class="aro"><span class="ak">تاريخ الطلب</span><span class="av">'+e.date+'</span></div>'+(can('all')||can('ap')?'<div class="ab2"><button class="btn bss" onclick="apEx(this.dataset.id)" data-id="'+e.id+'">✅ اعتماد وترحيل للخزينة</button><button class="btn bd2" onclick="rjEx(\''+e.id+'\')">❌ رفض مع سبب</button></div>':'<div class="al ai" style="margin-top:8px">يتطلب صلاحية المدير المالي أو مدير النظام</div>')+'</div>').join('');}
 /* ─── CUSTODY ─── */
 function loadCu(){
@@ -4189,77 +4017,197 @@ function parseCSVLine(line){
 
 
 function _tryAutoLogin(){try{var sess=localStorage.getItem('qawafil_session');if(!sess)return;var s=JSON.parse(sess);if(!s||!s.u||(Date.now()-s.t)>30*24*60*60*1000){localStorage.removeItem('qawafil_session');return;}if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);if(!S.data.users||!S.data.users.length){setTimeout(_tryAutoLogin,500);return;}var usr=S.data.users.find(function(x){return x.u===s.u&&x.active;});if(!usr){localStorage.removeItem('qawafil_session');return;}S.cu=usr;usr.ll=new Date().toISOString();var lp=G('LP');if(lp&&lp.parentNode)lp.parentNode.removeChild(lp);G('APP').style.display='block';localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now()}));initApp();}catch(e){}}
-function getDeleteReason(t,n){var r=prompt('⚠️ حذف '+t+' رقم '+n+'\nسبب الحذف:');if(r===null)return null;if(!r.trim()){toast('سبب الحذف إجباري','e');return null;}return r.trim();}
+
+function getDeleteReason(t,n){var r=prompt('حذف '+t+' رقم '+n+'\nسبب الحذف:');if(r===null)return null;if(!r.trim()){toast('سبب الحذف إجباري','e');return null;}return r.trim();}
+
 function logDeletion(t,doc,rsn){alog('حذف '+t,'سريال '+(doc.num||'—')+' — '+rsn);if(!S.data.deletedSerials)S.data.deletedSerials=[];S.data.deletedSerials.push({type:t,num:doc.num,amount:doc.amount||0,desc:doc.desc||'',to:doc.to||'',date:doc.date||td2(),deletedBy:S.cu?S.cu.name:'',deletedAt:new Date().toISOString(),reason:rsn});}
-function showDeletedSerials(){var types=[{name:'مصروفات الخزينة',data:S.data.expenses,ctr:S.data.ctr.ex},{name:'مقبوضات الخزينة',data:S.data.receipts,ctr:S.data.ctr.rc},{name:'الوارد البنكي',data:S.data.bankIn,ctr:S.data.ctr.bi||0},{name:'الصادر البنكي',data:S.data.bankOut,ctr:S.data.ctr.bo||0}];var html='';var total=0;types.forEach(function(t){if(!t.ctr||!t.data.length)return;var es={};t.data.forEach(function(e){if(e.num)es[e.num]=true;});var nums=t.data.filter(function(e){return e.num;}).map(function(e){return e.num;});if(!nums.length)return;var mn=Math.min.apply(null,nums);var missing=[];for(var i=mn;i<=t.ctr;i++){if(!es[i])missing.push(i);}if(!missing.length)return;total+=missing.length;html+='<div style="margin-bottom:16px;border:1px solid #ddd;border-radius:8px;overflow:hidden"><div style="background:#1A56DB;color:#fff;padding:10px 14px;font-weight:700">'+t.name+' ('+missing.length+' محذوف)</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f5f5f5"><th style="padding:8px;text-align:right;border:1px solid #ddd">السريال</th><th style="padding:8px;text-align:right;border:1px solid #ddd">سبب الحذف</th><th style="padding:8px;text-align:right;border:1px solid #ddd">محذوف بواسطة</th></tr></thead><tbody>';missing.forEach(function(n){var d=(S.data.deletedSerials||[]).find(function(x){return x.num==n;});html+='<tr><td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#DC2626">'+n+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.reason:'—')+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.deletedBy:'—')+'</td></tr>';});html+='</tbody></table></div>';});if(!total)html='<div style="padding:40px;text-align:center;color:#059669">✅ لا توجد سيريالات محذوفة</div>';var w=window.open('','_blank','width=800,height=600');w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>السيريالات المحذوفة</title></head><body dir="rtl" style="font-family:Cairo,Arial;padding:20px"><h2>📋 السيريالات المحذوفة</h2>'+html+'</body></html>');w.document.close();}
+
+function showDeletedSerials(){var types=[{name:'مصروفات الخزينة',data:S.data.expenses,ctr:S.data.ctr.ex},{name:'مقبوضات الخزينة',data:S.data.receipts,ctr:S.data.ctr.rc},{name:'الوارد البنكي',data:S.data.bankIn,ctr:S.data.ctr.bi||0},{name:'الصادر البنكي',data:S.data.bankOut,ctr:S.data.ctr.bo||0}];var html='';var total=0;types.forEach(function(t){if(!t.ctr||!t.data.length)return;var es={};t.data.forEach(function(e){if(e.num)es[e.num]=true;});var nums=t.data.filter(function(e){return e.num;}).map(function(e){return e.num;});if(!nums.length)return;var mn=Math.min.apply(null,nums);var missing=[];for(var i=mn;i<=t.ctr;i++){if(!es[i])missing.push(i);}if(!missing.length)return;total+=missing.length;html+='<div style="margin-bottom:16px;border:1px solid #ddd;border-radius:8px;overflow:hidden"><div style="background:#1A56DB;color:#fff;padding:10px 14px;font-weight:700">'+t.name+' ('+missing.length+' محذوف)</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f5f5f5"><th style="padding:8px;text-align:right;border:1px solid #ddd">السريال</th><th style="padding:8px;text-align:right;border:1px solid #ddd">سبب الحذف</th><th style="padding:8px;text-align:right;border:1px solid #ddd">محذوف بواسطة</th></tr></thead><tbody>';missing.forEach(function(n){var d=(S.data.deletedSerials||[]).find(function(x){return x.num==n;});html+='<tr><td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#DC2626">'+n+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.reason:'—')+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.deletedBy:'—')+'</td></tr>';});html+='</tbody></table></div>';});if(!total)html='<div style="padding:40px;text-align:center;color:#059669">لا توجد سيريالات محذوفة</div>';var w=window.open('','_blank','width=800,height=600');w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>السيريالات المحذوفة</title></head><body dir="rtl" style="font-family:Cairo,Arial;padding:20px"><h2>السيريالات المحذوفة</h2>'+html+'</body></html>');w.document.close();}
+
+function assignMissingSerials(){var changed=false;var exNoNum=S.data.expenses.filter(function(e){return !e.num;});if(exNoNum.length){exNoNum.sort(function(a,b){return (a.at||a.date||'').localeCompare(b.at||b.date||'');});var mx=S.data.expenses.filter(function(e){return e.num;}).reduce(function(m,e){return Math.max(m,e.num);},S.data.ctr.ex||2000);exNoNum.forEach(function(e){e.num=++mx;});S.data.ctr.ex=mx;changed=true;}var rcNoNum=S.data.receipts.filter(function(r){return !r.num;});if(rcNoNum.length){rcNoNum.sort(function(a,b){return (a.at||a.date||'').localeCompare(b.at||b.date||'');});var mr=S.data.receipts.filter(function(r){return r.num;}).reduce(function(m,r){return Math.max(m,r.num);},S.data.ctr.rc||1000);rcNoNum.forEach(function(r){r.num=++mr;});S.data.ctr.rc=mr;changed=true;}var biNoNum=S.data.bankIn.filter(function(b){return !b.num;});if(biNoNum.length){biNoNum.sort(function(a,b){return (a.at||a.date||'').localeCompare(b.at||b.date||'');});var mb=S.data.bankIn.filter(function(b){return b.num;}).reduce(function(m,b){return Math.max(m,b.num);},S.data.ctr.bi||3000);biNoNum.forEach(function(b){b.num=++mb;});S.data.ctr.bi=mb;changed=true;}var boNoNum=S.data.bankOut.filter(function(b){return !b.num;});if(boNoNum.length){boNoNum.sort(function(a,b){return (a.at||a.date||'').localeCompare(b.at||b.date||'');});var mo=S.data.bankOut.filter(function(b){return b.num;}).reduce(function(m,b){return Math.max(m,b.num);},S.data.ctr.bo||4000);boNoNum.forEach(function(b){b.num=++mo;});S.data.ctr.bo=mo;changed=true;}if(changed){sv();toast('تم تعيين السيريالات');alog('تعيين سيريالات','تلقائي');var pg=document.querySelector('.pg.on');if(pg){var pgId=pg.id.replace('pg-','');var L={tr:loadTr,bk:loadBk};if(L[pgId])L[pgId]();}}}
+
+function fillBkStmAcc(){var s=G('bkStmAcc');if(!s)return;var cur=s.value;s.innerHTML='<option value="">كل الحسابات</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>';}).join('');s.value=cur;}
+
+function loadBkStm(){var f=V('bkStF'),t=V('bkStT');if(!f||!t){toast('يرجى تحديد الفترة','w');return;}fillBkStmAcc();var accId=V('bkStmAcc')||'';var accName=accId?(S.data.bankAccounts||[]).find(function(a){return a.id===accId;})?.name||'':'كل الحسابات';var allBi=S.data.bankIn.filter(function(b){return !accId||b.accId===accId;});var allBo=S.data.bankOut.filter(function(b){return(!accId||b.accId===accId)&&b.status==='approved';});var openIn=allBi.filter(function(b){return b.date<f;}).reduce(function(s,b){return s+b.amount;},0);var openOut=allBo.filter(function(b){return b.date<f;}).reduce(function(s,b){return s+b.amount;},0);var accOpenBal=0;if(accId){var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});if(acc)accOpenBal=acc.balance||0;}var openingBal=accOpenBal+openIn-openOut;var bI=allBi.filter(function(b){return b.date>=f&&b.date<=t;});var bO=allBo.filter(function(b){return b.date>=f&&b.date<=t;});var tI=bI.reduce(function(s,b){return s+b.amount;},0);var tO=bO.reduce(function(s,b){return s+b.amount;},0);var closingBal=openingBal+tI-tO;var rows=[...bI.map(function(b){return{d:b.date,num:b.num||'—',desc:b.desc||b.from||'وارد',acc:b.accName||'',type:'وارد',in:b.amount,out:0};}), ...bO.map(function(b){return{d:b.date,num:b.num||'—',desc:b.desc||b.to||'صادر',acc:b.accName||'',type:'صادر',in:0,out:b.amount};})].sort(function(a,b){return a.d.localeCompare(b.d);});var running=openingBal;var rowsHtml=rows.map(function(r){running+=r.in-r.out;return'<tr><td style="font-family:monospace;white-space:nowrap">'+r.d+'</td><td style="font-size:11px;color:var(--gr)">'+r.num+'</td><td>'+r.desc+'</td>'+(!accId?'<td><span style="font-size:10px;color:var(--gr)">'+r.acc+'</span></td>':'')+'<td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td><td style="color:var(--sc);font-family:monospace">'+(r.in?fR(r.in):'—')+'</td><td style="color:var(--dn);font-family:monospace">'+(r.out?fR(r.out):'—')+'</td><td style="font-weight:700;font-family:monospace;color:'+(running>=0?'var(--sc)':'var(--dn)')+'">'+fR(running)+'</td></tr>';}).join('');G('bkStmC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">رصيد افتتاحي</div><div class="mv2" style="color:var(--ry)">'+fR(openingBal)+'</div><div class="ms2">قبل '+f+'</div></div><div class="met mg"><div class="ml2">إجمالي الوارد</div><div class="mv2">'+fR(tI)+'</div></div><div class="met mr"><div class="ml2">إجمالي الصادر</div><div class="mv2">'+fR(tO)+'</div></div><div class="met '+(closingBal>=0?'mg':'mr')+'"><div class="ml2">رصيد ختامي</div><div class="mv2" style="color:'+(closingBal>=0?'var(--sc)':'var(--dn)')+'">'+fR(closingBal)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>السند</th><th>البيان</th>'+(!accId?'<th>الحساب</th>':'')+'<th>النوع</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody><tr style="background:var(--ltr)"><td colspan="'+(accId?'5':'6')+'" style="font-weight:700;text-align:left">رصيد افتتاحي — '+accName+'</td><td></td><td></td><td style="font-weight:700;font-family:monospace">'+fR(openingBal)+'</td></tr>'+rowsHtml+'<tr style="background:var(--ltr);border-top:2px solid var(--bd)"><td colspan="'+(accId?'5':'6')+'" style="font-weight:700;text-align:left">الرصيد الختامي</td><td style="color:var(--sc);font-weight:700;font-family:monospace">'+fR(tI)+'</td><td style="color:var(--dn);font-weight:700;font-family:monospace">'+fR(tO)+'</td><td style="font-weight:700;font-family:monospace;color:'+(closingBal>=0?'var(--sc)':'var(--dn)')+'">'+fR(closingBal)+'</td></tr></tbody></table></div>';window._bkStmData={f:f,t:t,accName:accName,openingBal:openingBal,tI:tI,tO:tO,closingBal:closingBal,rows:rows,accId:accId};}
+
+function exportBkStmExcel(){var d=window._bkStmData;if(!d){toast('يرجى عرض الكشف أولاً','w');return;}var csv='﻿';csv+='كشف حساب البنك — '+d.accName+'\n';csv+='من '+d.f+' إلى '+d.t+'\n\n';csv+='الرصيد الافتتاحي,'+d.openingBal+'\n\n';csv+='التاريخ,السند,البيان,'+(d.accId?'':'الحساب,')+'النوع,وارد,صادر,الرصيد\n';var running=d.openingBal;d.rows.forEach(function(r){running+=r.in-r.out;csv+=r.d+','+r.num+',"'+r.desc+'",'+(d.accId?'':r.acc+',')+r.type+','+(r.in||'')+','+(r.out||'')+','+running+'\n';});csv+='\nإجمالي الوارد,'+d.tI+'\n';csv+='إجمالي الصادر,'+d.tO+'\n';csv+='الرصيد الختامي,'+d.closingBal+'\n';var b=new Blob([csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='كشف_بنك_'+d.f+'_'+d.t+'.csv';a.click();toast('تم التصدير');}
+
+function loadStm(){var f=V('stF'),t=V('stT');if(!f||!t){toast('يرجى تحديد الفترة','w');return;}var allRc=S.data.receipts;var allEx=S.data.expenses.filter(e=>e.status==='approved');var openIn=allRc.filter(r=>r.date<f).reduce((s,r)=>s+r.amount,0);var openOut=allEx.filter(e=>e.date<f).reduce((s,e)=>s+e.amount,0);var openingBal=openIn-openOut;var rc=allRc.filter(r=>r.date>=f&&r.date<=t);var ex=allEx.filter(e=>e.date>=f&&e.date<=t);var tI=rc.reduce((s,r)=>s+r.amount,0);var tO=ex.reduce((s,e)=>s+e.amount,0);var closingBal=openingBal+tI-tO;var rows=[...rc.map(r=>({d:r.date,num:r.num||'—',desc:r.desc,type:'وارد',in:r.amount,out:0})),...ex.map(e=>({d:e.date,num:e.num||'—',desc:e.desc,type:'صادر',in:0,out:e.amount}))].sort((a,b)=>a.d.localeCompare(b.d));var running=openingBal;var rH=rows.map(function(r){running+=r.in-r.out;return'<tr><td style="font-family:monospace">'+r.d+'</td><td style="font-size:11px;color:var(--gr)">'+r.num+'</td><td>'+r.desc+'</td><td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td><td style="color:var(--sc);font-family:monospace">'+(r.in?fR(r.in):'—')+'</td><td style="color:var(--dn);font-family:monospace">'+(r.out?fR(r.out):'—')+'</td><td style="font-weight:700;font-family:monospace;color:'+(running>=0?'var(--sc)':'var(--dn)')+'">'+fR(running)+'</td></tr>';}).join('');G('stmC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">رصيد افتتاحي</div><div class="mv2" style="color:var(--ry)">'+fR(openingBal)+'</div><div class="ms2">قبل '+f+'</div></div><div class="met mg"><div class="ml2">إجمالي الوارد</div><div class="mv2">'+fR(tI)+'</div></div><div class="met mr"><div class="ml2">إجمالي الصادر</div><div class="mv2">'+fR(tO)+'</div></div><div class="met '+(closingBal>=0?'mg':'mr')+'"><div class="ml2">رصيد ختامي</div><div class="mv2" style="color:'+(closingBal>=0?'var(--sc)':'var(--dn)')+'">'+fR(closingBal)+'</div></div></div><div style="margin-bottom:8px"><button class="btn bsm" onclick="exportStmExcel()">📥 Excel</button></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>السند</th><th>البيان</th><th>النوع</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody><tr style="background:var(--ltr)"><td colspan="4" style="font-weight:700;text-align:left">رصيد افتتاحي</td><td></td><td></td><td style="font-weight:700;font-family:monospace">'+fR(openingBal)+'</td></tr>'+rH+'<tr style="background:var(--ltr);border-top:2px solid var(--bd)"><td colspan="4" style="font-weight:700;text-align:left">الرصيد الختامي</td><td style="color:var(--sc);font-weight:700;font-family:monospace">'+fR(tI)+'</td><td style="color:var(--dn);font-weight:700;font-family:monospace">'+fR(tO)+'</td><td style="font-weight:700;font-family:monospace;color:'+(closingBal>=0?'var(--sc)':'var(--dn)')+'">'+fR(closingBal)+'</td></tr></tbody></table></div>';window._stmData={f:f,t:t,openingBal:openingBal,tI:tI,tO:tO,closingBal:closingBal,rows:rows};}
+
+function exportStmExcel(){var d=window._stmData;if(!d){toast('يرجى عرض الكشف أولاً','w');return;}var csv='﻿';csv+='كشف الخزينة\n';csv+='من '+d.f+' إلى '+d.t+'\n\n';csv+='الرصيد الافتتاحي,'+d.openingBal+'\n\n';csv+='التاريخ,السند,البيان,النوع,وارد,صادر,الرصيد\n';var running=d.openingBal;d.rows.forEach(function(r){running+=r.in-r.out;csv+=r.d+','+r.num+',"'+r.desc+'",'+r.type+','+(r.in||'')+','+(r.out||'')+','+running+'\n';});csv+='\nإجمالي الوارد,'+d.tI+'\n';csv+='إجمالي الصادر,'+d.tO+'\n';csv+='الرصيد الختامي,'+d.closingBal+'\n';var b=new Blob([csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='كشف_الخزينة_'+d.f+'_'+d.t+'.csv';a.click();toast('تم التصدير');}
 
 
-/* ─── Assign serials to old records without num ─── */
-function assignMissingSerials(){
-  var changed=false;
+function openBkRev(date,accId){var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});if(!acc)return;G('bkRevMTitle').textContent=date;G('bkRevMAccName').textContent=acc.name;G('bkRevMDate').value=date;G('bkRevMAcc').value=accId;G('bkRevMNotes').value='';G('bkRevMDiff').style.display='none';var dayIn=S.data.bankIn.filter(function(b){return b.date===date&&b.accId===accId;});var dayOut=S.data.bankOut.filter(function(b){return b.date===date&&b.accId===accId&&b.status==='approved';});var tI=dayIn.reduce(function(s,b){return s+b.amount;},0);var tO=dayOut.reduce(function(s,b){return s+b.amount;},0);var allIn=S.data.bankIn.filter(function(b){return b.accId===accId&&b.date<=date;});var allOut=S.data.bankOut.filter(function(b){return b.accId===accId&&b.status==='approved'&&b.date<=date;});var sysBal=(acc.balance||0)+allIn.reduce(function(s,b){return s+b.amount;},0)-allOut.reduce(function(s,b){return s+b.amount;},0);var txnHtml='';dayIn.forEach(function(b){txnHtml+='<div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--sc)"><span>↑ '+(b.desc||b.from||'وارد')+'</span><span>+'+fR(b.amount)+'</span></div>';});dayOut.forEach(function(b){txnHtml+='<div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--dn)"><span>↓ '+(b.desc||b.to||'صادر')+'</span><span>-'+fR(b.amount)+'</span></div>';});if(!txnHtml)txnHtml='<div style="color:var(--gr)">لا توجد حركات</div>';G('bkRevMTxns').innerHTML=txnHtml;G('bkRevMSysbal').textContent=fR(sysBal);G('bkRevMSysbal').dataset.sysBal=sysBal;var existing=(S.data.bankRevs||[]).find(function(r){return r.date===date&&r.accId===accId;});G('bkRevMActual').value=existing?existing.actualBal:'';if(existing&&existing.notes)G('bkRevMNotes').value=existing.notes;OM('bkRevM');if(existing)calcBkRevDiff();}
+
+function calcBkRevDiff(){var actual=parseFloat(G('bkRevMActual').value)||0;var sysBal=parseFloat(G('bkRevMSysbal').dataset.sysBal)||0;var diff=actual-sysBal;var el=G('bkRevMDiff');if(!G('bkRevMActual').value){el.style.display='none';return;}el.style.display='block';if(Math.abs(diff)<0.01){el.style.background='#D1FAE5';el.style.color='#065F46';el.innerHTML='✅ الأرصدة متطابقة';}else{el.style.background='#FEF3C7';el.style.color='#92400E';el.innerHTML='⚠️ فرق: <strong>'+fR(Math.abs(diff))+'</strong> '+(diff>0?'(البنك أعلى)':'(النظام أعلى)');}}
+
+function saveBkRev(){var date=V('bkRevMDate');var accId=V('bkRevMAcc');var actual=parseFloat(V('bkRevMActual'));if(!date||!accId||isNaN(actual)){toast('يرجى إدخال رصيد البنك الفعلي','e');return;}var sysBal=parseFloat(G('bkRevMSysbal').dataset.sysBal)||0;var diff=actual-sysBal;if(!S.data.bankRevs)S.data.bankRevs=[];S.data.bankRevs=S.data.bankRevs.filter(function(r){return!(r.date===date&&r.accId===accId);});S.data.bankRevs.push({id:uid(),date:date,accId:accId,sysBal:sysBal,actualBal:actual,diff:diff,notes:V('bkRevMNotes'),by:S.cu?S.cu.name:'',at:new Date().toISOString()});alog('مراجعة بنكية','تاريخ '+date+' — '+(Math.abs(diff)<0.01?'متطابق':'فرق '+fR(Math.abs(diff))));sv();CM('bkRevM');loadBkRevTab();toast(Math.abs(diff)<0.01?'✅ الأرصدة متطابقة':'✅ تمت المراجعة مع فارق '+fR(Math.abs(diff)));}
+
+
+/* ─── Bank Daily Review ─── */
+function loadBkCal(){
+  var cal=G('bkCal');
+  var info=G('bkRevInfo');
+  if(!cal)return;
+  var days=[];
+  for(var i=29;i>=0;i--){
+    var d=new Date();d.setDate(d.getDate()-i);
+    days.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+  }
+  var accs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});
+  var revs=S.data.bankRevs||[];
+  var today=td2();
+  var unreviewed=0;
+  cal.innerHTML='';
+  days.forEach(function(day){
+    var el=document.createElement('div');
+    if(day===today){
+      el.title='اليوم — المراجعة في الغد';
+      el.style.cssText='background:var(--bd);border-radius:6px;padding:4px;text-align:center;font-size:10px;color:var(--gr)';
+      el.innerHTML=day.slice(8)+'<br>📅';
+      cal.appendChild(el);return;
+    }
+    var dayRevs=revs.filter(function(r){return r.date===day;});
+    var reviewedAccs=dayRevs.map(function(r){return r.accId;});
+    var allReviewed=accs.length>0&&accs.every(function(a){return reviewedAccs.indexOf(a.id)>=0;});
+    var anyReviewed=dayRevs.length>0;
+    var hasDiff=dayRevs.some(function(r){return Math.abs(r.diff||0)>0;});
+    if(!anyReviewed)unreviewed++;
+    var color=allReviewed?(hasDiff?'var(--wn)':'var(--sc)'):anyReviewed?'var(--wn)':'var(--dn)';
+    var icon=allReviewed?(hasDiff?'⚠️':'✅'):anyReviewed?'⚡':'❌';
+    var lbl=allReviewed?' مكتملة':anyReviewed?' جزئية':' لم تراجع';
+    el.title=day+' —'+lbl;
+    el.style.cssText='background:'+color+'22;border:1px solid '+color+';border-radius:6px;padding:4px;text-align:center;font-size:10px;cursor:pointer';
+    el.innerHTML=day.slice(8)+'<br>'+icon;
+    (function(dy){el.addEventListener('click',function(){openBkRev(dy);});})(day);
+    cal.appendChild(el);
+  });
+  if(info)info.textContent=unreviewed>0?'— '+unreviewed+' يوم غير مراجع':'— كل الأيام مراجَعة ✅';
+}
+
+function openBkRev(date){
+  var accs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});
+  if(!accs.length){toast('لا توجد حسابات بنكية','w');return;}
   
-  // Expenses - sort by date then by existing num
-  var exNoNum=S.data.expenses.filter(function(e){return !e.num;});
-  if(exNoNum.length){
-    // Sort by date ascending (oldest first)
-    exNoNum.sort(function(a,b){return (a.at||a.date||'').localeCompare(b.at||b.date||'');});
-    // Find max existing num
-    var maxEx=S.data.expenses.filter(function(e){return e.num;}).reduce(function(m,e){return Math.max(m,e.num);},S.data.ctr.ex||2000);
-    exNoNum.forEach(function(e){e.num=++maxEx;});
-    S.data.ctr.ex=maxEx;
-    changed=true;
+  G('bkRevMDate').textContent=date;
+  G('bkRevMDateIn').value=date;
+  G('bkRevActual').value='';
+  G('bkRevNotes').value='';
+  G('bkRevDiffBox').style.display='none';
+  G('bkRevMId').value='';
+  
+  // Fill account dropdown
+  var accSel=G('bkRevMAcc');
+  accSel.innerHTML=accs.map(function(a){
+    return'<option value="'+a.id+'">'+a.name+'</option>';
+  }).join('');
+  
+  // Auto-select first unreviewed account
+  var revs=(S.data.bankRevs||[]).filter(function(r){return r.date===date;});
+  var reviewedAccs=revs.map(function(r){return r.accId;});
+  var unrevAcc=accs.find(function(a){return reviewedAccs.indexOf(a.id)<0;});
+  if(unrevAcc)accSel.value=unrevAcc.id;
+  
+  // Load existing review if any
+  var existing=revs.find(function(r){return r.accId===accSel.value;});
+  if(existing){
+    G('bkRevActual').value=existing.actualBal||'';
+    G('bkRevNotes').value=existing.notes||'';
+    G('bkRevMId').value=existing.id||'';
   }
   
-  // Receipts
-  var rcNoNum=S.data.receipts.filter(function(r){return !r.num;});
-  if(rcNoNum.length){
-    rcNoNum.sort(function(a,b){return (a.at||a.date||'').localeCompare(b.at||b.date||'');});
-    var maxRc=S.data.receipts.filter(function(r){return r.num;}).reduce(function(m,r){return Math.max(m,r.num);},S.data.ctr.rc||1000);
-    rcNoNum.forEach(function(r){r.num=++maxRc;});
-    S.data.ctr.rc=maxRc;
-    changed=true;
-  }
+  updateBkRevSys();
+  OM('bkRevM');
+}
+
+function updateBkRevSys(){
+  var date=G('bkRevMDateIn').value;
+  var accId=G('bkRevMAcc').value;
+  if(!date||!accId)return;
   
-  // Bank In
-  var biNoNum=S.data.bankIn.filter(function(b){return !b.num;});
-  if(biNoNum.length){
-    biNoNum.sort(function(a,b){return (a.at||a.date||'').localeCompare(b.at||b.date||'');});
-    var maxBi=S.data.bankIn.filter(function(b){return b.num;}).reduce(function(m,b){return Math.max(m,b.num);},S.data.ctr.bi||3000);
-    biNoNum.forEach(function(b){b.num=++maxBi;});
-    S.data.ctr.bi=maxBi;
-    changed=true;
-  }
+  // Calculate system balance up to this date
+  var allBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date<=date;});
+  var allBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date<=date&&b.status==='approved';});
   
-  // Bank Out
-  var boNoNum=S.data.bankOut.filter(function(b){return !b.num;});
-  if(boNoNum.length){
-    boNoNum.sort(function(a,b){return (a.at||a.date||'').localeCompare(b.at||b.date||'');});
-    var maxBo=S.data.bankOut.filter(function(b){return b.num;}).reduce(function(m,b){return Math.max(m,b.num);},S.data.ctr.bo||4000);
-    boNoNum.forEach(function(b){b.num=++maxBo;});
-    S.data.ctr.bo=maxBo;
-    changed=true;
-  }
+  var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});
+  var openBal=acc?acc.balance||0:0;
   
-  if(changed){
-    sv();
-    toast('✅ تم تعيين السيريالات للبيانات القديمة');
-    alog('تعيين سيريالات','تم تعيين سيريالات للبيانات القديمة تلقائياً');
-    // Reload current page
-    var pg=document.querySelector('.pg.on');
-    if(pg){var pgId=pg.id.replace('pg-','');var L={tr:loadTr,bk:loadBk};if(L[pgId])L[pgId]();}
-  } else {
-    toast('كل البيانات لديها سيريالات بالفعل ✅');
+  var totalIn=allBi.reduce(function(s,b){return s+b.amount;},0);
+  var totalOut=allBo.reduce(function(s,b){return s+b.amount;},0);
+  
+  // Day transactions
+  var dayBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date===date;});
+  var dayBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date===date&&b.status==='approved';});
+  var dayIn=dayBi.reduce(function(s,b){return s+b.amount;},0);
+  var dayOut=dayBo.reduce(function(s,b){return s+b.amount;},0);
+  
+  var sysBal=openBal+totalIn-totalOut;
+  
+  G('bkRevSysIn').textContent=fR(dayIn);
+  G('bkRevSysOut').textContent=fR(dayOut);
+  G('bkRevSysBal').textContent=fR(sysBal);
+  
+  calcBkRevDiff();
+}
+
+function calcBkRevDiff(){
+  var actual=parseFloat(G('bkRevActual').value)||0;
+  if(!actual){G('bkRevDiffBox').style.display='none';return;}
+  
+  var sysBalText=G('bkRevSysBal').textContent.replace(/[,ر ل]/g,'');
+  var sysBal=parseFloat(sysBalText)||0;
+  var diff=actual-sysBal;
+  
+  G('bkRevDiffBox').style.display='block';
+  G('bkRevDiffBox').style.background=Math.abs(diff)<0.01?'var(--sc)22':'var(--dn)22';
+  G('bkRevDiff').style.color=Math.abs(diff)<0.01?'var(--sc)':'var(--dn)';
+  G('bkRevDiff').textContent=(diff>=0?'+':'')+fR(diff)+' ريال';
+  if(Math.abs(diff)<0.01){
+    G('bkRevDiff').textContent='✅ متطابق';
+    G('bkRevDiff').style.color='var(--sc)';
   }
 }
 
-
-function fillBkStmAcc(){
-  var s=G('bkStmAcc');
-  if(!s)return;
-  s.innerHTML='<option value="">كل الحسابات</option>'+
-    (S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){
-      return'<option value="'+a.id+'">'+a.name+'</option>';
-    }).join('');
+function saveBkRev(){
+  var date=G('bkRevMDateIn').value;
+  var accId=G('bkRevMAcc').value;
+  var actual=parseFloat(G('bkRevActual').value);
+  
+  if(!date||!accId||isNaN(actual)){toast('يرجى تعبئة كل الحقول المطلوبة','e');return;}
+  
+  var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});
+  
+  // Calculate system balance
+  var allBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date<=date;});
+  var allBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date<=date&&b.status==='approved';});
+  var openBal=acc?acc.balance||0:0;
+  var sysBal=openBal+allBi.reduce(function(s,b){return s+b.amount;},0)-allBo.reduce(function(s,b){return s+b.amount;},0);
+  var diff=actual-sysBal;
+  
+  if(!S.data.bankRevs)S.data.bankRevs=[];
+  
+  // Update existing or add new
+  var existId=G('bkRevMId').value;
+  var existing=existId?S.data.bankRevs.find(function(r){return r.id===existId;}):
+    S.data.bankRevs.find(function(r){return r.date===date&&r.accId===accId;});
+  
+  if(existing){
+    existing.actualBal=actual;existing.sysBal=sysBal;existing.diff=diff;
+    existing.notes=G('bkRevNotes').value;existing.by=S.cu?S.cu.u:'';existing.at=new Date().toISOString();
+  } else {
+    S.data.bankRevs.push({
+      id:uid(),date:date,accId:accId,accName:acc?acc.name:'',
+      actualBal:actual,sysBal:sysBal,diff:diff,
+      notes:G('bkRevNotes').value,
+      by:S.cu?S.cu.u:'',at:new Date().toISOString()
+    });
+  }
+  
+  alog('مراجعة بنك',(acc?acc.name:'')+' — '+date+' — '+(Math.abs(diff)<0.01?'متطابق':'فارق '+fR(diff)));
+  sv();CM('bkRevM');loadBkCal();
+  
+  var msg=Math.abs(diff)<0.01?'✅ تم حفظ المراجعة — الأرصدة متطابقة':'⚠️ تم حفظ المراجعة — يوجد فارق '+fR(diff);
+  toast(msg,Math.abs(diff)<0.01?'i':'w');
 }
 
 /* ─── KEYBOARD & EVENTS ─── */
@@ -4270,6 +4218,29 @@ G('lgu').addEventListener('keydown',e=>{if(e.key==='Enter')G('lgp').focus();});
 window.addEventListener('resize',()=>{if(window.innerWidth>768)G('SB').classList.remove('open');G('menuBtn').style.display=window.innerWidth<=768?'':'none';});
 ld();
 </script>
+<!-- BANK REVIEW MODAL -->
+<div class="mo2" id="bkRevM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">📋 مراجعة يومية — <span id="bkRevMTitle"></span></div><button class="mcl" onclick="CM('bkRevM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>الحساب</label><div id="bkRevMAccName" style="font-weight:700;color:var(--nv);padding:6px 0"></div></div>
+    <div class="fld"><label>تاريخ اليوم المُراجَع</label><input type="date" id="bkRevMDate" style="font-family:var(--fn);padding:9px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"></div>
+    <div style="background:var(--ltr);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;color:var(--gr);margin-bottom:6px">حركات اليوم حسب النظام:</div>
+      <div id="bkRevMTxns" style="font-size:13px;max-height:150px;overflow-y:auto"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:700;border-top:1px solid var(--bd);padding-top:8px">
+        <span>رصيد النظام:</span><span id="bkRevMSysbal" style="font-family:monospace;color:var(--nv)"></span>
+      </div>
+    </div>
+    <div class="fld"><label>رصيد البنك الفعلي <span class="req">*</span></label>
+      <input type="number" id="bkRevMActual" placeholder="0.00" oninput="calcBkRevDiff()" style="font-family:var(--fn);padding:9px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+    </div>
+    <div id="bkRevMDiff" style="text-align:center;padding:10px;border-radius:8px;margin-bottom:8px;display:none;font-size:13px"></div>
+    <div class="fld"><label>ملاحظات</label><input type="text" id="bkRevMNotes" placeholder="أي ملاحظات" style="font-family:var(--fn);padding:9px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"></div>
+  </div>
+  <input type="hidden" id="bkRevMAcc">
+  <div class="mft"><button class="btn" onclick="CM('bkRevM')">إلغاء</button><button class="btn bg3" onclick="saveBkRev()">✅ تأكيد المراجعة</button></div>
+</div></div>
+
 <!-- EDIT RECEIPT MODAL -->
 <div class="mo2" id="rcEM"><div class="mb2"><div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل مقبوض</div><button class="mcl" onclick="CM('rcEM')">×</button></div>
 <div class="fg">
@@ -4901,16 +4872,28 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb on" onclick="ST('bkTbs','bkIn',this)">الوارد البنكي</button>
     <button class="tabb" onclick="ST('bkTbs','bkOut',this)">الصادر البنكي</button>
     <button class="tabb" onclick="ST('bkTbs','bkAp',this);loadBkAp()">&#x23F3; طلبات الاعتماد <span class="sbdg" id="bkApCnt" style="display:none">0</span></button>
-    <button class="tabb" onclick="ST('bkTbs','bkStm',this);(function(){var s=G('bkStmAcc');if(s&&s.options.length<=1){s.innerHTML='<option value="">كل الحسابات</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+(a.name)+'</option>';}).join('');}})()">كشف الحساب</button>
+    <button class="tabb" onclick="ST('bkTbs','bkStm',this);fillBkStmAcc()">كشف الحساب</button>
+    <button class="tabb" onclick="ST('bkTbs','bkRevTab',this);loadBkRevTab()">📋 مراجعة يومية <span class="sbdg" id="bkRevBdg" style="display:none">!</span></button>
     <button class="tabb" onclick="ST('bkTbs','bkFlow',this)">التدفق النقدي</button>
   </div>
   <div id="bkTbs">
-    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:700px"><thead><tr><th>السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
-    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:700px"><thead><tr><th>السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
+    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
     <div class="tabc" id="bkStm"><div class="card"><div class="cht">كشف الحساب البنكي<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="bkStmAcc" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none;font-family:var(--fn)"><option value="">كل الحسابات</option></select><input type="date" id="bkStF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><input type="date" id="bkStT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><button class="btn bsm bp" onclick="loadBkStm()">&#x1F50E; عرض</button></div></div><div id="bkStmC"></div></div></div>
     <div class="tabc" id="bkAp">
       <div class="al aw">&#x26A0;&#xFE0F; الصادرات التالية تنتظر اعتمادك. بعد الاعتماد يتم تأثيرها على رصيد الحساب.</div>
       <div id="bkApList"><div class="lb"><div class="sp"></div></div></div>
+    </div>
+    <div class="tabc" id="bkRevTab">
+      <div class="card">
+        <div class="cht">📋 مراجعة البنك اليومية
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="bkRevAccSel" onchange="loadBkRevTab()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل الحسابات</option></select>
+            <input type="month" id="bkRevMonth" onchange="loadBkRevTab()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+          </div>
+        </div>
+        <div id="bkRevTabC"></div>
+      </div>
     </div>
     <div class="tabc" id="bkFlow"><div class="card"><div class="cht">التدفق النقدي البنكي — 6 أشهر</div><canvas id="chFlow" height="260"></canvas></div></div>
   </div>
@@ -5254,7 +5237,7 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ AUDIT ═══ -->
 <div class="pg" id="pg-au">
   <div class="page-hdr"><h2>سجل العمليات</h2>
-    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="assignMissingSerials()">🔢 تعيين سيريالات</button><button class="btn bsm" onclick="showDeletedSerials()">📋 المحذوفة</button><button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
+    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="assignMissingSerials()">🔢 سيريالات</button><button class="btn bsm" onclick="showDeletedSerials()">📋 المحذوفة</button><button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
   </div>
   <div class="card">
     <div class="srch-bar">
