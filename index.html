@@ -4090,34 +4090,52 @@ function openBkRev(date){
   var accs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});
   if(!accs.length){toast('لا توجد حسابات بنكية','w');return;}
   
-  G('bkRevMDate').textContent=date;
-  G('bkRevMDateIn').value=date;
-  G('bkRevActual').value='';
-  G('bkRevNotes').value='';
-  G('bkRevDiffBox').style.display='none';
-  G('bkRevMId').value='';
-  
-  // Fill account dropdown
-  var accSel=G('bkRevMAcc');
-  accSel.innerHTML=accs.map(function(a){
-    return'<option value="'+a.id+'">'+a.name+'</option>';
-  }).join('');
-  
-  // Auto-select first unreviewed account
+  // Support multi-account: open for each account
+  // First find unreviewed account
   var revs=(S.data.bankRevs||[]).filter(function(r){return r.date===date;});
   var reviewedAccs=revs.map(function(r){return r.accId;});
-  var unrevAcc=accs.find(function(a){return reviewedAccs.indexOf(a.id)<0;});
-  if(unrevAcc)accSel.value=unrevAcc.id;
+  var acc=accs.find(function(a){return reviewedAccs.indexOf(a.id)<0;})||accs[0];
   
-  // Load existing review if any
-  var existing=revs.find(function(r){return r.accId===accSel.value;});
+  openBkRevForAcc(date, acc.id);
+}
+
+function openBkRevForAcc(date, accId){
+  var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});
+  if(!acc)return;
+  
+  // Set title
+  G('bkRevMTitle').textContent=date+' — '+acc.name;
+  G('bkRevMAccName').textContent=acc.name;
+  G('bkRevMAcc').value=accId;
+  G('bkRevMDate').value=date;
+  G('bkRevMActual').value='';
+  G('bkRevMNotes').value='';
+  G('bkRevMDiff').style.display='none';
+  
+  // Calculate system balance for this account up to this date
+  var allBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date<=date;});
+  var allBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date<=date&&b.status==='approved';});
+  var openBal=acc.balance||0;
+  var sysBal=openBal+allBi.reduce(function(s,b){return s+b.amount;},0)-allBo.reduce(function(s,b){return s+b.amount;},0);
+  
+  // Day transactions
+  var dayBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date===date;});
+  var dayBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date===date&&b.status==='approved';});
+  
+  var txHtml='';
+  dayBi.forEach(function(b){txHtml+='<div style="color:var(--sc)">+ '+fR(b.amount)+' — '+(b.desc||b.from||'وارد')+'</div>';});
+  dayBo.forEach(function(b){txHtml+='<div style="color:var(--dn)">- '+fR(b.amount)+' — '+(b.desc||b.to||'صادر')+'</div>';});
+  if(!txHtml)txHtml='<div style="color:var(--gr)">لا توجد حركات</div>';
+  G('bkRevMTxns').innerHTML=txHtml;
+  G('bkRevMSysbal').textContent=fR(sysBal);
+  
+  // Load existing review
+  var existing=(S.data.bankRevs||[]).find(function(r){return r.date===date&&r.accId===accId;});
   if(existing){
-    G('bkRevActual').value=existing.actualBal||'';
-    G('bkRevNotes').value=existing.notes||'';
-    G('bkRevMId').value=existing.id||'';
+    G('bkRevMActual').value=existing.actualBal||'';
+    G('bkRevMNotes').value=existing.notes||'';
   }
   
-  updateBkRevSys();
   OM('bkRevM');
 }
 
@@ -4152,27 +4170,26 @@ function updateBkRevSys(){
 }
 
 function calcBkRevDiff(){
-  var actual=parseFloat(G('bkRevActual').value)||0;
-  if(!actual){G('bkRevDiffBox').style.display='none';return;}
-  
-  var sysBalText=G('bkRevSysBal').textContent.replace(/[,ر ل]/g,'');
+  var actual=parseFloat(G('bkRevMActual').value)||0;
+  var diffEl=G('bkRevMDiff');
+  if(!actual||!diffEl){if(diffEl)diffEl.style.display='none';return;}
+  var sysBalText=G('bkRevMSysbal').textContent.replace(/[^0-9.-]/g,'');
   var sysBal=parseFloat(sysBalText)||0;
   var diff=actual-sysBal;
-  
-  G('bkRevDiffBox').style.display='block';
-  G('bkRevDiffBox').style.background=Math.abs(diff)<0.01?'var(--sc)22':'var(--dn)22';
-  G('bkRevDiff').style.color=Math.abs(diff)<0.01?'var(--sc)':'var(--dn)';
-  G('bkRevDiff').textContent=(diff>=0?'+':'')+fR(diff)+' ريال';
+  diffEl.style.display='block';
   if(Math.abs(diff)<0.01){
-    G('bkRevDiff').textContent='✅ متطابق';
-    G('bkRevDiff').style.color='var(--sc)';
+    diffEl.style.background='var(--sc)22';diffEl.style.color='var(--sc)';
+    diffEl.textContent='✅ الأرصدة متطابقة';
+  } else {
+    diffEl.style.background='var(--dn)22';diffEl.style.color='var(--dn)';
+    diffEl.textContent='⚠️ فارق: '+(diff>=0?'+':'')+fR(diff)+' ريال';
   }
 }
 
 function saveBkRev(){
-  var date=G('bkRevMDateIn').value;
+  var date=G('bkRevMDate').value;
   var accId=G('bkRevMAcc').value;
-  var actual=parseFloat(G('bkRevActual').value);
+  var actual=parseFloat(G('bkRevMActual').value);
   
   if(!date||!accId||isNaN(actual)){toast('يرجى تعبئة كل الحقول المطلوبة','e');return;}
   
@@ -4194,12 +4211,12 @@ function saveBkRev(){
   
   if(existing){
     existing.actualBal=actual;existing.sysBal=sysBal;existing.diff=diff;
-    existing.notes=G('bkRevNotes').value;existing.by=S.cu?S.cu.u:'';existing.at=new Date().toISOString();
+    existing.notes=G('bkRevMNotes').value;existing.by=S.cu?S.cu.u:'';existing.at=new Date().toISOString();
   } else {
     S.data.bankRevs.push({
       id:uid(),date:date,accId:accId,accName:acc?acc.name:'',
       actualBal:actual,sysBal:sysBal,diff:diff,
-      notes:G('bkRevNotes').value,
+      notes:G('bkRevMNotes').value,
       by:S.cu?S.cu.u:'',at:new Date().toISOString()
     });
   }
