@@ -951,7 +951,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],vehicles:[],bankAccounts:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
+var S={cu:null,data:{users:[],employees:[],vehicles:[],bankAccounts:[],deletedSerials:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,cl:3000}}};
 var BK_KEY='qawafil_v13'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
@@ -4087,7 +4087,7 @@ function showDeletedSerials(){
       '<th style="padding:8px;text-align:right;border:1px solid #ddd">محذوف بواسطة</th>'+
       '</tr></thead><tbody>';
     missing.forEach(function(n){
-      var d=(S.data.deletedSerials||[]).find(function(x){return x.num===n;});
+      var d=(S.data.deletedSerials||[]).find(function(x){return x.num==n;});
       html+='<tr>'+
         '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#DC2626">'+n+'</td>'+
         '<td style="padding:8px;border:1px solid #ddd">'+(d?d.reason:'—')+'</td>'+
