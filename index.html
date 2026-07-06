@@ -77,7 +77,7 @@ tbody tr:hover td{background:var(--ltr)}
 .fld textarea{min-height:75px;resize:vertical}
 .fsep{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gr);padding:10px 0 5px;border-bottom:1px solid var(--bd);margin-bottom:4px}
 .mo2{display:none;position:fixed;inset:0;background:rgba(11,31,75,.55);z-index:300;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
-.mo2.on{display:flex}#cuSetM.on{z-index:9999!important}
+.mo2.on{display:flex}#cuSetM.on{z-index:9999}
 .mb2{background:var(--wh);border-radius:16px;padding:24px;width:600px;max-width:100%;margin-bottom:30px}
 .mb2.lg{width:820px}.mb2.sm{width:420px}
 .mhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
@@ -115,7 +115,7 @@ tbody tr:hover td{background:var(--ltr)}
 .kpi{width:90px;height:90px;border-radius:50%;background:conic-gradient(var(--ry) var(--p,0%),var(--bd) 0);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;position:relative;margin:0 auto 10px}
 .kpi::after{content:"";position:absolute;inset:8px;background:var(--wh);border-radius:50%}
 .kpi span{position:relative;z-index:1}
-.lp{position:fixed;inset:0;background:linear-gradient(135deg,#0B1F4B 0%,#1A56DB 100%);display:flex;align-items:center;justify-content:center;padding:20px;z-index:500;overflow-y:auto;transition:opacity .2s}
+.lp{min-height:100vh;background:linear-gradient(135deg,#0B1F4B 0%,#1A56DB 100%);display:flex;align-items:center;justify-content:center;padding:20px}
 .lb2{background:var(--wh);border-radius:20px;padding:40px;width:440px;max-width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3)}
 .llo{text-align:center;margin-bottom:28px}
 .llic{width:72px;height:72px;background:linear-gradient(135deg,var(--ry),var(--ry2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 14px;box-shadow:0 8px 24px rgba(26,86,219,.4)}
@@ -145,7 +145,11 @@ tbody tr:hover td{background:var(--ltr)}
       <div class="fld"><label>اسم المستخدم</label><input type="text" id="lgu" placeholder="أدخل اسم المستخدم" autocomplete="username"></div>
       <div class="fld"><label>كلمة المرور</label><input type="password" id="lgp" placeholder="أدخل كلمة المرور" autocomplete="current-password"></div>
       <div id="lgE" style="display:none" class="al" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">&#x274C; اسم المستخدم أو كلمة المرور غير صحيحة</div>
-      <button class="btn bp" style="width:100%;padding:13px;font-size:15px;justify-content:center" onclick="doLogin()">&#x1F511; دخول للنظام</button>
+      <div id="lpLoadingBar" style="text-align:center;padding:10px;color:var(--gr);font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <div style="width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--ry);border-radius:50%;animation:spin .8s linear infinite"></div>
+        <span id="lpLoadingMsg">جاري الاتصال بالسيرفر...</span>
+      </div>
+      <button class="btn bp" id="lpLoginBtn" style="width:100%;padding:13px;font-size:15px;justify-content:center;display:none" onclick="doLogin()">&#x1F511; دخول للنظام</button>
     </div>
   </div>
 </div>
@@ -479,7 +483,7 @@ tbody tr:hover td{background:var(--ltr)}
       </div>
     </div>
     <div class="tw"><table id="vehTbl" style="min-width:950px">
-      <thead><tr><th>رقم اللوحة</th><th>الحروف</th><th>الماركة / الموديل</th><th>السنة</th><th>نوع الوقود</th><th>اللون</th><th>رقم الهيكل</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <thead><tr><th>رقم اللوحة</th><th>الحروف</th><th>الموديل</th><th>النوع/الماركة</th><th>السنة</th><th>نوع الوقود</th><th>اللون</th><th>الحالة</th><th>ملاحظات</th><th>إجراء</th></tr></thead>
       <tbody id="vehTbd"></tbody>
     </table></div>
   </div>
@@ -533,7 +537,7 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb" onclick="ST('cuTbs','cuItemRep',this);loadCuItemReport()">&#x1F4CA; تقرير البنود</button>
   </div>
   <div id="cuTbs">
-    <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl" style="min-width:850px"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>مُرجَع للخزينة</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
+    <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl" style="min-width:850px"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
     <div class="tabc" id="cuEnt"><div class="card"><div class="cht">سجل مصروفات العهد<div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('cuEnTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('cuEnTbl')">&#x1F4E5;</button></div></div><div class="tw"><table id="cuEnTbl" style="min-width:750px"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البند</th><th>المبلغ</th><th>رقم السيارة</th><th>اللوحة</th><th>البيان</th></tr></thead><tbody id="cuEnTbd"></tbody></table></div></div></div>
     <div class="tabc" id="cuCar"><div class="card"><div class="cht">تقرير المصروفات حسب السيارة</div><div id="cuCarC"></div></div></div>
     <div class="tabc" id="cuBal"><div class="card"><div class="cht">ملخص أرصدة العهد الحالية</div><div id="cuBalC"></div></div></div>
@@ -707,7 +711,8 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ AUDIT ═══ -->
 <div class="pg" id="pg-au">
   <div class="page-hdr"><h2>سجل العمليات</h2>
-    <button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button>
+    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="showDeletedSerials()">📋 السيريالات المحذوفة</button>
+    <button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
   </div>
   <div class="card">
     <div class="srch-bar">
@@ -815,12 +820,7 @@ tbody tr:hover td{background:var(--ltr)}
   </div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="ex-ds" placeholder="وصف واضح للمصروف"></div>
   <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="ex-cc" onchange="fillExItems()" style="font-family:var(--fn)"></select></div>
-      <div class="fld"><label>البند (اختياري)</label>
-        <div style="display:flex;gap:6px">
-          <select id="ex-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
-          <button type="button" onclick="addItemFromModal('ex-cc','ex-item')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px;font-family:var(--fn)" title="إضافة بند جديد">+</button>
-        </div>
-      </div>
+      <div class="fld"><label>البند (اختياري)</label><select id="ex-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر البند —</option></select></div>
       <div class="fld"><label>طريقة الصرف</label><select id="ex-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
   <div class="fld"><label>السيارة (اختياري)</label>
     <select id="ex-veh-sel" onchange="fillExVeh()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
@@ -891,15 +891,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mo2" id="ceM"><div class="mb2"><div class="mhd"><div class="mtt">&#x1F4B8; تسجيل مصروف على عهدة</div><button class="mcl" onclick="CM('ceM')">×</button></div>
 <div class="fg">
   <div class="fr"><div class="fld"><label>الموظف <span class="req">*</span></label><select id="ce-c"><option value="">اختر الموظف</option></select></div><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="ce-d"></div></div>
-  <div class="fld"><label>مركز التكلفة</label>
-    <select id="ce-cc-sel" onchange="fillCeItems()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر المركز —</option></select>
-  </div>
-  <div class="fr"><div class="fld"><label>البند <span class="req">*</span></label>
-      <div style="display:flex;gap:6px">
-        <select id="ce-it" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
-        <button type="button" onclick="addItemFromModal('ce-cc-sel','ce-it')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px" title="إضافة بند جديد">+</button>
-      </div>
-    </div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ce-a" placeholder="0"></div></div>
+  <div class="fr"><div class="fld"><label>البند <span class="req">*</span></label><input type="text" id="ce-it" placeholder="نوع المصروف"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ce-a" placeholder="0"></div></div>
   <div class="fld"><label>البيان التفصيلي</label><input type="text" id="ce-ds" placeholder="وصف تفصيلي للمصروف"></div>
   <div style="background:var(--ltr);border-radius:10px;padding:12px">
     <div style="font-size:12px;font-weight:700;color:var(--gr);margin-bottom:8px">&#x1F697; السيارة (اختياري)</div>
@@ -1011,7 +1003,12 @@ function setSyncIcon(status){
   el.innerHTML=icons[status]||'';
   el.style.color=colors[status]||'var(--gr)';
   el.title=status==='saving'?'جاري الحفظ...':status==='ok'?'محفوظ في السيرفر':'خطأ في الحفظ';
-  // LP status handled separately
+  // Update loading message in LP
+  var lm=document.getElementById('lpLoadingMsg');
+  if(lm){
+    if(status==='error')lm.textContent='تعذّر الاتصال — جاري التحميل محلياً...';
+    else if(status==='ok')lm.textContent='تم الاتصال بالسيرفر ✓';
+  }
 }
 
 /* ── Load: Firebase primary, localStorage fallback ── */
@@ -1023,6 +1020,7 @@ function ld(){
       console.warn('Firebase timeout — falling back to localStorage');
       setSyncIcon('error');
       _loadLocal();
+      _startListener();
       toast('تعذّر الاتصال بالسيرفر — تم التحميل من الذاكرة المحلية','w');
     },8000);
 
@@ -1030,17 +1028,17 @@ function ld(){
       clearTimeout(_fbTimeout);
       var d=snap.val();
       if(d&&d.users){
-        var arrFields=['users','employees','vehicles','bankAccounts','clients','costCenters','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
-        arrFields.forEach(function(f){if(d[f]&&!Array.isArray(d[f]))d[f]=Object.values(d[f]);if(!d[f])d[f]=[];});
         S.data=Object.assign({},S.data,d);
+        var arrFields=['users','employees','vehicles','bankAccounts','clients','costCenters','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
+        arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
         setSyncIcon('ok');
       } else {
         _loadLocal();
         sv();
       }
       _showLoginPage();
-      // Auto-login from saved session
       _tryAutoLogin();
+      _startListener();
     }).catch(function(err){
       clearTimeout(_fbTimeout);
       console.warn('Firebase read failed, using localStorage:',err);
@@ -1056,27 +1054,21 @@ function ld(){
 function _loadLocal(){
   try{
     var d=localStorage.getItem(BK_KEY);
-    if(d){
-      var parsed=JSON.parse(d);
-      var arrF=['users','employees','vehicles','bankAccounts','clients','costCenters',
-        'prices','ops','receipts','expenses','bankIn','bankOut','bankRevs',
-        'custodies','custodyEnts','claims','audit'];
-      arrF.forEach(function(f){
-        if(parsed[f]&&!Array.isArray(parsed[f]))parsed[f]=Object.values(parsed[f]);
-        if(!parsed[f])parsed[f]=[];
-      });
-      S.data=Object.assign({},S.data,parsed);
-    }
+    if(d)S.data=Object.assign({},S.data,JSON.parse(d));
   }catch(e){}
-  if(!S.data.users||!S.data.users.length)seed();
+  if(!S.data.users.length)seed();
   _showLoginPage();
   _tryAutoLogin();
 }
 
 function _showLoginPage(){
-  // Focus on username field
-  var u=document.getElementById('lgu');
-  if(u)setTimeout(function(){u.focus();},100);
+  // Hide loading bar, show login button
+  var lb=document.getElementById('lpLoadingBar');
+  var btn=document.getElementById('lpLoginBtn');
+  var msg=document.getElementById('lpLoadingMsg');
+  if(lb)lb.style.display='none';
+  if(btn)btn.style.display='';
+  if(msg)msg.textContent='';
 }
 
 /* ── Realtime listener: sync changes from other users ── */
@@ -1084,44 +1076,30 @@ var _listenerActive=false;
 function _startListener(){
   if(_listenerActive||!DB)return;
   _listenerActive=true;
-  var _firstFire=true;
   DB.ref(DB_REF).on('value',function(snap){
     var d=snap.val();
     if(!d||!d.users)return;
-    // Skip first fire if user already logged in (avoid double-load)
-    if(_firstFire){
-      _firstFire=false;
-      if(S.cu)return;
-    }
     clearTimeout(_saveTimer);
-    // Convert all arrays before merging
+    S.data=Object.assign({},S.data,d);
+    // Ensure arrays
     var arrF=['users','employees','vehicles','bankAccounts','clients','costCenters',
       'prices','ops','receipts','expenses','bankIn','bankOut','bankRevs',
       'custodies','custodyEnts','claims','audit'];
     arrF.forEach(function(f){
-      if(d[f]&&!Array.isArray(d[f]))d[f]=Object.values(d[f]);
-      if(!d[f])d[f]=[];
+      if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);
+      if(!S.data[f])S.data[f]=[];
     });
-    S.data=Object.assign({},S.data,d);
     // Refresh current page if app is open
     if(S.cu){
-      try{
-        var pg=document.querySelector('.pg.on');
-        if(pg){
-          var pgId=pg.id.replace('pg-','');
-          // Don't refresh if a modal is open (would close it)
-          var anyModalOpen=document.querySelector('.mo2.on');
-          if(!anyModalOpen){
-            var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,
-                   ap:loadAp,veh:loadVeh,ba:loadBA,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,
-                   rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};
-            if(L[pgId])L[pgId]();
-          }
-        }
-        updApCnt();checkAlerts();
-      }catch(e){}
-      setSyncIcon('ok');
-    } else {
+      var pg=document.querySelector('.pg.on');
+      if(pg){
+        var pgId=pg.id.replace('pg-','');
+        var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,
+               ap:loadAp,veh:loadVeh,ba:loadBA,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,
+               rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};
+        if(L[pgId])L[pgId]();
+      }
+      updApCnt();updBkApCnt();checkAlerts();
       setSyncIcon('ok');
     }
   },function(err){
@@ -1178,8 +1156,8 @@ var ROLES={
             canDel:false, canEdit:false}
 };
 var CL_STGS=['حادث جديد','تم رفع المستندات','تم تقديم المطالبة','تحت المراجعة','تمت الموافقة','تم استلام التعويض','مغلقة'];
-var td2=()=>{var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
-var ym=()=>{var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');};
+var td2=()=>new Date().toISOString().split('T')[0];
+var ym=()=>new Date().toISOString().slice(0,7);
 var yr=()=>new Date().getFullYear().toString();
 var fmt=(n,d)=>{d=d||0;if(isNaN(n)||n==null)return'—';return Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});};
 var fR=n=>fmt(n)+' ريال';
@@ -1199,13 +1177,10 @@ var G=id=>document.getElementById(id);
 var V=id=>(G(id)||{}).value||'';
 var Nv=id=>parseFloat(V(id))||0;
 function toast(msg,t){t=t||'s';var c=G('TC'),el=document.createElement('div');el.className='tst t'+t;el.innerHTML='<span>'+(t==='s'?'✅':t==='e'?'❌':t==='w'?'⚠️':'ℹ️')+'</span><span>'+msg+'</span>';c.appendChild(el);setTimeout(()=>{if(el.parentNode)el.remove();},3800);}
-function alog(a,det){S.data.audit.unshift({id:uid(),dt:new Date().toISOString(),ld:td2(),user:S.cu?S.cu.name:'نظام',role:S.cu?ROLES[S.cu.r].lbl:'',action:a,details:det||'',res:'نجح'});if(S.data.audit.length>1000)S.data.audit=S.data.audit.slice(0,1000);}
+function alog(a,det){S.data.audit.unshift({id:uid(),dt:new Date().toISOString(),user:S.cu?S.cu.name:'نظام',role:S.cu?ROLES[S.cu.r].lbl:'',action:a,details:det||'',res:'نجح'});if(S.data.audit.length>1000)S.data.audit=S.data.audit.slice(0,1000);}
 function getPr(cid,date){var p=S.data.prices.filter(x=>x.cid===cid&&x.from<=date&&(!x.to||x.to>=date));p.sort((a,b)=>b.from.localeCompare(a.from));return p.length?p[0].price:0;}
 function doLogin(){
   var u=V('lgu').trim(),p=V('lgp');
-  if(!u||!p){G('lgE').style.display='block';return;}
-  // Ensure arrays
-  if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);
   var user=S.data.users.find(x=>x.u===u&&x.p===p&&x.active);
   if(!user){G('lgE').style.display='block';return;}
   G('lgE').style.display='none';
@@ -1213,21 +1188,15 @@ function doLogin(){
   S.cu=user;
   alog('تسجيل الدخول','المستخدم: '+user.name);
   sv();
-  // Remove LP from DOM immediately
-  var lpEl=G('LP');
-  if(lpEl&&lpEl.parentNode){lpEl.parentNode.removeChild(lpEl);}
-  var app=G('APP');
-  if(app){app.style.display='block';}
-  // Save session to localStorage
-  try{localStorage.setItem('qawafil_session',JSON.stringify({u:user.u,id:user.id,t:Date.now()}));}catch(e){}
+  G('LP').style.display='none';
+  G('APP').style.display='block';
   initApp();
 }
 function doLogout(){
   if(S.cu){S.cu.lo=new Date().toISOString();alog('تسجيل الخروج','المستخدم: '+S.cu.name);sv();}
   S.cu=null;
   G('APP').style.display='none';
-  try{localStorage.removeItem('qawafil_session');}catch(e){}
-  location.reload();
+  G('LP').style.display='flex';
   // Clear login fields
   if(G('lgu'))G('lgu').value='';
   if(G('lgp'))G('lgp').value='';
@@ -1264,8 +1233,6 @@ function initApp(){
   }
   var firstBtn=document.querySelector('.sbi[data-pg="'+firstPage+'"]')||document.querySelector('.sbi.on');
   N(firstPage,firstBtn);
-  // Start Firebase listener only after login
-  _startListener();
   // Force password change if flagged
   if(S.cu.mustChangePass){
     setTimeout(function(){openChangePass(true);},400);
@@ -1307,43 +1274,25 @@ function OM(id){
     G('rc-f').value='';G('rc-ds').value='';G('rc-a').value='';
     G('rc-rf').value='';G('rc-nt').value='';
   }
-  if(id==='exEM'){fillCCDropdowns();}
-  if(id==='exM'){
-    // Reset all fields
-    ['ex-d','ex-a','ex-t','ex-ds','ex-nt'].forEach(function(f){var el=G(f);if(el)el.value='';});
-    G('ex-d').value=td2();
-    var exCCSel=G('ex-cc');if(exCCSel)exCCSel.value='';
-    var exItemSel=G('ex-item');if(exItemSel)exItemSel.innerHTML='<option value="">— اختر البند —</option>';
-    var exVehSel=G('ex-veh-sel');if(exVehSel)exVehSel.value='';
-    fillAllEmpDropdowns();G('ex-custody-link-row').style.display='none';fillExItems();
-    var exvs=G('ex-veh-sel');if(exvs){exvs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+(v.model&&v.model!==v.make?' '+v.model:'')+'</option>';}).join('');}
+  if(id==='exM'){fillAllEmpDropdowns();G('ex-custody-link-row').style.display='none';fillExItems();
+    var exvs=G('ex-veh-sel');if(exvs){exvs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+' '+v.model+'</option>';}).join('');}
   }
-  if(id==='ceM'){
-    fillVehDropdowns();
-    fillCeCCDropdown();
-    fillCeItems();
-    var cs=G('ce-veh-sel');if(cs)cs.value='';
-    var ccs=G('ce-cc-sel');if(ccs)ccs.value='';
-    var cit=G('ce-it');if(cit)cit.innerHTML='<option value="">— اختر البند —</option>';
-  }
+  if(id==='ceM'){fillVehDropdowns();var cs=G('ce-veh-sel');if(cs)cs.value='';}
   if(id==='clM'){fillVehDropdowns();var cvs=G('cl-veh-sel');if(cvs)cvs.value='';}
   if(id==='biM'){
-    // Reset fields
     ['bi-d','bi-a','bi-f','bi-rf','bi-ds'].forEach(function(f){var el=G(f);if(el)el.value='';});
     G('bi-d').value=td2();
-    var biAccSel=G('bi-acc');
-    if(biAccSel){biAccSel.innerHTML='<option value="">— اختر الحساب —</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+(a.number?' — '+a.number:'')+'</option>';}).join('');}
+    var biAccSel=G('bi-acc');if(biAccSel){biAccSel.innerHTML='<option value="">— اختر الحساب —</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>';}).join('');}
   }
   if(id==='boM'){
-    // Reset fields
     ['bo-d','bo-a','bo-t','bo-rf','bo-ds'].forEach(function(f){var el=G(f);if(el)el.value='';});
     G('bo-d').value=td2();
-    var boAccSel=G('bo-acc');if(boAccSel)boAccSel.value='';
-    fillAllEmpDropdowns();
-    G('bo-custody-link-row').style.display='none';
-    var bovs=G('bo-veh-sel');if(bovs){bovs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+(v.model&&v.model!==v.make?' '+v.model:'')+'</option>';}).join('');}
-    // Fill account dropdown
-    var boAccSel2=G('bo-acc');if(boAccSel2){boAccSel2.innerHTML='<option value="">— اختر الحساب —</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>';}).join('');}
+    var boAccSel=G('bo-acc');if(boAccSel){boAccSel.innerHTML='<option value="">— اختر الحساب —</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>';}).join('');}
+    fillAllEmpDropdowns();G('bo-custody-link-row').style.display='none';
+    var bovs=G('bo-veh-sel');if(bovs){bovs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+'</option>';}).join('');}
+  }
+  if(id==='boM'){fillAllEmpDropdowns();G('bo-custody-link-row').style.display='none';
+    var bovs=G('bo-veh-sel');if(bovs){bovs.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return'<option value="'+v.id+'">'+v.num+' '+v.letters+' — '+v.make+' '+v.model+'</option>';}).join('');}
   }
   if(id==='baM'){G('ba-id').value='';G('ba-name').value='';G('ba-number').value='';G('ba-branch').value='';G('ba-opening').value='';G('ba-color').value='#059669';}
   if(id==='vehM'){
@@ -1354,14 +1303,7 @@ function OM(id){
   }
   if(id==='ccM'){G('cc-id').value='';G('cc-name').value='';G('cc-desc').value='';G('cc-color').value='#1A56DB';}
   G(id).classList.add('on');
-}function CM(id){
-  var el=G(id);
-  if(!el)return;
-  el.classList.remove('on');
-  // Reset inline styles if any
-  if(el.style.display)el.style.display='';
-  if(el.style.position)el.style.position='';
-}
+}function CM(id){G(id).classList.remove('on');}
 function FT(tid,q){var t=G(tid);if(!t)return;var rows=t.querySelectorAll('tbody tr');q=q.toLowerCase();rows.forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';});}
 function ET(tid){var t=G(tid);if(!t){toast('لا يوجد بيانات','w');return;}var csv='';t.querySelectorAll('tr').forEach(r=>{csv+=Array.from(r.querySelectorAll('th,td')).map(c=>'"'+c.textContent.trim().replace(/"/g,'""')+'"').join(',')+'\n';});var b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=tid+'_'+td2()+'.csv';a.click();toast('تم التصدير بنجاح');}
 function ST(cid,tid,btn){var c=G(cid);if(!c)return;c.querySelectorAll('.tabc').forEach(t=>t.classList.remove('on'));var t=G(tid);if(t)t.classList.add('on');var tabs=btn?btn.closest('.tabs'):null;if(tabs)tabs.querySelectorAll('.tabb').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');}
@@ -1387,7 +1329,7 @@ function loadDash(){
   G('DPend').innerHTML=pnd.length?pnd.map(e=>'<div class="ac"><div class="ahd"><span>'+e.to+'</span><span class="bdg bo">معلق</span></div><div class="aro"><span class="ak">المبلغ</span><span class="av">'+fR(e.amount)+'</span></div><div class="aro"><span class="ak">البيان</span><span class="av">'+e.desc+'</span></div>'+(can('all')||can('ap')?'<div class="ab2"><button class="btn bss bxs" onclick="apEx(\''+e.id+'\')">✓ اعتماد</button><button class="btn bd2 bxs" onclick="rjEx(\''+e.id+'\')">✗ رفض</button></div>':'')+'</div>').join(''):'<div class="es"><div class="esic">✅</div><div class="essb">لا طلبات معلقة</div></div>';
   var aCl=S.data.claims.filter(c=>c.stage!=='مغلقة'&&c.stage!=='تم استلام التعويض').slice(0,4);
   G('DClms').innerHTML=aCl.length?aCl.map(c=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)"><div><div style="font-size:13px;font-weight:600">'+c.num+'</div><div style="font-size:11px;color:var(--gr)">'+c.car+' — '+c.driver+'</div></div><div style="text-align:left">'+clBadge(c.stage)+'<div style="font-size:10px;color:var(--gr2);margin-top:3px">'+daysB(c.idate)+' يوم</div></div></div>').join(''):'<div class="es"><div class="esic">&#x1F6E1;&#xFE0F;</div><div class="essb">لا مطالبات نشطة</div></div>';
-  var act=S.data.audit.filter(a=>(a.ld||a.dt.substring(0,10))===tdy);
+  var act=S.data.audit.filter(a=>a.dt.startsWith(tdy));
   G('DAct').innerHTML=act.length?act.slice(0,6).map(a=>'<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd);align-items:flex-start"><span style="font-size:15px;flex-shrink:0">&#x1F4CC;</span><div><div style="font-size:12px;font-weight:600">'+a.action+'</div><div style="font-size:11px;color:var(--gr)">'+a.user+' — '+new Date(a.dt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})+'</div></div></div>').join(''):'<div class="es"><div class="esic">&#x1F4A1;</div><div class="essb">لا يوجد نشاط اليوم</div></div>';
 }
 /* ─── OPERATIONS ─── */
@@ -1600,21 +1542,10 @@ function loadAp(){var pnd=S.data.expenses.filter(e=>e.status==='pending');var el
 function loadCu(){
   var cu=S.data.custodies,en=S.data.custodyEnts;
   var open=cu.filter(c=>c.status==='open'),sett=cu.filter(c=>c.status!=='open');
-  var tSp=en.filter(e=>e.amount>0).reduce((s,e)=>s+e.amount,0),tRm=cu.reduce((s,c)=>{
-    var cEn=en.filter(e=>e.cid===c.id);
-    var sp=cEn.filter(e=>e.amount>0&&!e.isTopup).reduce((ss,e)=>ss+e.amount,0);
-    var retOld=cEn.filter(e=>e.amount<0).reduce((ss,e)=>ss+Math.abs(e.amount),0);
-    var retNew=cEn.filter(e=>e.isReturn&&e.amount===0).reduce((ss,e)=>ss+Math.abs(e.addedToOpening||0),0);
-    return s+(c.opening-sp-retOld-retNew);
-  },0);
+  var tSp=en.filter(e=>e.amount>0).reduce((s,e)=>s+e.amount,0),tRm=cu.reduce((s,c)=>{var sp=en.filter(e=>e.cid===c.id).reduce((ss,e)=>ss+e.amount,0);return s+(c.opening-sp);},0);
   G('cuOpn').textContent=open.length;G('cuSpt').textContent=fR(tSp);G('cuRem').textContent=fR(tRm);G('cuSet').textContent=sett.length;
   fillDrops();
-  G('cuTbd').innerHTML=cu.map(c=>{
-    var cEn=en.filter(e=>e.cid===c.id);
-    var sp=cEn.filter(e=>e.amount>0&&!e.isTopup).reduce((s,e)=>s+e.amount,0);
-    var retOld=cEn.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0);
-    var retNew=cEn.filter(e=>e.isReturn&&e.amount===0).reduce((s,e)=>s+Math.abs(e.addedToOpening||0),0);
-    var rm=c.opening-sp-retOld-retNew,pct=c.opening?Math.round((sp+retOld+retNew)/c.opening*100):0,rc=pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)';return'<tr><td style="font-weight:600">'+c.name+'</td><td style="font-family:monospace;font-size:12px">'+(c.num||'—')+'</td><td>'+c.date+'</td><td style="color:var(--ry)">'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(sp)+'</td><td style="color:var(--sc);font-weight:600">'+fR(retOld+retNew)+'</td><td style="font-weight:700;color:'+rc+'">'+fR(rm)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="stb" style="width:80px;flex-shrink:0"><div class="stf" style="width:'+pct+'%;background:'+rc+'"></div></div><span style="font-size:11px;color:'+rc+'">'+pct+'%</span></div></td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="vwCu(\''+c.id+'\')">&#x1F4CB; تفاصيل</button>'+(c.status==='open'?'<button class="btn bg3 bxs" onclick="prepSetCu(\''+c.id+'\')">تسوية</button>':'')+'</div></td></tr>';}).join('')||'<tr><td colspan="9"><div class="es"><div class="essb">لا توجد عهد مسجَّلة</div></div></td></tr>';
+  G('cuTbd').innerHTML=cu.map(c=>{var sp=en.filter(e=>e.cid===c.id).reduce((s,e)=>s+e.amount,0),rm=c.opening-sp,pct=c.opening?Math.round(sp/c.opening*100):0,rc=pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)';return'<tr><td style="font-weight:600">'+c.name+'</td><td style="font-family:monospace;font-size:12px">'+(c.num||'—')+'</td><td>'+c.date+'</td><td style="color:var(--ry)">'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(sp)+'</td><td style="font-weight:700;color:'+rc+'">'+fR(rm)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="stb" style="width:80px;flex-shrink:0"><div class="stf" style="width:'+pct+'%;background:'+rc+'"></div></div><span style="font-size:11px;color:'+rc+'">'+pct+'%</span></div></td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="vwCu(\''+c.id+'\')">&#x1F4CB; تفاصيل</button>'+(c.status==='open'?'<button class="btn bg3 bxs" onclick="prepSetCu(\''+c.id+'\')">تسوية</button>':'')+'</div></td></tr>';}).join('')||'<tr><td colspan="9"><div class="es"><div class="essb">لا توجد عهد مسجَّلة</div></div></td></tr>';
   G('cuEnTbd').innerHTML=en.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{
     var isReturn=e.isReturn||e.amount<0;
     var isTopup=e.isTopup;
@@ -1632,11 +1563,7 @@ function loadCu(){
 
 function saveCe(){var cid=V('ce-c'),a=Nv('ce-a'),it=V('ce-it');if(!cid||!a||!it){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var cu=S.data.custodies.find(c=>c.id===cid);if(!cu){toast('الموظف غير موجود','e');return;}var sp=S.data.custodyEnts.filter(e=>e.cid===cid).reduce((s,e)=>s+e.amount,0);if(sp+a>cu.opening*1.1)toast('تحذير: المبلغ سيتجاوز رصيد العهدة','w');S.data.custodyEnts.push({id:uid(),cid:cid,empName:cu.name,date:V('ce-d')||td2(),item:it,amount:a,desc:V('ce-ds'),car:V('ce-cr'),plate:V('ce-pl'),by:S.cu.u,at:new Date().toISOString()});alog('قيد عهدة',cu.name+' — '+it+' — '+fR(a));sv();CM('ceM');loadCu();toast('تم تسجيل مصروف العهدة');}
 var curCuId=null;
-function vwCu(id){curCuId=id;var cu=S.data.custodies.find(c=>c.id===id);var en=S.data.custodyEnts.filter(e=>e.cid===id);var sp=en.filter(e=>e.amount>0&&!e.isTopup).reduce((s,e)=>s+e.amount,0);
-  var retOld=en.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0);
-  var retNew=en.filter(e=>e.isReturn&&e.amount===0).reduce((s,e)=>s+Math.abs(e.addedToOpening||0),0);
-  var ret=retOld+retNew;
-  var rm=cu.opening-sp-ret;G('cuDT').textContent='عهدة '+cu.name;G('cuDSetBtn').style.display=cu.status==='open'?'':'none';G('cuDC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div><div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(sp)+'</div></div><div class="met mg"><div class="ml2">مُرجَع للخزينة</div><div class="mv2" style="color:var(--sc)">'+fR(ret)+'</div></div><div class="met '+(rm<0?'mr':'mg')+'"><div class="ml2">المتبقي</div><div class="mv2">'+fR(rm)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th></tr></thead><tbody>'+en.sort((a,b)=>b.date.localeCompare(a.date)).map(function(e){
+function vwCu(id){curCuId=id;var cu=S.data.custodies.find(c=>c.id===id);var en=S.data.custodyEnts.filter(e=>e.cid===id);var sp=en.reduce((s,e)=>s+e.amount,0),rm=cu.opening-sp;G('cuDT').textContent='عهدة '+cu.name;G('cuDSetBtn').style.display=cu.status==='open'?'':'none';G('cuDC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div><div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(sp)+'</div></div><div class="met '+(rm<0?'mr':'mg')+'"><div class="ml2">المتبقي</div><div class="mv2">'+fR(rm)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th></tr></thead><tbody>'+en.sort((a,b)=>b.date.localeCompare(a.date)).map(function(e){
   var isReturn=e.isReturn||e.amount<0;
   var isTopup=e.isTopup;
   var dispAmt=isTopup?(e.addedToOpening||0):e.amount;
@@ -1712,50 +1639,15 @@ function saveEditRc(){var id=V('rce-id'),a=Nv('rce-a'),f=V('rce-f'),d=V('rce-ds'
 function delRc(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed&&!can('all')){toast('هذا المقبوض تمت مراجعته — الحذف للمدير فقط','e');return;}if(!confirm('حذف مقبوض رقم '+r.num+' بقيمة '+fR(r.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.receipts=S.data.receipts.filter(x=>x.id!==id);alog('حذف مقبوض','سند '+r.num+' — '+fR(r.amount)+' — من '+r.from);sv();loadTr();loadDash();toast('تم حذف المقبوض','w');}
 
 /* ─── EXPENSE EDIT / DELETE ─── */
-function editEx(id){
-  try{
-    var e=S.data.expenses.find(x=>x.id===id);
-    if(!e)return;
-    if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}
-    G('exe-id').value=id;
-    G('exe-d').value=e.date;
-    G('exe-a').value=e.amount;
-    G('exe-t').value=e.to;
-    G('exe-ds').value=e.desc;
-    G('exe-nt').value=e.notes||'';
-    // Fill dropdowns BEFORE opening modal
-    fillCCDropdowns();
-    var ccSel=G('exe-cc');
-    if(ccSel&&e.cc){
-      for(var i=0;i<ccSel.options.length;i++){
-        if(ccSel.options[i].value===e.cc||ccSel.options[i].text===e.cc){ccSel.selectedIndex=i;break;}
-      }
-    }
-    fillExeItems();
-    var itemSel=G('exe-item');
-    if(itemSel&&e.item){
-      var found=false;
-      for(var j=0;j<itemSel.options.length;j++){
-        if(itemSel.options[j].value===e.item){itemSel.selectedIndex=j;found=true;break;}
-      }
-      if(!found){
-        var opt=document.createElement('option');
-        opt.value=e.item;opt.textContent=e.item;opt.selected=true;
-        itemSel.appendChild(opt);
-      }
-    }
-    var em=G('exe-m');
-    if(em&&e.method){
-      for(var k=0;k<em.options.length;k++){
-        if(em.options[k].value===e.method||em.options[k].text===e.method){em.selectedIndex=k;break;}
-      }
-    }
-    OM('exEM');
-  }catch(err){console.error('editEx error:',err);toast('خطأ في فتح نافذة التعديل','e');}
-}
-function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — التعديل للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.desc=d;e.cc=V('exe-cc');e.item=V('exe-item')||e.item||'';e.method=V('exe-m');e.notes=V('exe-nt');// Always reset to pending if was rejected
-if(e.status==='rejected'||e.status==='pending'){e.status='pending';e.apBy='';e.apAt='';e.rjBy='';e.rjAt='';e.rjRsn='';}e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
-function delEx(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — الحذف للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('لا يمكن حذف مصروف معتمد — محمي من الحذف','e');return;}if(!confirm('حذف طلب صرف رقم '+e.num+' بقيمة '+fR(e.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.expenses=S.data.expenses.filter(x=>x.id!==id);alog('حذف مصروف','سند '+e.num+' — '+fR(e.amount)+' — لـ '+e.to);sv();loadTr();updApCnt();loadDash();toast('تم حذف المصروف','w');}
+function editEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}G('exe-id').value=id;G('exe-d').value=e.date;G('exe-a').value=e.amount;G('exe-t').value=e.to;G('exe-ds').value=e.desc;var cc=G('exe-cc');for(var i=0;i<cc.options.length;i++){if(cc.options[i].value===e.cc||cc.options[i].text===e.cc)cc.selectedIndex=i;}var em=G('exe-m');for(var i=0;i<em.options.length;i++){if(em.options[i].value===e.method||em.options[i].text===e.method)em.selectedIndex=i;}G('exe-nt').value=e.notes||'';OM('exEM');}
+function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — التعديل للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.desc=d;e.cc=V('exe-cc');e.method=V('exe-m');e.notes=V('exe-nt');if(!can('all')){e.status='pending';e.apBy='';e.apAt='';}e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
+function delEx(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}
+  var e=S.data.expenses.find(x=>x.id===id);if(!e)return;
+  var reason=getDeleteReason('سند صرف',e.num);if(!reason)return;
+  logDeletion('سند صرف',e,reason);
+  S.data.expenses=S.data.expenses.filter(x=>x.id!==id);
+  alog('حذف مصروف','سند '+e.num+' — '+fR(e.amount));sv();loadTr();updApCnt();toast('تم الحذف');return;}
+function _delEx_old(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — الحذف للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('لا يمكن حذف مصروف معتمد — محمي من الحذف','e');return;}if(!confirm('حذف طلب صرف رقم '+e.num+' بقيمة '+fR(e.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.expenses=S.data.expenses.filter(x=>x.id!==id);alog('حذف مصروف','سند '+e.num+' — '+fR(e.amount)+' — لـ '+e.to);sv();loadTr();updApCnt();loadDash();toast('تم حذف المصروف','w');}
 
 
 /* ─── USERS MANAGEMENT ─── */
@@ -2160,11 +2052,7 @@ function saveEx(){
   S.data.expenses.unshift(rec);
   alog('طلب صرف','لـ '+t+' — '+fR(a)+(cuLink?' — مربوط بعهدة':'')+' — معلق للاعتماد');
   sv();CM('exM');loadTr();updApCnt();
-  toast('تم إرسال طلب الصرف للاعتماد','i');
-  // Print voucher immediately after saving
-  if(confirm('هل تريد طباعة إذن الصرف الآن؟')){
-    printVoucher(rec.id);
-  }
+  toast('تم إرسال طلب الصرف للمدير المالي للاعتماد','i');
 }
 
 /* ── Override apEx to auto-add to custody when approved ── */
@@ -2555,11 +2443,8 @@ function saveRc(){
   if(isCustodyReturn&&custodyId){
     var cu=S.data.custodies.find(function(c){return c.id===custodyId;});
     if(cu){
-      var cEnV=S.data.custodyEnts.filter(function(e){return e.cid===custodyId;});
-      var sp=cEnV.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
-      var retOld=cEnV.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
-      var retNew=cEnV.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-      var rem=cu.opening-sp-retOld-retNew;
+      var sp=S.data.custodyEnts.filter(function(e){return e.cid===custodyId;}).reduce(function(s,e){return s+e.amount;},0);
+      var rem=cu.opening-sp;
       if(a>rem+0.01){
         toast('المبلغ ('+fR(a)+') أكبر من الرصيد المتبقي في العهدة ('+fR(rem)+')','e');
         return;
@@ -2587,13 +2472,12 @@ function saveRc(){
     if(cu2){
       var settleType=V('rc-settle-sel')||'partial';
       
-      // Record the return - DON'T change opening (calculated dynamically)
+      // Add negative entry to custody (return/deduction)
       S.data.custodyEnts.push({
         id:uid(),cid:custodyId,empName:cu2.name,
         date:V('rc-d')||td2(),
         item:'إرجاع لخزينة',
-        amount:0,
-        addedToOpening:-a,
+        amount:-a,  // negative = return
         desc:'إرجاع مبلغ للخزينة — سند '+S.data.ctr.rc,
         car:'',plate:'',
         isReturn:true,
@@ -2686,7 +2570,7 @@ function fillVehDropdowns(){
   var vehs=(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';});
   var opts='<option value="">— اختر السيارة —</option>'+
     vehs.map(function(v){
-      return '<option value="'+v.id+'">'+getVehLabel(v)+' — '+v.make+(v.model&&v.model!==v.make?' '+v.model:'')+'</option>';
+      return '<option value="'+v.id+'">'+getVehLabel(v)+' — '+v.make+' '+v.model+'</option>';
     }).join('');
   // Fill all vehicle selects in the system
   ['ce-veh-sel','cl-veh-sel'].forEach(function(id){
@@ -2713,12 +2597,13 @@ function loadVeh(){
     return '<tr>'+
       '<td style="font-family:monospace;font-weight:700;font-size:15px">'+v.num+'</td>'+
       '<td style="font-weight:700;font-size:15px">'+v.letters+'</td>'+
-      '<td>'+(v.make||'')+(v.model&&v.model!==v.make?' '+v.model:'')+'</td>'+
+      '<td>'+v.model+'</td>'+
+      '<td>'+v.make+'</td>'+
       '<td style="font-family:monospace">'+(v.year||'—')+'</td>'+
       '<td>'+(fuelIcon[v.fuel]||'')+' '+v.fuel+'</td>'+
       '<td>'+(v.color||'—')+'</td>'+
-      '<td style="font-family:monospace;font-size:12px;color:var(--gr)">'+(v.vin||'—')+'</td>'+
       '<td><span class="bdg '+(statusBadge[v.status]||'bg2')+'">'+v.status+'</span></td>'+
+      '<td style="font-size:12px;color:var(--gr)">'+(v.notes||'—')+'</td>'+
       '<td><div style="display:flex;gap:4px">'+
         '<button class="btn bxs" onclick="editVeh(this.dataset.id)" data-id="'+v.id+'" title="تعديل">✏️</button>'+
         (can('all')?'<button class="btn bd2 bxs" onclick="delVeh(this.dataset.id)" data-id="'+v.id+'" title="حذف">🗑️</button>':'')+
@@ -2733,8 +2618,7 @@ function saveVeh(){
   var make=document.getElementById('veh-make').value.trim();
   var model=document.getElementById('veh-model').value.trim();
   var fuel=document.getElementById('veh-fuel').value;
-  if(!num||!letters||!make||!fuel){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
-  var model=make; // model same as make
+  if(!num||!letters||!make||!model||!fuel){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
   var id=document.getElementById('veh-id').value;
   var plate=num+' '+letters;
   if(id){
@@ -2842,10 +2726,10 @@ function fillClFromVeh(){
 var cuSetRows = [];
 
 function openCuSettle(){
-  try{
-  if(!curCuId){toast('يرجى فتح تفاصيل العهدة أولاً','w');return;}
+  if(!curCuId)return;
   var cu=S.data.custodies.find(function(c){return c.id===curCuId;});
   if(!cu){toast('عهدة غير موجودة','e');return;}
+  // Reset
   cuSetRows=[];
   document.getElementById('cuSet-cuid').value=curCuId;
   document.getElementById('cuSetName').textContent=cu.name;
@@ -2855,18 +2739,18 @@ function openCuSettle(){
   document.getElementById('cuSet-type').value='partial';
   // Summary
   var en=S.data.custodyEnts.filter(function(e){return e.cid===curCuId;});
-  var sp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
-  var retOld=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
-  var retNew=en.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-  var rem=cu.opening-sp-retOld-retNew;
+  var sp=en.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+  var rem=cu.opening-sp;
   document.getElementById('cuSetSummary').innerHTML=
     '<div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div>'+
     '<div class="met mr"><div class="ml2">مصروف سابق</div><div class="mv2">'+fR(sp)+'</div></div>'+
     '<div class="met mg"><div class="ml2">المتبقي الحالي</div><div class="mv2">'+fR(rem)+'</div></div>';
+  // Render rows
   renderCuSetRows();
+  // Fill vehicle dropdown in settlement
   fillVehDropdowns();
   OM('cuSetM');
-  }catch(err){console.error('openCuSettle error:',err);toast('خطأ في فتح نافذة التقفيل: '+err.message,'e');}
+  G('cuDM').classList.remove('on');
 }
 
 function addCuSetRow(){
@@ -2875,7 +2759,6 @@ function addCuSetRow(){
 }
 
 function renderCuSetRows(){
-  try{
   var vehs=(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';});
   var vehOpts='<option value="">— بدون سيارة —</option>'+vehs.map(function(v){
     return '<option value="'+v.id+'">'+v.num+' '+v.letters+'</option>';
@@ -2906,8 +2789,8 @@ function renderCuSetRows(){
     '</tr>';
   }).join('');
   updateCuSetSummary();
-  }catch(err){console.error('renderCuSetRows:',err);}
 }
+
 function updateCuSetSummary(){
   var total=cuSetRows.reduce(function(s,r){return s+(r.amount||0);},0);
   var ret=parseFloat(document.getElementById('cuSet-return').value)||0;
@@ -2918,10 +2801,8 @@ function updateCuSetSummary(){
   var cu=S.data.custodies.find(function(c){return c.id===cuid;});
   if(!cu)return;
   var en=S.data.custodyEnts.filter(function(e){return e.cid===cuid;});
-  var prevSp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
-  var prevRetOld=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
-  var prevRetNew=en.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-  var rem=cu.opening-prevSp-prevRetOld-prevRetNew;
+  var prevSp=en.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+  var rem=cu.opening-prevSp;
   var newBal=rem-total-ret;
   var alert=document.getElementById('cuSet-balance-alert');
   if(alert){
@@ -2951,10 +2832,8 @@ function saveCuSettle(){
 
   // Validate total
   var en=S.data.custodyEnts.filter(function(e){return e.cid===cuid;});
-  var prevSp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
-  var prevRetOld=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
-  var prevRetNew=en.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-  var rem=cu.opening-prevSp-prevRetOld-prevRetNew;
+  var prevSp=en.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+  var rem=cu.opening-prevSp;
   var total=cuSetRows.reduce(function(s,r){return s+(r.amount||0);},0);
   if(total+ret>rem+0.01){toast('إجمالي المصروفات والمبلغ المُرجَع يتجاوز الرصيد المتبقي','e');return;}
 
@@ -2993,8 +2872,7 @@ function saveCuSettle(){
     // Deduct from custody
     S.data.custodyEnts.push({
       id:uid(),cid:cuid,empName:cu.name,
-      date:settDate,item:'إرجاع للخزينة',amount:0,
-      addedToOpening:-ret,
+      date:settDate,item:'إرجاع للخزينة',amount:-ret,
       desc:'مبلغ مُرجَع ضمن تقفيل '+settDate,
       car:'',plate:'',isReturn:true,
       receiptNum:S.data.ctr.rc,settleId:'sett_'+settDate,
@@ -3024,7 +2902,7 @@ function saveCuSettle(){
     toast('✅ تم التقفيل الجزئي — العهدة لا تزال مفتوحة');
   }
 
-  sv();CM('cuSetM');loadCu();CM('cuDM');
+  sv();CM('cuSetM');loadCu();
   if(G('trBal'))loadTr();
 }
 
@@ -3315,7 +3193,7 @@ function loadRpVeh(){
   if(vSel&&vSel.options.length<=1){
     vehs.forEach(function(v){
       var o=document.createElement('option');
-      o.value=v.id;o.textContent=v.num+' '+v.letters+' — '+v.make+(v.model&&v.model!==v.make?' '+v.model:'');
+      o.value=v.id;o.textContent=v.num+' '+v.letters+' — '+v.make+' '+v.model;
       vSel.appendChild(o);
     });
   }
@@ -3443,41 +3321,12 @@ function loadRpVeh(){
 
 /* ─── Dynamic item dropdown helpers ─── */
 function fillExItems(){
-  try{
-    var cc=V('ex-cc');
-    var ccs=S.data.costCenters||[];
-    var items=[];
-    if(cc){
-      var found=ccs.find(function(c){return c.name===cc;});
-      if(found&&found.items)items=found.items;
-    } else {
-      ccs.forEach(function(c){if(c.items)c.items.forEach(function(i){if(items.indexOf(i)<0)items.push(i);});});
-    }
-    var sel=G('ex-item');
-    if(!sel)return;
-    sel.innerHTML='<option value="">— اختر البند —</option>'+
-      items.map(function(i){return'<option value="'+i+'">'+i+'</option>';}).join('');
-  }catch(e){}
-}
-
-function fillExeItems(){
-  try{
-    var cc=document.getElementById('exe-cc')?document.getElementById('exe-cc').value:'';
-    var ccs=S.data.costCenters||[];
-    var items=[];
-    if(cc){
-      var found=ccs.find(function(c){return c.name===cc;});
-      if(found&&found.items)items=found.items.slice();
-    } else {
-      ccs.forEach(function(c){if(c.items)c.items.forEach(function(i){if(items.indexOf(i)<0)items.push(i);});});
-    }
-    var sel=document.getElementById('exe-item');
-    if(!sel)return;
-    var cur=sel.value;
-    sel.innerHTML='<option value="">— اختر البند —</option>'+
-      items.map(function(i){return'<option value="'+i+'">'+i+'</option>';}).join('');
-    if(cur)sel.value=cur;
-  }catch(e){console.warn('fillExeItems:',e);}
+  var cc=V('ex-cc');
+  var items=getCustodyItems(cc);
+  var sel=G('ex-item');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— اختر البند —</option>'+
+    items.map(function(i){return'<option value="'+i.name+'">'+i.name+'</option>';}).join('');
 }
 
 function fillExVeh(){
@@ -3821,7 +3670,7 @@ function rjBO(id){
 function printVoucher(id){
   var e=S.data.expenses.find(function(x){return x.id===id;});
   if(!e){toast('لم يتم العثور على السند','e');return;}
-  // Allow printing for both pending and approved
+  if(e.status!=='approved'){toast('يمكن طباعة إذن الصرف للمصروفات المعتمدة فقط','w');return;}
 
   var apUser=S.data.users.find(function(u){return u.u===e.apBy;});
   var apName=apUser?apUser.name:(e.apBy||'—');
@@ -3889,11 +3738,11 @@ function printVoucher(id){
       '<div style="height:40px"></div>'+
       '<div class="sig-line"><div class="sig-name">'+e.to+'</div><div>التوقيع والختم</div></div>'+
     '</div>'+
-    '<div class="sig-box" style="border:2px solid '+(e.status==='approved'?'#059669':'#D97706')+';border-radius:8px;padding:12px;text-align:center">'+
-      '<div class="sig-title" style="color:'+(e.status==='approved'?'#059669':'#D97706')+'">المعتمد</div>'+
+    '<div class="sig-box approved-stamp">'+
+      '<div class="sig-title">المعتمد</div>'+
       '<div style="height:20px"></div>'+
-      '<div style="font-size:18px;font-weight:900;letter-spacing:1px;border-bottom:1px solid '+(e.status==='approved'?'#059669':'#D97706')+';padding-bottom:8px;margin-bottom:8px;color:'+(e.status==='approved'?'#059669':'#D97706')+'">MR. Reyad Hussein</div>'+
-      '<div class="sig-line"><div style="font-size:10px;color:'+(e.status==='approved'?'#059669':'#D97706')+'">'+(e.status==='approved'?'✅ معتمد بتاريخ: '+apDate:'⏳ بانتظار الاعتماد')+'</div></div>'+
+      '<div style="font-size:18px;font-weight:900;letter-spacing:1px;border-bottom:1px solid #059669;padding-bottom:8px;margin-bottom:8px;color:#059669">MR. Reyad Hussein</div>'+
+      '<div class="sig-line"><div style="font-size:10px;color:#059669">✅ معتمد بتاريخ: '+apDate+'</div></div>'+
     '</div>'+
   '</div>'+
 
@@ -4039,7 +3888,8 @@ function downloadVehTemplate(){
   var headers=[
     'رقم اللوحة (أرقام)',
     'حروف اللوحة',
-    'الماركة والموديل',
+    'الماركة',
+    'الموديل',
     'سنة الصنع',
     'اللون',
     'نوع الوقود (بنزين/ديزل/كهربائي/هجين)',
@@ -4049,9 +3899,9 @@ function downloadVehTemplate(){
   ];
   // Add example rows
   var examples=[
-    ['1234','أ ب ج','تويوتا كامري 2022','2022','أبيض','بنزين','نشطة','',''],
-    ['5678','د هـ و','فورد F150 2021','2021','أسود','بنزين','نشطة','',''],
-    ['9999','س ط م','هيونداي سوناتا 2023','2023','فضي','بنزين','نشطة','',''],
+    ['1234','أ ب ج','تويوتا','كامري 2022','2022','أبيض','بنزين','نشطة','',''],
+    ['5678','د هـ و','فورد','F150 2021','2021','أسود','بنزين','نشطة','',''],
+    ['9999','س ط م','هيونداي','سوناتا 2023','2023','فضي','بنزين','نشطة','',''],
   ];
   var csv='\uFEFF'+headers.join(',')+'\n';
   examples.forEach(function(r){csv+=r.map(function(c){return'"'+c+'"';}).join(',')+'\n';});
@@ -4090,13 +3940,13 @@ function importVehFile(input){
         var num=(cols[0]||'').trim();
         var letters=(cols[1]||'').trim();
         var make=(cols[2]||'').trim();
-        var model=make;
-        var year=parseInt(cols[3])||null;
-        var color=(cols[4]||'').trim();
-        var fuel=(cols[5]||'بنزين').trim();
-        var status=(cols[6]||'نشطة').trim();
-        var vin=(cols[7]||'').trim();
-        var notes=(cols[8]||'').trim();
+        var model=(cols[3]||'').trim();
+        var year=parseInt(cols[4])||null;
+        var color=(cols[5]||'').trim();
+        var fuel=(cols[6]||'بنزين').trim();
+        var status=(cols[7]||'نشطة').trim();
+        var vin=(cols[8]||'').trim();
+        var notes=(cols[9]||'').trim();
         
         if(!num||!letters||!make){
           errors.push('سطر '+(i+1)+': بيانات ناقصة');
@@ -4165,62 +4015,6 @@ function parseCSVLine(line){
 }
 
 
-/* ─── Add item from inside modal ─── */
-function addItemFromModal(ccFieldId, itemFieldId, cuSetRowIdx){
-  var ccName='';
-  if(ccFieldId){
-    var ccSel=document.getElementById(ccFieldId);
-    ccName=ccSel?ccSel.value:'';
-  }
-  var name=prompt('اسم البند الجديد'+(ccName?' لمركز "'+ccName+'"':'')+':');
-  if(!name||!name.trim())return;
-  name=name.trim();
-  if(!S.data.costCenters)S.data.costCenters=[];
-  // Add to matching cost center or first available
-  var cc=ccName?S.data.costCenters.find(function(c){return c.name===ccName;}):null;
-  if(!cc&&S.data.costCenters.length)cc=S.data.costCenters[0];
-  if(cc){
-    if(!cc.items)cc.items=[];
-    if(cc.items.indexOf(name)<0){
-      cc.items.push(name);
-      sv();
-      toast('✅ تم إضافة البند: '+name);
-    }
-  }
-  // Refresh the item dropdown
-  if(itemFieldId){
-    fillExItems();
-    var sel=document.getElementById(itemFieldId);
-    if(sel)sel.value=name;
-  }
-  // Refresh settlement rows if applicable
-  if(cuSetRowIdx!==undefined){
-    if(cuSetRows[cuSetRowIdx])cuSetRows[cuSetRowIdx].item=name;
-    renderCuSetRows();
-  }
-}
-
-
-function fillCeItems(){
-  var cc=document.getElementById('ce-cc-sel')?document.getElementById('ce-cc-sel').value:'';
-  var items=getCustodyItems(cc);
-  var sel=document.getElementById('ce-it');
-  if(!sel)return;
-  sel.innerHTML='<option value="">— اختر البند —</option>'+
-    items.map(function(i){return'<option value="'+i.name+'">'+i.name+'</option>';}).join('');
-}
-
-function fillCeCCDropdown(){
-  var sel=document.getElementById('ce-cc-sel');
-  if(!sel)return;
-  sel.innerHTML='<option value="">— اختر المركز —</option>'+
-    (S.data.costCenters||[]).filter(function(c){return c.active;}).map(function(cc){
-      return'<option value="'+cc.name+'">'+cc.name+'</option>';
-    }).join('');
-}
-
-
-/* ─── Auto-login from saved session ─── */
 function _tryAutoLogin(){
   try{
     var sess=localStorage.getItem('qawafil_session');
@@ -4229,124 +4023,93 @@ function _tryAutoLogin(){
     if(!sObj||!sObj.u||(Date.now()-sObj.t)>30*24*60*60*1000){
       localStorage.removeItem('qawafil_session');return;
     }
-    // Ensure users is array
     if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);
-    // If users not loaded yet, retry after delay
-    if(!S.data.users||!S.data.users.length){
-      setTimeout(_tryAutoLogin,500);return;
-    }
+    if(!S.data.users||!S.data.users.length){setTimeout(_tryAutoLogin,500);return;}
     var usr=S.data.users.find(function(x){return x.u===sObj.u&&x.active;});
     if(!usr){localStorage.removeItem('qawafil_session');return;}
-    // Auto login
-    S.cu=usr;
-    usr.ll=new Date().toISOString();
+    S.cu=usr;usr.ll=new Date().toISOString();
     var lpAL=G('LP');
     if(lpAL&&lpAL.parentNode)lpAL.parentNode.removeChild(lpAL);
     G('APP').style.display='block';
     localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now()}));
     initApp();
-  }catch(e){console.warn('_tryAutoLogin error:',e);}
+  }catch(e){console.warn('_tryAutoLogin:',e);}
+}
+
+function fillExeItems(){
+  try{
+    var cc=document.getElementById('exe-cc')?document.getElementById('exe-cc').value:'';
+    var ccs=S.data.costCenters||[];
+    var items=[];
+    if(cc){var found=ccs.find(function(c){return c.name===cc;});if(found&&found.items)items=found.items.slice();}
+    else{ccs.forEach(function(c){if(c.items)c.items.forEach(function(i){if(items.indexOf(i)<0)items.push(i);});});}
+    var sel=document.getElementById('exe-item');if(!sel)return;
+    var cur=sel.value;
+    sel.innerHTML='<option value="">— اختر البند —</option>'+items.map(function(i){return'<option value="'+i+'">'+i+'</option>';}).join('');
+    if(cur)sel.value=cur;
+  }catch(e){}
 }
 
 
-/* ─── Print Pending Voucher (before approval) ─── */
-function printVoucherPending(e){
-  if(!e)return;
-  var byUser=S.data.users.find(function(u){return u.u===e.by;});
-  var byName=byUser?byUser.name:(e.by||'أمين الخزينة');
-  var printDate=new Date().toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
-
-  var html='<!DOCTYPE html><html dir="rtl" lang="ar">'+
-  '<head><meta charset="UTF-8">'+
-  '<style>'+
-    '@page{margin:15mm}'+
-    'body{font-family:Arial,sans-serif;color:#000;font-size:13px;direction:rtl}'+
-    '.header{text-align:center;border-bottom:3px double #000;padding-bottom:12px;margin-bottom:16px}'+
-    '.co-name{font-size:20px;font-weight:900}'+
-    '.vo-title{font-size:16px;font-weight:700;background:#D97706;color:#fff;display:inline-block;padding:4px 24px;border-radius:4px;margin-top:8px}'+
-    '.vo-num{font-size:13px;color:#555;margin-top:4px}'+
-    '.pending-stamp{background:#FEF3C7;border:2px solid #D97706;border-radius:8px;padding:8px 16px;text-align:center;margin-bottom:16px;color:#92400E;font-weight:700;font-size:14px}'+
-    '.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;border:1px solid #ccc;border-radius:6px;padding:12px}'+
-    '.info-row{display:flex;gap:6px;align-items:baseline}'+
-    '.info-label{font-weight:700;font-size:12px;min-width:90px}'+
-    '.info-val{font-size:13px;border-bottom:1px solid #999;flex:1;padding-bottom:2px}'+
-    '.amount-box{border:2px solid #D97706;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px}'+
-    '.amount-num{font-size:28px;font-weight:900;font-family:monospace;color:#D97706}'+
-    '.amount-words{font-size:13px;color:#555;margin-top:4px}'+
-    '.desc-box{border:1px solid #ccc;border-radius:6px;padding:10px;margin-bottom:16px;min-height:40px}'+
-    '.sigs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:24px}'+
-    '.sig-box{text-align:center;border:1px solid #ccc;border-radius:6px;padding:12px}'+
-    '.sig-title{font-weight:700;font-size:12px;margin-bottom:16px}'+
-    '.sig-line{border-top:1px solid #999;margin-top:20px;padding-top:6px;font-size:11px}'+
-    '.footer{text-align:center;font-size:10px;color:#aaa;border-top:1px solid #ddd;padding-top:8px;margin-top:16px}'+
-    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'+
-  '</style></head><body>'+
-
-  '<div class="header">'+
-    '<div class="co-name">القوافل الخمسة للخدمات اللوجستية</div>'+
-    '<div class="vo-title">⏳ إذن صرف نقدي — معلق للاعتماد</div>'+
-    '<div class="vo-num">رقم الطلب: <strong>'+e.num+'</strong></div>'+
-  '</div>'+
-
-  '<div class="pending-stamp">⚠️ هذا الإذن معلق وبانتظار اعتماد المدير المالي — لا يُصرف قبل الاعتماد</div>'+
-
-  '<div class="info-grid">'+
-    '<div class="info-row"><span class="info-label">التاريخ:</span><span class="info-val">'+e.date+'</span></div>'+
-    '<div class="info-row"><span class="info-label">مركز التكلفة:</span><span class="info-val">'+(e.cc||'—')+'</span></div>'+
-    '<div class="info-row"><span class="info-label">المستفيد:</span><span class="info-val">'+e.to+'</span></div>'+
-    '<div class="info-row"><span class="info-label">طريقة الصرف:</span><span class="info-val">'+(e.method||'نقدي')+'</span></div>'+
-  '</div>'+
-
-  '<div class="amount-box">'+
-    '<div style="font-size:12px;color:#92400E;margin-bottom:4px">المبلغ المطلوب صرفه</div>'+
-    '<div class="amount-num">'+e.amount.toLocaleString('en-US')+' ريال</div>'+
-    '<div class="amount-words">'+numToWords(e.amount)+'</div>'+
-  '</div>'+
-
-  '<div style="font-weight:700;font-size:12px;margin-bottom:4px">البيان:</div>'+
-  '<div class="desc-box">'+e.desc+'</div>'+
-
-  '<div class="sigs">'+
-    '<div class="sig-box">'+
-      '<div class="sig-title">أمين الخزينة</div>'+
-      '<div style="height:40px"></div>'+
-      '<div class="sig-line"><div style="font-weight:700">'+byName+'</div><div>التوقيع</div></div>'+
-    '</div>'+
-    '<div class="sig-box">'+
-      '<div class="sig-title">المستلم</div>'+
-      '<div style="height:40px"></div>'+
-      '<div class="sig-line"><div style="font-weight:700">'+e.to+'</div><div>التوقيع</div></div>'+
-    '</div>'+
-    '<div class="sig-box" style="border:2px dashed #D97706">'+
-      '<div class="sig-title" style="color:#D97706">المعتمد — بانتظار التوقيع</div>'+
-      '<div style="height:40px"></div>'+
-      '<div class="sig-line" style="color:#D97706"><div style="font-weight:700">MR. Reyad Hussein</div><div>بانتظار الاعتماد</div></div>'+
-    '</div>'+
-  '</div>'+
-
-  '<div class="footer">طلب صرف رقم '+e.num+' — بتاريخ '+printDate+' — معلق للاعتماد</div>'+
-  '</body></html>';
-
-  var w=window.open('','_blank','width=800,height=900');
-  w.document.write(html);
+function getDeleteReason(docType,docNum){
+  var reason=prompt('⚠️ تأكيد حذف '+docType+' رقم '+docNum+'\nيجب إدخال سبب الحذف (إجباري):');
+  if(reason===null)return null;
+  if(!reason.trim()){toast('سبب الحذف إجباري','e');return null;}
+  return reason.trim();
+}
+function logDeletion(docType,doc,reason){
+  alog('حذف '+docType,'سريال '+(doc.num||'—')+' — '+(doc.desc||'')+' — السبب: '+reason);
+  if(!S.data.deletedSerials)S.data.deletedSerials=[];
+  S.data.deletedSerials.push({type:docType,num:doc.num,amount:doc.amount,desc:doc.desc||'',
+    to:doc.to||doc.from||'',date:doc.date||td2(),
+    deletedBy:S.cu?S.cu.name:'',deletedAt:new Date().toISOString(),reason:reason});
+}
+function showDeletedSerials(){
+  var types=[
+    {name:'مصروفات الخزينة',data:S.data.expenses,ctr:S.data.ctr.ex,label:'سند صرف'},
+    {name:'مقبوضات الخزينة',data:S.data.receipts,ctr:S.data.ctr.rc,label:'سند قبض'},
+  ];
+  var html='<div style="direction:rtl;font-family:Cairo,Arial;padding:20px">';
+  var totalDeleted=0;
+  types.forEach(function(t){
+    if(!t.ctr)return;
+    var existingSet={};
+    t.data.forEach(function(e){if(e.num)existingSet[e.num]=true;});
+    var missing=[];
+    for(var i=1;i<=t.ctr;i++){if(!existingSet[i])missing.push(i);}
+    if(!missing.length)return;
+    totalDeleted+=missing.length;
+    html+='<div style="margin-bottom:20px;border:1px solid #ddd;border-radius:8px;overflow:hidden">';
+    html+='<div style="background:#1A56DB;color:#fff;padding:10px 14px;font-weight:700">'+t.name+' ('+missing.length+' محذوف)</div>';
+    html+='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f5f5f5">'+
+      '<th style="padding:8px;text-align:right;border:1px solid #ddd">السريال</th>'+
+      '<th style="padding:8px;text-align:right;border:1px solid #ddd">سبب الحذف</th>'+
+      '<th style="padding:8px;text-align:right;border:1px solid #ddd">محذوف بواسطة</th>'+
+      '</tr></thead><tbody>';
+    missing.forEach(function(n){
+      var d=(S.data.deletedSerials||[]).find(function(x){return x.num===n;});
+      html+='<tr>'+
+        '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#DC2626">'+n+'</td>'+
+        '<td style="padding:8px;border:1px solid #ddd">'+(d?d.reason:'—')+'</td>'+
+        '<td style="padding:8px;border:1px solid #ddd">'+(d?d.deletedBy:'—')+'</td>'+
+      '</tr>';
+    });
+    html+='</tbody></table></div>';
+  });
+  if(!totalDeleted)html+='<div style="text-align:center;padding:40px;color:#059669">✅ لا توجد سيريالات محذوفة</div>';
+  html+='</div>';
+  var w=window.open('','_blank','width=800,height=600');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>'+html+'</body></html>');
   w.document.close();
-  setTimeout(function(){w.print();},500);
 }
 
 /* ─── KEYBOARD & EVENTS ─── */
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo2.on').forEach(m=>m.classList.remove('on'));});
 document.addEventListener('click',e=>{if(!e.target.closest('#SB')&&!e.target.closest('#menuBtn'))document.getElementById('SB').classList.remove('open');});
-G('lgp').addEventListener('keydown',e=>{
-  if(e.key==='Enter'){
-    // Ensure arrays before checking
-    if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);
-    doLogin();
-  }
-});
+G('lgp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 G('lgu').addEventListener('keydown',e=>{if(e.key==='Enter')G('lgp').focus();});
 window.addEventListener('resize',()=>{if(window.innerWidth>768)G('SB').classList.remove('open');G('menuBtn').style.display=window.innerWidth<=768?'':'none';});
 ld();
-
 </script>
 <!-- EDIT RECEIPT MODAL -->
 <div class="mo2" id="rcEM"><div class="mb2"><div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل مقبوض</div><button class="mcl" onclick="CM('rcEM')">×</button></div>
@@ -4367,17 +4130,7 @@ ld();
   <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="exe-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="exe-a" placeholder="0"></div></div>
   <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="exe-t" placeholder="اسم المستفيد"></div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="exe-ds" placeholder="وصف واضح للمصروف"></div>
-  <div class="fr"><div class="fld"><label>مركز التكلفة</label>
-      <select id="exe-cc" onchange="fillExeItems()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"></select>
-    </div>
-    <div class="fld"><label>البند (اختياري)</label>
-      <div style="display:flex;gap:6px">
-        <select id="exe-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
-        <button type="button" onclick="addItemFromModal('exe-cc','exe-item')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px" title="إضافة بند جديد">+</button>
-      </div>
-    </div>
-    <div class="fld"><label>طريقة الصرف</label><select id="exe-m" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div>
-  </div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc" style="font-family:var(--fn)"></select></div><div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
   <div class="fld"><label>ملاحظات</label><textarea id="exe-nt" style="min-height:55px"></textarea></div>
 </div>
 <input type="hidden" id="exe-id">
@@ -4487,7 +4240,10 @@ ld();
       <div class="fld"><label>حروف اللوحة <span class="req">*</span></label><input type="text" id="veh-letters" placeholder="مثال: أ ب ج" style="font-size:16px;font-weight:700" oninput="updatePlatePreview()"></div>
     </div>
     <div class="fld"><label>اللوحة الكاملة (معاينة)</label><input type="text" id="veh-plate-preview" readonly style="background:var(--ltr);font-weight:700;font-size:15px;text-align:center;letter-spacing:2px"></div>
-    <div class="fld"><label>الماركة والموديل <span class="req">*</span></label><input type="text" id="veh-make" placeholder="مثال: تويوتا كامري 2022 — فورد F150 2021"><input type="hidden" id="veh-model" value=""></div>
+    <div class="fr">
+      <div class="fld"><label>الماركة / النوع <span class="req">*</span></label><input type="text" id="veh-make" placeholder="مثال: تويوتا، فورد، هيونداي"></div>
+      <div class="fld"><label>الموديل <span class="req">*</span></label><input type="text" id="veh-model" placeholder="مثال: كامري، F150، سوناتا"></div>
+    </div>
     <div class="fr">
       <div class="fld"><label>سنة الصنع</label><input type="number" id="veh-year" placeholder="مثال: 2022" min="1990" max="2030"></div>
       <div class="fld"><label>اللون</label><input type="text" id="veh-color" placeholder="مثال: أبيض، أسود"></div>
@@ -4521,7 +4277,7 @@ ld();
 <div class="mo2" id="cuSetM"><div class="mb2 lg">
   <div class="mhd">
     <div class="mtt">&#x1F4CB; تقفيل عهدة — <span id="cuSetName"></span></div>
-    <button class="mcl" onclick="CM('cuSetM');OM('cuDM')">×</button>
+    <button class="mcl" onclick="CM('cuSetM')">×</button>
   </div>
   <!-- Summary -->
   <div class="g3" style="margin-bottom:16px" id="cuSetSummary"></div>
@@ -4725,7 +4481,7 @@ tbody tr:hover td{background:var(--ltr)}
 .fld textarea{min-height:75px;resize:vertical}
 .fsep{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gr);padding:10px 0 5px;border-bottom:1px solid var(--bd);margin-bottom:4px}
 .mo2{display:none;position:fixed;inset:0;background:rgba(11,31,75,.55);z-index:300;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
-.mo2.on{display:flex}#cuSetM.on{z-index:9999!important}
+.mo2.on{display:flex}#cuSetM.on{z-index:9999}
 .mb2{background:var(--wh);border-radius:16px;padding:24px;width:600px;max-width:100%;margin-bottom:30px}
 .mb2.lg{width:820px}.mb2.sm{width:420px}
 .mhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
@@ -4763,7 +4519,7 @@ tbody tr:hover td{background:var(--ltr)}
 .kpi{width:90px;height:90px;border-radius:50%;background:conic-gradient(var(--ry) var(--p,0%),var(--bd) 0);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;position:relative;margin:0 auto 10px}
 .kpi::after{content:"";position:absolute;inset:8px;background:var(--wh);border-radius:50%}
 .kpi span{position:relative;z-index:1}
-.lp{position:fixed;inset:0;background:linear-gradient(135deg,#0B1F4B 0%,#1A56DB 100%);display:flex;align-items:center;justify-content:center;padding:20px;z-index:500;overflow-y:auto;transition:opacity .2s}
+.lp{min-height:100vh;background:linear-gradient(135deg,#0B1F4B 0%,#1A56DB 100%);display:flex;align-items:center;justify-content:center;padding:20px}
 .lb2{background:var(--wh);border-radius:20px;padding:40px;width:440px;max-width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3)}
 .llo{text-align:center;margin-bottom:28px}
 .llic{width:72px;height:72px;background:linear-gradient(135deg,var(--ry),var(--ry2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 14px;box-shadow:0 8px 24px rgba(26,86,219,.4)}
@@ -5111,7 +4867,7 @@ tbody tr:hover td{background:var(--ltr)}
       </div>
     </div>
     <div class="tw"><table id="vehTbl" style="min-width:950px">
-      <thead><tr><th>رقم اللوحة</th><th>الحروف</th><th>الماركة / الموديل</th><th>السنة</th><th>نوع الوقود</th><th>اللون</th><th>رقم الهيكل</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <thead><tr><th>رقم اللوحة</th><th>الحروف</th><th>الموديل</th><th>النوع/الماركة</th><th>السنة</th><th>نوع الوقود</th><th>اللون</th><th>الحالة</th><th>ملاحظات</th><th>إجراء</th></tr></thead>
       <tbody id="vehTbd"></tbody>
     </table></div>
   </div>
@@ -5165,7 +4921,7 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb" onclick="ST('cuTbs','cuItemRep',this);loadCuItemReport()">&#x1F4CA; تقرير البنود</button>
   </div>
   <div id="cuTbs">
-    <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl" style="min-width:850px"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>مُرجَع للخزينة</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
+    <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl" style="min-width:850px"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
     <div class="tabc" id="cuEnt"><div class="card"><div class="cht">سجل مصروفات العهد<div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('cuEnTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('cuEnTbl')">&#x1F4E5;</button></div></div><div class="tw"><table id="cuEnTbl" style="min-width:750px"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البند</th><th>المبلغ</th><th>رقم السيارة</th><th>اللوحة</th><th>البيان</th></tr></thead><tbody id="cuEnTbd"></tbody></table></div></div></div>
     <div class="tabc" id="cuCar"><div class="card"><div class="cht">تقرير المصروفات حسب السيارة</div><div id="cuCarC"></div></div></div>
     <div class="tabc" id="cuBal"><div class="card"><div class="cht">ملخص أرصدة العهد الحالية</div><div id="cuBalC"></div></div></div>
@@ -5339,6 +5095,7 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ AUDIT ═══ -->
 <div class="pg" id="pg-au">
   <div class="page-hdr"><h2>سجل العمليات</h2>
+    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="showDeletedSerials()">📋 السيريالات المحذوفة</button>
     <button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button>
   </div>
   <div class="card">
@@ -5447,12 +5204,7 @@ tbody tr:hover td{background:var(--ltr)}
   </div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="ex-ds" placeholder="وصف واضح للمصروف"></div>
   <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="ex-cc" onchange="fillExItems()" style="font-family:var(--fn)"></select></div>
-      <div class="fld"><label>البند (اختياري)</label>
-        <div style="display:flex;gap:6px">
-          <select id="ex-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
-          <button type="button" onclick="addItemFromModal('ex-cc','ex-item')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px;font-family:var(--fn)" title="إضافة بند جديد">+</button>
-        </div>
-      </div>
+      <div class="fld"><label>البند (اختياري)</label><select id="ex-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر البند —</option></select></div>
       <div class="fld"><label>طريقة الصرف</label><select id="ex-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
   <div class="fld"><label>السيارة (اختياري)</label>
     <select id="ex-veh-sel" onchange="fillExVeh()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
@@ -5523,15 +5275,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mo2" id="ceM"><div class="mb2"><div class="mhd"><div class="mtt">&#x1F4B8; تسجيل مصروف على عهدة</div><button class="mcl" onclick="CM('ceM')">×</button></div>
 <div class="fg">
   <div class="fr"><div class="fld"><label>الموظف <span class="req">*</span></label><select id="ce-c"><option value="">اختر الموظف</option></select></div><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="ce-d"></div></div>
-  <div class="fld"><label>مركز التكلفة</label>
-    <select id="ce-cc-sel" onchange="fillCeItems()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر المركز —</option></select>
-  </div>
-  <div class="fr"><div class="fld"><label>البند <span class="req">*</span></label>
-      <div style="display:flex;gap:6px">
-        <select id="ce-it" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
-        <button type="button" onclick="addItemFromModal('ce-cc-sel','ce-it')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px" title="إضافة بند جديد">+</button>
-      </div>
-    </div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ce-a" placeholder="0"></div></div>
+  <div class="fr"><div class="fld"><label>البند <span class="req">*</span></label><input type="text" id="ce-it" placeholder="نوع المصروف"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="ce-a" placeholder="0"></div></div>
   <div class="fld"><label>البيان التفصيلي</label><input type="text" id="ce-ds" placeholder="وصف تفصيلي للمصروف"></div>
   <div style="background:var(--ltr);border-radius:10px;padding:12px">
     <div style="font-size:12px;font-weight:700;color:var(--gr);margin-bottom:8px">&#x1F697; السيارة (اختياري)</div>
@@ -5609,17 +5353,7 @@ tbody tr:hover td{background:var(--ltr)}
   <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="exe-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="exe-a" placeholder="0"></div></div>
   <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="exe-t" placeholder="اسم المستفيد"></div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="exe-ds" placeholder="وصف واضح للمصروف"></div>
-  <div class="fr"><div class="fld"><label>مركز التكلفة</label>
-      <select id="exe-cc" onchange="fillExeItems()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"></select>
-    </div>
-    <div class="fld"><label>البند (اختياري)</label>
-      <div style="display:flex;gap:6px">
-        <select id="exe-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;flex:1;outline:none"><option value="">— اختر البند —</option></select>
-        <button type="button" onclick="addItemFromModal('exe-cc','exe-item')" style="padding:9px 12px;background:var(--ry);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:16px" title="إضافة بند جديد">+</button>
-      </div>
-    </div>
-    <div class="fld"><label>طريقة الصرف</label><select id="exe-m" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div>
-  </div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc" style="font-family:var(--fn)"></select></div><div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
   <div class="fld"><label>ملاحظات</label><textarea id="exe-nt" style="min-height:55px"></textarea></div>
 </div>
 <input type="hidden" id="exe-id">
@@ -5729,7 +5463,10 @@ tbody tr:hover td{background:var(--ltr)}
       <div class="fld"><label>حروف اللوحة <span class="req">*</span></label><input type="text" id="veh-letters" placeholder="مثال: أ ب ج" style="font-size:16px;font-weight:700" oninput="updatePlatePreview()"></div>
     </div>
     <div class="fld"><label>اللوحة الكاملة (معاينة)</label><input type="text" id="veh-plate-preview" readonly style="background:var(--ltr);font-weight:700;font-size:15px;text-align:center;letter-spacing:2px"></div>
-    <div class="fld"><label>الماركة والموديل <span class="req">*</span></label><input type="text" id="veh-make" placeholder="مثال: تويوتا كامري 2022 — فورد F150 2021"><input type="hidden" id="veh-model" value=""></div>
+    <div class="fr">
+      <div class="fld"><label>الماركة / النوع <span class="req">*</span></label><input type="text" id="veh-make" placeholder="مثال: تويوتا، فورد، هيونداي"></div>
+      <div class="fld"><label>الموديل <span class="req">*</span></label><input type="text" id="veh-model" placeholder="مثال: كامري، F150، سوناتا"></div>
+    </div>
     <div class="fr">
       <div class="fld"><label>سنة الصنع</label><input type="number" id="veh-year" placeholder="مثال: 2022" min="1990" max="2030"></div>
       <div class="fld"><label>اللون</label><input type="text" id="veh-color" placeholder="مثال: أبيض، أسود"></div>
@@ -5763,7 +5500,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mo2" id="cuSetM"><div class="mb2 lg">
   <div class="mhd">
     <div class="mtt">&#x1F4CB; تقفيل عهدة — <span id="cuSetName"></span></div>
-    <button class="mcl" onclick="CM('cuSetM');OM('cuDM')">×</button>
+    <button class="mcl" onclick="CM('cuSetM')">×</button>
   </div>
   <!-- Summary -->
   <div class="g3" style="margin-bottom:16px" id="cuSetSummary"></div>
