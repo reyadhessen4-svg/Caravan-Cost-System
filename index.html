@@ -4076,7 +4076,10 @@ function showDeletedSerials(){
     var existingSet={};
     t.data.forEach(function(e){if(e.num)existingSet[e.num]=true;});
     var missing=[];
-    for(var i=1;i<=t.ctr;i++){if(!existingSet[i])missing.push(i);}
+    if(t.data.length>0){
+      var minNum=Math.min.apply(null,t.data.map(function(e){return e.num||0;}).filter(function(n){return n>0;}));
+      for(var i=minNum;i<=t.ctr;i++){if(!existingSet[i])missing.push(i);}
+    }
     if(!missing.length)return;
     totalDeleted+=missing.length;
     html+='<div style="margin-bottom:20px;border:1px solid #ddd;border-radius:8px;overflow:hidden">';
