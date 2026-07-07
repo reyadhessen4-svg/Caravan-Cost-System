@@ -2795,8 +2795,19 @@ function openCuSettle(){
 }
 
 function addCuSetRow(){
-  cuSetRows.push({date:td2(),item:'',amount:0,vehId:'',desc:''});
+  cuSetRows.push({date:td2(),item:'',amount:0,taxPct:15,vehId:'',desc:''});
   renderCuSetRows();
+}
+// Total for one settlement row = base amount + tax (amount × taxPct/100), rounded to 2 decimals
+function cuSetRowTotal(r){
+  var amt=r.amount||0,pct=(r.taxPct===''||r.taxPct==null)?0:(r.taxPct||0);
+  return Math.round((amt+amt*pct/100)*100)/100;
+}
+// Updates just one row's computed total cell (avoids rebuilding the whole table and losing input focus)
+function updateCuSetRowTotal(i){
+  var el=document.getElementById('cuSetTot-'+i);
+  if(el&&cuSetRows[i])el.textContent=fR(cuSetRowTotal(cuSetRows[i]));
+  updateCuSetSummary();
 }
 
 function renderCuSetRows(){
@@ -2807,7 +2818,7 @@ function renderCuSetRows(){
 
   var tbody=document.getElementById('cuSet-rows');
   if(!cuSetRows.length){
-    tbody.innerHTML='<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--gr);font-size:13px">اضغط "إضافة سطر" لتسجيل مصروف</td></tr>';
+    tbody.innerHTML='<tr><td colspan="9" style="padding:16px;text-align:center;color:var(--gr);font-size:13px">اضغط "إضافة سطر" لتسجيل مصروف</td></tr>';
     updateCuSetSummary();
     return;
   }
@@ -2824,7 +2835,9 @@ function renderCuSetRows(){
       '<td style="padding:4px 6px"><input type="text" value="'+(r.desc||'')+'" placeholder="البيان" oninput="cuSetRows['+i+'].desc=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:140px"></td>'+
       '<td style="padding:4px 6px"><select onchange="cuSetRows['+i+'].cc=this.value;cuSetRows['+i+'].item=\'\';renderCuSetRows()" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px">'+ccOpts+'</select></td>'+
       '<td style="padding:4px 6px"><select onchange="cuSetRows['+i+'].item=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px">'+itemOpts+'</select></td>'+
-      '<td style="padding:4px 6px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetSummary()" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:85px;text-align:left"></td>'+
+      '<td style="padding:4px 6px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetRowTotal('+i+')" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:85px;text-align:left"></td>'+
+      '<td style="padding:4px 6px"><input type="number" value="'+(r.taxPct!=null?r.taxPct:15)+'" placeholder="15" step="0.1" oninput="cuSetRows['+i+'].taxPct=parseFloat(this.value)||0;updateCuSetRowTotal('+i+')" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:60px;text-align:left"></td>'+
+      '<td id="cuSetTot-'+i+'" style="padding:4px 6px;font-weight:700;font-family:monospace;color:var(--nv);white-space:nowrap">'+fR(cuSetRowTotal(r))+'</td>'+
       '<td style="padding:4px 6px"><select onchange="cuSetRows['+i+'].vehId=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px">'+vehOpts+'</select></td>'+
       '<td style="padding:4px 6px"><button onclick="cuSetRows.splice('+i+',1);renderCuSetRows()" style="background:var(--dnb);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px">🗑️</button></td>'+
     '</tr>';
@@ -2833,7 +2846,7 @@ function renderCuSetRows(){
 }
 
 function updateCuSetSummary(){
-  var total=cuSetRows.reduce(function(s,r){return s+(r.amount||0);},0);
+  var total=cuSetRows.reduce(function(s,r){return s+cuSetRowTotal(r);},0);
   var ret=parseFloat(document.getElementById('cuSet-return').value)||0;
   var lbl=document.getElementById('cuSet-total-lbl');
   if(lbl)lbl.textContent='إجمالي المصروفات: '+fR(total);
@@ -2873,20 +2886,26 @@ function saveCuSettle(){
   // Validate total
   var en=S.data.custodyEnts.filter(function(e){return e.cid===cuid;});
   var rem=cuBalanceInfo(cuid).remaining;
-  var total=cuSetRows.reduce(function(s,r){return s+(r.amount||0);},0);
+  var total=cuSetRows.reduce(function(s,r){return s+cuSetRowTotal(r);},0);
   if(total+ret>rem+0.01){toast('إجمالي المصروفات والمبلغ المُرجَع يتجاوز الرصيد المتبقي','e');return;}
 
   // Save each expense entry
   cuSetRows.forEach(function(r){
     if(!r.amount||!r.item)return;
     var veh=r.vehId?(S.data.vehicles||[]).find(function(v){return v.id===r.vehId;}):null;
+    var rowTotal=cuSetRowTotal(r);
+    var taxPct=(r.taxPct===''||r.taxPct==null)?0:(r.taxPct||0);
+    var taxAmt=Math.round((rowTotal-r.amount)*100)/100;
     S.data.custodyEnts.push({
       id:uid(),cid:cuid,empName:cu.name,
       date:r.date||settDate,
       cc:r.cc||'',
       item:r.item||r.desc||'مصروف',
-      desc:r.desc||'',
-      amount:r.amount,
+      desc:(r.desc||'')+(taxPct>0?' (شامل ضريبة '+taxPct+'% = '+fR(taxAmt)+' ريال)':''),
+      amount:rowTotal,
+      baseAmount:r.amount,
+      taxPct:taxPct,
+      taxAmount:taxAmt,
       car:veh?veh.num:'',
       plate:veh?veh.letters:'',
       vehId:r.vehId||'',
@@ -4292,7 +4311,9 @@ ld();
           <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">البيان</th>
           <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">مركز التكلفة</th>
           <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">البند</th>
-          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">المبلغ</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">المبلغ (قبل الضريبة)</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">الضريبة %</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">الإجمالي شامل الضريبة</th>
           <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">السيارة</th>
           <th style="padding:8px 10px;width:40px"></th>
         </tr>
