@@ -362,8 +362,8 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb" onclick="ST('bkTbs','bkFlow',this)">التدفق النقدي</button>
   </div>
   <div id="bkTbs">
-    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
-    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:700px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
+    <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:780px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:780px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
     <div class="tabc" id="bkStm"><div class="card"><div class="cht">كشف الحساب البنكي<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="bkStmAcc" onchange="fillBkStmAcc()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none;font-family:var(--fn)"><option value="">كل الحسابات</option></select><input type="date" id="bkStF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><input type="date" id="bkStT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><button class="btn bsm bp" onclick="loadBkStm()">&#x1F50E; عرض</button></div></div><div id="bkStmC"></div></div></div>
     <div class="tabc" id="bkAp">
       <div class="al aw">&#x26A0;&#xFE0F; الصادرات التالية تنتظر اعتمادك. بعد الاعتماد يتم تأثيرها على رصيد الحساب.</div>
@@ -430,7 +430,7 @@ tbody tr:hover td{background:var(--ltr)}
           </div>
         </div>
         <div class="tw"><table id="baTbl">
-          <thead><tr><th>التاريخ</th><th>الحساب</th><th>النوع</th><th>المبلغ</th><th>الرصيد</th><th>المستفيد/المصدر</th><th>رقم العملية</th><th>البيان</th></tr></thead>
+          <thead><tr><th>رقم السند</th><th>التاريخ</th><th>الحساب</th><th>النوع</th><th>المبلغ</th><th>الرصيد</th><th>المستفيد/المصدر</th><th>رقم العملية</th><th>البيان</th></tr></thead>
           <tbody id="baTbd"></tbody>
         </table></div>
       </div>
@@ -711,7 +711,7 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ AUDIT ═══ -->
 <div class="pg" id="pg-au">
   <div class="page-hdr"><h2>سجل العمليات</h2>
-    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="showDeletedSerials()">📋 المحذوفة</button><button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
+    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="assignMissingSerials();toast('تم فحص وتعيين السيريالات الناقصة')">&#x1F522; تعيين السيريالات الناقصة</button><button class="btn bsm" onclick="showDeletedSerials()">📋 المحذوفة</button><button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
   </div>
   <div class="card">
     <div class="srch-bar">
@@ -1158,7 +1158,7 @@ var CL_STGS=['حادث جديد','تم رفع المستندات','تم تقدي
 var td2=()=>new Date().toISOString().split('T')[0];
 var ym=()=>new Date().toISOString().slice(0,7);
 var yr=()=>new Date().getFullYear().toString();
-var fmt=(n,d)=>{d=d||0;if(isNaN(n)||n==null)return'—';return Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});};
+var fmt=(n,d)=>{d=(d===undefined||d===null)?2:d;if(isNaN(n)||n==null)return'—';return Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});};
 var fR=n=>fmt(n)+' ريال';
 var uid=()=>'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
 var daysB=(d1,d2)=>{if(!d1)return 0;var a=new Date(d1),b=d2?new Date(d2):new Date();return Math.max(0,Math.floor((b-a)/86400000));};
@@ -1490,6 +1490,7 @@ function loadBk(){
     var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
     var accTag=acc?'<span style="background:'+acc.color+'22;color:'+acc.color+';border:1px solid '+acc.color+'44;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">'+acc.name+'</span>':'<span class="bdg bo" style="font-size:10px">غير مُعيَّن</span>';
     return '<tr>'+
+      '<td style="font-family:monospace;font-weight:700;color:'+(b.num?'var(--ry)':'var(--dn)')+'">'+(b.num||'⚠️ بدون سريال')+'</td>'+
       '<td>'+b.date+'</td>'+
       '<td style="font-weight:700;color:var(--sc)">'+fR(b.amount)+'</td>'+
       '<td>'+accTag+'</td>'+
@@ -1502,11 +1503,12 @@ function loadBk(){
         (can('all')?'<button class="btn bd2 bxs" onclick="delBI(this.dataset.id)" data-id="'+b.id+'" title="حذف">🗑️</button>':'')+
       '</div></td>'+
     '</tr>';
-  }).join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
+  }).join('')||'<tr><td colspan="9"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
   G('boTbd').innerHTML=bO.sort((a,b)=>b.date.localeCompare(a.date)).map(function(b){
     var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
     var accTag=acc?'<span style="background:'+acc.color+'22;color:'+acc.color+';border:1px solid '+acc.color+'44;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">'+acc.name+'</span>':'<span class="bdg bo" style="font-size:10px">غير مُعيَّن</span>';
     return '<tr>'+
+      '<td style="font-family:monospace;font-weight:700;color:'+(b.num?'var(--ry)':'var(--dn)')+'">'+(b.num||'⚠️ بدون سريال')+'</td>'+
       '<td>'+b.date+'</td>'+
       '<td style="font-weight:700;color:var(--dn)">'+fR(b.amount)+'</td>'+
       '<td>'+accTag+'</td>'+
@@ -1523,7 +1525,7 @@ function loadBk(){
         (can('all')?'<button class="btn bd2 bxs" onclick="delBO(this.dataset.id)" data-id="'+b.id+'">🗑️</button>':'')+
       '</div></td>'+
     '</tr>';
-  }).join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
+  }).join('')||'<tr><td colspan="10"><div class="es"><div class="essb">لا توجد حركات</div></div></td></tr>';
   var fl=[],flI=[],flO=[];for(var i=5;i>=0;i--){var d=new Date();d.setMonth(d.getMonth()-i);var ym3=d.toISOString().slice(0,7);fl.push(d.toLocaleDateString('ar-SA',{month:'short'}));flI.push(bI.filter(b=>b.date.startsWith(ym3)).reduce((s,b)=>s+b.amount,0));flO.push(bO.filter(b=>b.date.startsWith(ym3)).reduce((s,b)=>s+b.amount,0));}
   RC(G('chFlow'),'line',fl,[['وارد',flI,'rgba(5,150,105,.7)'],['صادر',flO,'rgba(220,38,38,.7)']]);
   setTimeout(loadBkCal,100);
@@ -3523,6 +3525,7 @@ function loadBA(){
     var acc=getBankAccounts().find(function(a){return a.id===t.accId;});
     var accColor=acc?acc.color:'var(--gr)';
     return '<tr>'+
+      '<td style="font-family:monospace;font-weight:700;color:'+(t.num?'var(--ry)':'var(--dn)')+'">'+(t.num||'⚠️ بدون سريال')+'</td>'+
       '<td style="font-family:monospace;white-space:nowrap">'+t.date+'</td>'+
       '<td><span style="background:'+accColor+'22;color:'+accColor+';border:1px solid '+accColor+'44;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">'+(t.accName||'—')+'</span></td>'+
       '<td><span class="bdg '+(isIn?'bn':'br')+'">'+t.type+'</span></td>'+
@@ -3532,7 +3535,7 @@ function loadBA(){
       '<td style="font-size:12px;font-family:monospace;color:var(--gr)">'+(t.ref||'—')+'</td>'+
       '<td style="font-size:12px;color:var(--gr)">'+(t.desc||'—')+'</td>'+
     '</tr>';
-  }).join(''):'<tr><td colspan="8"><div class="es"><div class="esic">🏛️</div><div class="esti">لا توجد حركات</div></div></td></tr>';
+  }).join(''):'<tr><td colspan="9"><div class="es"><div class="esic">🏛️</div><div class="esti">لا توجد حركات</div></div></td></tr>';
 }
 
 function saveBA(){
@@ -4416,6 +4419,28 @@ ld();
   </div>
   <input type="hidden" id="boe-id">
   <div class="mft"><button class="btn" onclick="CM('boEM')">إلغاء</button><button class="btn bg3" onclick="saveEditBO()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+<!-- DAILY BANK REVIEW MODAL -->
+<div class="mo2" id="bkRevM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">&#x1F4CB; مراجعة البنك — <span id="bkRevMTitle"></span></div><button class="mcl" onclick="CM('bkRevM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>الحساب</label><div id="bkRevMAccName" style="font-weight:700;color:var(--nv);padding:6px 0;font-size:14px"></div></div>
+    <input type="hidden" id="bkRevMAcc">
+    <input type="hidden" id="bkRevMDate">
+    <div style="background:var(--ltr);border-radius:10px;padding:12px">
+      <div style="font-size:12px;color:var(--gr);margin-bottom:6px;font-weight:700">حركات هذا اليوم:</div>
+      <div id="bkRevMTxns" style="font-size:13px;max-height:150px;overflow-y:auto;margin-bottom:8px"></div>
+      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--bd);font-weight:700;font-size:13px">
+        <span>رصيد النظام حتى هذا التاريخ:</span>
+        <span id="bkRevMSysbal" style="font-family:monospace;color:var(--ry)"></span>
+      </div>
+    </div>
+    <div class="fld"><label>الرصيد الفعلي حسب كشف البنك <span class="req">*</span></label><input type="number" id="bkRevMActual" placeholder="0.00" oninput="calcBkRevDiff()"></div>
+    <div id="bkRevMDiff" style="display:none;text-align:center;padding:10px;border-radius:8px;font-size:13px;font-weight:700"></div>
+    <div class="fld"><label>ملاحظات</label><textarea id="bkRevMNotes" style="min-height:55px" placeholder="أي ملاحظات على هذه المراجعة"></textarea></div>
+  </div>
+  <div class="mft"><button class="btn" onclick="CM('bkRevM')">إلغاء</button><button class="btn bss" onclick="saveBkRev()">&#x2705; حفظ المراجعة</button></div>
 </div></div>
 
 </body></html>
