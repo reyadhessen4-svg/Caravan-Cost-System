@@ -1546,11 +1546,12 @@ function loadBk(){
       '<td>'+(b.desc||'—')+'</td>'+
       '<td style="font-size:11px;color:var(--gr2)">'+b.by+'</td>'+
       '<td>'+sBadge(b.status||'approved')+'</td>'+
-      '<td><div style="display:flex;gap:3px">'+
+      '<td><div style="display:flex;gap:3px;flex-wrap:wrap">'+
         ((can('all')||can('ap'))&&(b.status||'approved')==='pending'?
           '<button class="btn bss bxs" onclick="apBO(this.dataset.id)" data-id="'+b.id+'" title="اعتماد">✓</button>'+
           '<button class="btn bd2 bxs" onclick="rjBO(this.dataset.id)" data-id="'+b.id+'" title="رفض">✗</button>':'')+
-        (b.status!=='approved'||can('all')?'<button class="btn bxs" onclick="editBO(this.dataset.id)" data-id="'+b.id+'">✏️</button>':'')+
+        (b.status==='approved'&&can('all')?'<button class="btn bg3 bxs" onclick="unapproveBO(this.dataset.id)" data-id="'+b.id+'" title="إلغاء الاعتماد للتمكن من التعديل">&#x21A9;&#xFE0F; إلغاء الاعتماد</button>':'')+
+        (b.status!=='approved'?'<button class="btn bxs" onclick="editBO(this.dataset.id)" data-id="'+b.id+'">✏️</button>':'')+
         (can('all')?'<button class="btn bd2 bxs" onclick="delBO(this.dataset.id)" data-id="'+b.id+'">🗑️</button>':'')+
       '</div></td>'+
     '</tr>';
@@ -2068,14 +2069,14 @@ function fillBoFromEmp(){
 }
 
 function addCustodyEntry(custodyId,amount,desc,source){
-  if(!custodyId||!amount)return;
+  if(!custodyId||!amount)return null;
   var cu=S.data.custodies.find(function(c){return c.id===custodyId;});
-  if(!cu)return;
+  if(!cu)return null;
   // صرف من خزينة/بنك للموظف = يزيد رصيد العهدة (opening)
   // مش مصروف من الموظف — المصاريف يسجلها الموظف من عهدته
   cu.opening=cu.opening+amount;
   // سجّل حركة للتاريخ
-  S.data.custodyEnts.push({
+  var entry={
     id:uid(),cid:custodyId,empName:cu.name,
     date:td2(),item:'إضافة رصيد — '+source,amount:0,
     addedToOpening:amount,
@@ -2084,8 +2085,10 @@ function addCustodyEntry(custodyId,amount,desc,source){
     autoLinked:true,linkSource:source,
     isTopup:true,
     by:S.cu?S.cu.u:'system',at:new Date().toISOString()
-  });
+  };
+  S.data.custodyEnts.push(entry);
   alog('إضافة رصيد للعهدة',cu.name+' — '+fR(amount)+' من '+source);
+  return entry;
 }
 
 function loadEmps(){
@@ -3793,6 +3796,7 @@ function saveEditBI(){
 function editBO(id){
   var b=S.data.bankOut.find(function(x){return x.id===id;});
   if(!b)return;
+  if(b.status==='approved'){toast('هذه العملية معتمدة — يجب إلغاء الاعتماد أولاً من الجدول قبل التعديل','e');return;}
   fillAccSelects();
   G('boe-id').value=id;
   G('boe-d').value=b.date;
@@ -3809,6 +3813,7 @@ function saveEditBO(){
   var id=V('boe-id');
   var b=S.data.bankOut.find(function(x){return x.id===id;});
   if(!b)return;
+  if(b.status==='approved'){toast('هذه العملية معتمدة — يجب إلغاء الاعتماد أولاً قبل التعديل','e');return;}
   var a=parseFloat(G('boe-a').value)||0;
   var t=V('boe-t');
   if(!a||!t){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
@@ -3818,7 +3823,7 @@ function saveEditBO(){
   b.amount=a;b.to=t;b.phone=V('boe-phone')||'';b.ref=V('boe-rf');b.desc=V('boe-ds');
   b.accId=accId;b.accName=acc?acc.name:'';
   alog('تعديل صادر بنكي','لـ '+t+' — '+fR(a)+(acc?' — '+acc.name:''));
-  sv();CM('boEM');loadBk();loadBA();toast('تم حفظ التعديل');
+  sv();CM('boEM');loadBk();loadBA();toast('تم حفظ التعديل — يمكنك إعادة الاعتماد الآن','i');
 }
 
 function assignOldTxns(){
@@ -3892,11 +3897,33 @@ function apBO(id){
   b.status='approved';b.apBy=S.cu?S.cu.u:'';b.apAt=new Date().toISOString();
   // Now add to custody if linked
   if(b.custodyLink){
-    addCustodyEntry(b.custodyLink,b.amount,b.desc||('صرف بنكي لـ '+b.to),'صادر بنكي');
+    var _entry=addCustodyEntry(b.custodyLink,b.amount,b.desc||('صرف بنكي لـ '+b.to),'صادر بنكي');
+    b.custodyEntryId=_entry?_entry.id:'';
   }
   alog('اعتماد صادر بنكي',b.to+' — '+fR(b.amount));
   sv();loadBk();loadBkAp();updBkApCnt();
   toast('✅ تم اعتماد الصادر البنكي');
+}
+
+function unapproveBO(id){
+  if(!can('all')){toast('إلغاء الاعتماد مخصص لمدير النظام فقط','e');return;}
+  var b=S.data.bankOut.find(function(x){return x.id===id;});
+  if(!b||b.status!=='approved'){toast('هذه العملية غير معتمدة أصلاً','e');return;}
+  if(!confirm('تأكيد إلغاء اعتماد الصادر البنكي رقم '+b.num+' لـ '+b.to+' — '+fR(b.amount)+'؟\nستعود العملية لحالة "معلق" ويمكنك تعديلها ثم إعادة اعتمادها.'))return;
+  // Reverse the custody top-up effect precisely, if this approval had linked to a custody
+  if(b.custodyEntryId){
+    var entry=S.data.custodyEnts.find(function(e){return e.id===b.custodyEntryId;});
+    if(entry){
+      var cu=S.data.custodies.find(function(c){return c.id===entry.cid;});
+      if(cu)cu.opening=cu.opening-(entry.addedToOpening||0);
+      S.data.custodyEnts=S.data.custodyEnts.filter(function(e){return e.id!==b.custodyEntryId;});
+    }
+    b.custodyEntryId='';
+  }
+  b.status='pending';b.apBy='';b.apAt='';
+  alog('إلغاء اعتماد صادر بنكي','سند '+b.num+' — '+b.to+' — '+fR(b.amount));
+  sv();loadBk();loadBkAp();updBkApCnt();
+  toast('تم إلغاء الاعتماد — يمكنك التعديل الآن ثم إعادة الاعتماد','w');
 }
 
 function rjBO(id){
