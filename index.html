@@ -79,7 +79,7 @@ tbody tr:hover td{background:var(--ltr)}
 .mo2{display:none;position:fixed;inset:0;background:rgba(11,31,75,.55);z-index:300;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
 .mo2.on{display:flex}#cuSetM.on{z-index:9999}
 .mb2{background:var(--wh);border-radius:16px;padding:24px;width:600px;max-width:100%;margin-bottom:30px}
-.mb2.lg{width:820px}.mb2.sm{width:420px}
+.mb2.lg{width:820px}.mb2.xl{width:1180px}.mb2.sm{width:420px}
 .mhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .mtt{font-size:16px;font-weight:700}
 .mcl{background:none;border:none;font-size:24px;color:var(--gr);cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px;font-family:var(--fn)}.mcl:hover{background:var(--ltr)}
@@ -128,7 +128,7 @@ tbody tr:hover td{background:var(--ltr)}
 @media print{.sb,.tb,.btn,.mo2,.tc{display:none!important}.mn{margin-right:0!important}.ct{padding:10px!important}}
 @media(max-width:1024px){.sb{width:210px}.mn{margin-right:210px}}
 @media(max-width:768px){.sb{transform:translateX(110%);transition:transform .3s}.sb.open{transform:none}.mn{margin-right:0}.g3{grid-template-columns:1fr 1fr}}
-@media(max-width:580px){.mets,.g2,.g3{grid-template-columns:1fr}.fr,.fr3{grid-template-columns:1fr}.mb2.lg{width:100%}}
+@media(max-width:580px){.mets,.g2,.g3{grid-template-columns:1fr}.fr,.fr3{grid-template-columns:1fr}.mb2.lg,.mb2.xl{width:100%}}
 </style>
 </head>
 <body>
@@ -352,7 +352,12 @@ tbody tr:hover td{background:var(--ltr)}
     <div class="cht">&#x1F4C5; لوحة مراجعة البنك — آخر 30 يوم
       <span id="bkRevInfo" style="font-size:12px;color:var(--gr);font-weight:400"></span>
     </div>
-    <div id="bkCal" style="display:grid;grid-template-columns:repeat(10,1fr);gap:5px"></div>
+    <div id="bkCal" style="display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-bottom:12px"></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--bd)">
+      <span style="font-size:12px;color:var(--gr)">مراجعة تاريخ أقدم من 30 يوم:</span>
+      <input type="date" id="bkRevJumpDate" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+      <button class="btn bsm bp" onclick="openBkRevManual()">&#x1F50E; مراجعة هذا التاريخ</button>
+    </div>
   </div>
   <div class="tabs">
     <button class="tabb on" onclick="ST('bkTbs','bkIn',this)">الوارد البنكي</button>
@@ -815,6 +820,7 @@ tbody tr:hover td{background:var(--ltr)}
     </div>
     <input type="text" id="ex-t" placeholder="اسم المستفيد" style="margin-top:6px">
   </div>
+  <div class="fld"><label>رقم الجوال (اختياري)</label><input type="tel" id="ex-phone" placeholder="05xxxxxxxx"></div>
   <div class="fld" id="ex-custody-link-row" style="display:none">
     <label>ربط بعهدة موظف (اختياري)</label>
     <select id="ex-custody-link" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
@@ -857,6 +863,7 @@ tbody tr:hover td{background:var(--ltr)}
     </select>
     <input type="text" id="bo-t" placeholder="اسم المستفيد">
   </div>
+  <div class="fld"><label>رقم الجوال (اختياري)</label><input type="tel" id="bo-phone" placeholder="05xxxxxxxx"></div>
   <div class="fld" id="bo-custody-link-row" style="display:none">
     <label>ربط بعهدة موظف (اختياري)</label>
     <select id="bo-custody-link" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
@@ -1310,6 +1317,7 @@ function OM(id){
     G('ex-d').value=td2();
     G('ex-a').value='';
     G('ex-t').value='';
+    G('ex-phone').value='';
     G('ex-ds').value='';
     G('ex-nt').value='';
     if(G('ex-emp-sel'))G('ex-emp-sel').value='';
@@ -1329,6 +1337,7 @@ function OM(id){
     G('bo-d').value=td2();
     G('bo-a').value='';
     G('bo-t').value='';
+    G('bo-phone').value='';
     G('bo-rf').value='';
     G('bo-ds').value='';
     if(G('bo-emp-sel'))G('bo-emp-sel').value='';
@@ -1488,8 +1497,9 @@ function loadBk(){
   var bal=bI.reduce((s,b)=>s+b.amount,0)-bO.reduce((s,b)=>s+b.amount,0);
   var mI=bI.filter(b=>b.date.startsWith(ym2)).reduce((s,b)=>s+b.amount,0),mO=bO.filter(b=>b.date.startsWith(ym2)).reduce((s,b)=>s+b.amount,0);
   G('bkBal').textContent=fR(bal);G('bkInM').textContent=fR(mI);G('bkOutM').textContent=fR(mO);
-  var rv=new Set(S.data.bankRevs.map(r=>r.date));
-  // Only count days that have actual transactions AND haven't been reviewed
+  // "أيام لم تراجع" — counted per-account, consistent with the actual review calendar (loadBkCal):
+  // a day only counts as reviewed once EVERY active bank account has a review record for it.
+  var activeAccs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});
   var txDays=new Set([
     ...S.data.bankIn.map(b=>b.date),
     ...S.data.bankOut.map(b=>b.date)
@@ -1498,25 +1508,13 @@ function loadBk(){
   for(var i=1;i<=30;i++){
     var d=new Date();d.setDate(d.getDate()-i);
     var dt=d.toISOString().split('T')[0];
-    if(txDays.has(dt)&&!rv.has(dt))unrv.push(dt);
+    if(!txDays.has(dt))continue;
+    var dayRevs=S.data.bankRevs.filter(function(r){return r.date===dt;});
+    var reviewedAccIds=dayRevs.map(function(r){return r.accId;});
+    var allReviewed=activeAccs.length>0&&activeAccs.every(function(a){return reviewedAccIds.indexOf(a.id)>=0;});
+    if(!allReviewed)unrv.push(dt);
   }
   G('bkUnRv').textContent=unrv.length>0?unrv.length:'—';
-  var rvd=S.data.bankRevs.filter(r=>r.date.startsWith(ym2));G('bkRevInfo').textContent='تمت مراجعة '+rvd.length+' يوم هذا الشهر';
-  var cal=G('bkCal');cal.innerHTML='';for(var i=29;i>=0;i--){
-    var d=new Date();d.setDate(d.getDate()-i);
-    var dt=d.toISOString().split('T')[0];
-    var isRv=rv.has(dt);
-    var hasTx=txDays.has(dt);
-    var div=document.createElement('div');
-    // Only color days with transactions; empty days shown neutral
-    var bg=!hasTx?'var(--ltr)':isRv?'var(--scb)':'var(--dnb)';
-    var clr=!hasTx?'var(--gr2)':isRv?'var(--sc)':'var(--dn)';
-    var ico=!hasTx?'·':isRv?'✅':'❌';
-    div.style.cssText='text-align:center;padding:4px 2px;border-radius:7px;background:'+bg+';'+(hasTx?'':'opacity:.4');
-    div.title=dt+(hasTx?(isRv?' — تمت المراجعة':' — يحتاج مراجعة'):' — لا توجد حركات');
-    div.innerHTML='<div style="font-size:11px;font-weight:700;color:'+clr+'">'+d.getDate()+'</div><div style="font-size:13px">'+ico+'</div>';
-    cal.appendChild(div);
-  }
   G('biTbd').innerHTML=bI.sort((a,b)=>b.date.localeCompare(a.date)).map(function(b){
     var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
     var accTag=acc?'<span style="background:'+acc.color+'22;color:'+acc.color+';border:1px solid '+acc.color+'44;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">'+acc.name+'</span>':'<span class="bdg bo" style="font-size:10px">غير مُعيَّن</span>';
@@ -1808,8 +1806,8 @@ function saveEditRc(){var id=V('rce-id'),a=Nv('rce-a'),f=V('rce-f'),d=V('rce-ds'
 function delRc(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed&&!can('all')){toast('هذا المقبوض تمت مراجعته — الحذف للمدير فقط','e');return;}if(!confirm('حذف مقبوض رقم '+r.num+' بقيمة '+fR(r.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.receipts=S.data.receipts.filter(x=>x.id!==id);alog('حذف مقبوض','سند '+r.num+' — '+fR(r.amount)+' — من '+r.from);sv();loadTr();loadDash();toast('تم حذف المقبوض','w');}
 
 /* ─── EXPENSE EDIT / DELETE ─── */
-function editEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}G('exe-id').value=id;G('exe-d').value=e.date;G('exe-a').value=e.amount;G('exe-t').value=e.to;G('exe-ds').value=e.desc;var cc=G('exe-cc');for(var i=0;i<cc.options.length;i++){if(cc.options[i].value===e.cc||cc.options[i].text===e.cc)cc.selectedIndex=i;}var em=G('exe-m');for(var i=0;i<em.options.length;i++){if(em.options[i].value===e.method||em.options[i].text===e.method)em.selectedIndex=i;}G('exe-nt').value=e.notes||'';OM('exEM');}
-function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — التعديل للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.desc=d;e.cc=V('exe-cc');e.method=V('exe-m');e.notes=V('exe-nt');if(!can('all')){e.status='pending';e.apBy='';e.apAt='';}e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
+function editEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}G('exe-id').value=id;G('exe-d').value=e.date;G('exe-a').value=e.amount;G('exe-t').value=e.to;G('exe-phone').value=e.phone||'';G('exe-ds').value=e.desc;var cc=G('exe-cc');for(var i=0;i<cc.options.length;i++){if(cc.options[i].value===e.cc||cc.options[i].text===e.cc)cc.selectedIndex=i;}var em=G('exe-m');for(var i=0;i<em.options.length;i++){if(em.options[i].value===e.method||em.options[i].text===e.method)em.selectedIndex=i;}G('exe-nt').value=e.notes||'';OM('exEM');}
+function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — التعديل للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.phone=V('exe-phone')||'';e.desc=d;e.cc=V('exe-cc');e.method=V('exe-m');e.notes=V('exe-nt');if(!can('all')){e.status='pending';e.apBy='';e.apAt='';}e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
 function delEx(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('مراجَع','e');return;}if(e.status==='approved'&&!can('all')){toast('معتمد','e');return;}var rsn=getDeleteReason('سند صرف',e.num);if(!rsn)return;logDeletion('سند صرف',e,rsn);S.data.expenses=S.data.expenses.filter(x=>x.id!==id);sv();loadTr();updApCnt();toast('تم حذف سند '+e.num);}
 
 
@@ -2218,7 +2216,7 @@ function saveEx(){
   S.data.ctr.ex++;
   var exVehId=V('ex-veh-sel')||'';
   var exVeh=exVehId?(S.data.vehicles||[]).find(function(v){return v.id===exVehId;}):null;
-  var rec={id:uid(),num:S.data.ctr.ex,date:V('ex-d')||td2(),to:t,desc:d,amount:a,
+  var rec={id:uid(),num:S.data.ctr.ex,date:V('ex-d')||td2(),to:t,phone:V('ex-phone')||'',desc:d,amount:a,
     cc:V('ex-cc'),item:V('ex-item')||'',method:V('ex-m'),notes:V('ex-nt'),status:'pending',
     apBy:'',apAt:'',reviewed:false,reviewedBy:'',reviewedAt:'',
     custodyLink:cuLink,empId:eid,
@@ -2268,7 +2266,7 @@ function saveBo(){
   var boVehId=V('bo-veh-sel')||'';
   var boVeh=boVehId?(S.data.vehicles||[]).find(function(v){return v.id===boVehId;}):null;
   S.data.ctr.bo++;
-  S.data.bankOut.unshift({id:uid(),num:S.data.ctr.bo,date:V('bo-d')||td2(),amount:a,to:t,
+  S.data.bankOut.unshift({id:uid(),num:S.data.ctr.bo,date:V('bo-d')||td2(),amount:a,to:t,phone:V('bo-phone')||'',
     ref:V('bo-rf'),desc:V('bo-ds'),custodyLink:cuLink,
     empId:eid,accId:boAccId,accName:boAccObj?boAccObj.name:'',
     vehId:boVehId,vehNum:boVeh?boVeh.num:'',vehLetters:boVeh?boVeh.letters:'',
@@ -2975,15 +2973,15 @@ function renderCuSetRows(){
       return '<option value="'+ci.name+'"'+(r.item===ci.name?' selected':'')+'>'+ci.name+'</option>';
     }).join('');
     return '<tr style="border-bottom:1px solid var(--bd)">'+
-      '<td style="padding:4px 6px"><input type="date" value="'+r.date+'" onchange="cuSetRows['+i+'].date=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px"></td>'+
-      '<td style="padding:4px 6px"><input type="text" value="'+(r.desc||'')+'" placeholder="البيان" oninput="cuSetRows['+i+'].desc=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:140px"></td>'+
-      '<td style="padding:4px 6px"><select onchange="cuSetRows['+i+'].cc=this.value;cuSetRows['+i+'].item=\'\';renderCuSetRows()" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px">'+ccOpts+'</select></td>'+
-      '<td style="padding:4px 6px"><select onchange="cuSetRows['+i+'].item=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px">'+itemOpts+'</select></td>'+
-      '<td style="padding:4px 6px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetRowTotal('+i+')" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:85px;text-align:left"></td>'+
-      '<td style="padding:4px 6px;text-align:center"><input type="checkbox" '+(r.taxable?'checked':'')+' onchange="cuSetRows['+i+'].taxable=this.checked;updateCuSetRowTotal('+i+')" style="width:18px;height:18px;cursor:pointer" title="خاضع للضريبة؟"></td>'+
-      '<td id="cuSetTot-'+i+'" style="padding:4px 6px;font-weight:700;font-family:monospace;color:var(--nv);white-space:nowrap">'+fR(cuSetRowTotal(r))+'</td>'+
-      '<td style="padding:4px 6px"><select onchange="cuSetRows['+i+'].vehId=this.value" style="padding:4px 6px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--fn);outline:none;width:110px">'+vehOpts+'</select></td>'+
-      '<td style="padding:4px 6px"><button onclick="cuSetRows.splice('+i+',1);renderCuSetRows()" style="background:var(--dnb);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px">🗑️</button></td>'+
+      '<td style="padding:6px 8px"><input type="date" value="'+r.date+'" onchange="cuSetRows['+i+'].date=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:135px"></td>'+
+      '<td style="padding:6px 8px"><input type="text" value="'+(r.desc||'')+'" placeholder="البيان" oninput="cuSetRows['+i+'].desc=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:200px"></td>'+
+      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].cc=this.value;cuSetRows['+i+'].item=\'\';renderCuSetRows()" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+ccOpts+'</select></td>'+
+      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].item=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+itemOpts+'</select></td>'+
+      '<td style="padding:6px 8px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetRowTotal('+i+')" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:110px;text-align:left"></td>'+
+      '<td style="padding:6px 8px;text-align:center"><input type="checkbox" '+(r.taxable?'checked':'')+' onchange="cuSetRows['+i+'].taxable=this.checked;updateCuSetRowTotal('+i+')" style="width:20px;height:20px;cursor:pointer" title="خاضع للضريبة؟"></td>'+
+      '<td id="cuSetTot-'+i+'" style="padding:6px 8px;font-weight:700;font-family:monospace;color:var(--nv);white-space:nowrap;font-size:13px">'+fR(cuSetRowTotal(r))+'</td>'+
+      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].vehId=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+vehOpts+'</select></td>'+
+      '<td style="padding:6px 8px"><button onclick="cuSetRows.splice('+i+',1);renderCuSetRows()" style="background:var(--dnb);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">🗑️</button></td>'+
     '</tr>';
   }).join('');
   updateCuSetSummary();
@@ -3246,6 +3244,31 @@ function addCustodyItem(ccName){
     if(ccs.length){if(!ccs[0].items)ccs[0].items=[];ccs[0].items.push(name);}
   }
   sv();toast('✅ تم إضافة البند: '+name);
+}
+// Proper "add item" flow that lets the user choose which cost center the new item belongs to
+// (replaces the ambiguous fallback above that used to silently pick the first/general center)
+function openAddItemM(){
+  var sel=G('ia-cc');
+  var ccs=(S.data.costCenters||[]).filter(function(c){return c.active;});
+  sel.innerHTML=ccs.map(function(c){return '<option value="'+c.id+'">'+c.name+'</option>';}).join('');
+  G('ia-name').value='';
+  OM('itemAddM');
+}
+function saveNewItem(){
+  var ccId=V('ia-cc');
+  var name=V('ia-name').trim();
+  if(!ccId||!name){toast('يرجى اختيار مركز التكلفة وإدخال اسم البند','e');return;}
+  var cc=(S.data.costCenters||[]).find(function(c){return c.id===ccId;});
+  if(!cc){toast('مركز التكلفة غير موجود','e');return;}
+  if(!cc.items)cc.items=[];
+  if(cc.items.indexOf(name)>=0){toast('هذا البند موجود مسبقاً في مركز '+cc.name,'w');return;}
+  cc.items.push(name);
+  alog('إضافة بند لمركز تكلفة',cc.name+' ← '+name);
+  sv();
+  CM('itemAddM');
+  toast('✅ تم إضافة البند "'+name+'" لمركز '+cc.name);
+  fillCCDropdowns();
+  if(G('cuSetM')&&G('cuSetM').classList.contains('on'))renderCuSetRows();
 }
 
 
@@ -3775,6 +3798,7 @@ function editBO(id){
   G('boe-d').value=b.date;
   G('boe-a').value=b.amount;
   G('boe-t').value=b.to;
+  G('boe-phone').value=b.phone||'';
   G('boe-rf').value=b.ref||'';
   G('boe-ds').value=b.desc||'';
   if(b.accId){var s=G('boe-acc');if(s)s.value=b.accId;}
@@ -3791,7 +3815,7 @@ function saveEditBO(){
   var accId=V('boe-acc');
   var acc=getBankAccounts().find(function(x){return x.id===accId;});
   b.date=V('boe-d')||td2();
-  b.amount=a;b.to=t;b.ref=V('boe-rf');b.desc=V('boe-ds');
+  b.amount=a;b.to=t;b.phone=V('boe-phone')||'';b.ref=V('boe-rf');b.desc=V('boe-ds');
   b.accId=accId;b.accName=acc?acc.name:'';
   alog('تعديل صادر بنكي','لـ '+t+' — '+fR(a)+(acc?' — '+acc.name:''));
   sv();CM('boEM');loadBk();loadBA();toast('تم حفظ التعديل');
@@ -3938,6 +3962,7 @@ function printVoucher(id){
     '<div class="info-row"><span class="info-label">التاريخ:</span><span class="info-val">'+e.date+'</span></div>'+
     '<div class="info-row"><span class="info-label">مركز التكلفة:</span><span class="info-val">'+(e.cc||'—')+'</span></div>'+
     '<div class="info-row"><span class="info-label">المستفيد:</span><span class="info-val">'+e.to+'</span></div>'+
+    (e.phone?'<div class="info-row"><span class="info-label">رقم الجوال:</span><span class="info-val">'+e.phone+'</span></div>':'')+
     '<div class="info-row"><span class="info-label">طريقة الصرف:</span><span class="info-val">'+(e.method||'نقدي')+'</span></div>'+
   '</div>'+
 
@@ -4245,6 +4270,11 @@ function assignMissingSerials(){var changed=false;function assign(arr,k,start){v
 function fillBkStmAcc(){var s=G('bkStmAcc');if(!s)return;s.innerHTML='<option value="">كل الحسابات</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>';}).join('');}
 function loadBkCal(){var cal=G('bkCal');var info=G('bkRevInfo');if(!cal)return;var days=[];for(var i=29;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);days.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));}var accs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});var revs=S.data.bankRevs||[];var today=td2();var unreviewed=0;cal.innerHTML='';days.forEach(function(day){var el=document.createElement('div');if(day===today){el.title='اليوم';el.style.cssText='background:var(--bd);border-radius:6px;padding:4px;text-align:center;font-size:10px;color:var(--gr)';var p=day.split('-');el.innerHTML=p[2]+'/'+p[1]+'<br>';cal.appendChild(el);return;}var dayRevs=revs.filter(function(r){return r.date===day;});var reviewedAccs=dayRevs.map(function(r){return r.accId;});var allReviewed=accs.length>0&&accs.every(function(a){return reviewedAccs.indexOf(a.id)>=0;});var anyReviewed=dayRevs.length>0;var hasDiff=dayRevs.some(function(r){return Math.abs(r.diff||0)>0;});if(!anyReviewed)unreviewed++;var color=allReviewed?(hasDiff?'var(--wn)':'var(--sc)'):anyReviewed?'var(--wn)':'var(--dn)';var icon=allReviewed?(hasDiff?'!':'v'):anyReviewed?'~':'x';el.title=day+(allReviewed?' مكتملة':anyReviewed?' جزئية':' لم تراجع');el.style.cssText='background:'+color+'22;border:1px solid '+color+';border-radius:6px;padding:4px;text-align:center;font-size:10px;cursor:pointer';var p=day.split('-');el.innerHTML=p[2]+'/'+p[1]+'<br>'+icon;(function(dy){el.addEventListener('click',function(){openBkRev(dy);});})(day);cal.appendChild(el);});if(info)info.textContent=unreviewed>0?'— '+unreviewed+' يوم غير مراجع':'— كل الأيام مراجعة';}
 function openBkRev(date){var accs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});if(!accs.length){toast('لا توجد حسابات بنكية','w');return;}var revs=(S.data.bankRevs||[]).filter(function(r){return r.date===date;});var reviewedAccs=revs.map(function(r){return r.accId;});var acc=accs.find(function(a){return reviewedAccs.indexOf(a.id)<0;})||accs[0];openBkRevForAcc(date,acc.id);}
+function openBkRevManual(){
+  var d=G('bkRevJumpDate').value;
+  if(!d){toast('يرجى اختيار التاريخ المطلوب مراجعته','e');return;}
+  openBkRev(d);
+}
 function openBkRevForAcc(date,accId){var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});if(!acc)return;G('bkRevMTitle').textContent=date+' — '+acc.name;G('bkRevMAccName').textContent=acc.name;G('bkRevMAcc').value=accId;G('bkRevMDate').value=date;G('bkRevMActual').value='';G('bkRevMNotes').value='';G('bkRevMDiff').style.display='none';var allBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date<=date;});var allBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date<=date&&b.status==='approved';});var openBal=acc.balance||0;var sysBal=openBal+allBi.reduce(function(s,b){return s+b.amount;},0)-allBo.reduce(function(s,b){return s+b.amount;},0);var dayBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date===date;});var dayBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date===date&&b.status==='approved';});var txHtml='';dayBi.forEach(function(b){txHtml+='<div style="color:var(--sc)">+ '+fR(b.amount)+' — '+(b.desc||b.from||'')+'</div>';});dayBo.forEach(function(b){txHtml+='<div style="color:var(--dn)">- '+fR(b.amount)+' — '+(b.desc||b.to||'')+'</div>';});if(!txHtml)txHtml='<div style="color:var(--gr)">لا توجد حركات</div>';G('bkRevMTxns').innerHTML=txHtml;G('bkRevMSysbal').textContent=fR(sysBal);var existing=(S.data.bankRevs||[]).find(function(r){return r.date===date&&r.accId===accId;});if(existing){G('bkRevMActual').value=existing.actualBal||'';G('bkRevMNotes').value=existing.notes||'';}OM('bkRevM');}
 function calcBkRevDiff(){var actual=parseFloat(G('bkRevMActual').value)||0;var diffEl=G('bkRevMDiff');if(!actual||!diffEl){if(diffEl)diffEl.style.display='none';return;}var sysBalText=G('bkRevMSysbal').textContent.replace(/[^0-9.-]/g,'');var sysBal=parseFloat(sysBalText)||0;var diff=actual-sysBal;diffEl.style.display='block';if(Math.abs(diff)<0.01){diffEl.style.background='var(--sc)22';diffEl.style.color='var(--sc)';diffEl.textContent='الارصدة متطابقة';}else{diffEl.style.background='var(--dn)22';diffEl.style.color='var(--dn)';diffEl.textContent='فارق: '+(diff>=0?'+':'')+fR(diff)+' ريال';}}
 function saveBkRev(){var date=G('bkRevMDate').value;var accId=G('bkRevMAcc').value;var actual=parseFloat(G('bkRevMActual').value);if(!date||!accId||isNaN(actual)){toast('يرجى تعبئة كل الحقول المطلوبة','e');return;}var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});var allBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date<=date;});var allBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date<=date&&b.status==='approved';});var openBal=acc?acc.balance||0:0;var sysBal=openBal+allBi.reduce(function(s,b){return s+b.amount;},0)-allBo.reduce(function(s,b){return s+b.amount;},0);var diff=actual-sysBal;if(!S.data.bankRevs)S.data.bankRevs=[];var existing=(S.data.bankRevs||[]).find(function(r){return r.date===date&&r.accId===accId;});if(existing){existing.actualBal=actual;existing.sysBal=sysBal;existing.diff=diff;existing.notes=G('bkRevMNotes').value;existing.by=S.cu?S.cu.u:'';existing.at=new Date().toISOString();}else{S.data.bankRevs.push({id:uid(),date:date,accId:accId,accName:acc?acc.name:'',actualBal:actual,sysBal:sysBal,diff:diff,notes:G('bkRevMNotes').value,by:S.cu?S.cu.u:'',at:new Date().toISOString()});}alog('مراجعة بنك',(acc?acc.name:'')+' — '+date);sv();CM('bkRevM');loadBkCal();toast(Math.abs(diff)<0.01?'تم الحفظ — متطابق':'تم الحفظ — فارق '+fR(diff),Math.abs(diff)<0.01?'i':'w');}
@@ -4280,6 +4310,7 @@ ld();
 <div class="fg">
   <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="exe-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="exe-a" placeholder="0"></div></div>
   <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="exe-t" placeholder="اسم المستفيد"></div>
+  <div class="fld"><label>رقم الجوال (اختياري)</label><input type="tel" id="exe-phone" placeholder="05xxxxxxxx"></div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="exe-ds" placeholder="وصف واضح للمصروف"></div>
   <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc" style="font-family:var(--fn)"></select></div><div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
   <div class="fld"><label>ملاحظات</label><textarea id="exe-nt" style="min-height:55px"></textarea></div>
@@ -4464,7 +4495,7 @@ ld();
 
 
 <!-- CUSTODY SETTLEMENT MODAL -->
-<div class="mo2" id="cuSetM"><div class="mb2 lg">
+<div class="mo2" id="cuSetM"><div class="mb2 xl">
   <div class="mhd">
     <div class="mtt">&#x1F4CB; تقفيل عهدة — <span id="cuSetName"></span></div>
     <button class="mcl" onclick="CM('cuSetM')">×</button>
@@ -4485,7 +4516,7 @@ ld();
   </div>
 
   <!-- Expenses table -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:700;color:var(--nv)">&#x1F4B8; المصروفات</div><button class="btn bsm" onclick="addCustodyItem();renderCuSetRows()" style="font-size:11px">&#x2795; بند جديد</button></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:700;color:var(--nv)">&#x1F4B8; المصروفات</div><button class="btn bsm" onclick="openAddItemM()" style="font-size:11px">&#x2795; بند جديد</button></div>
   <div style="border:1px solid var(--bd);border-radius:10px;overflow-x:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch">
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
@@ -4497,7 +4528,7 @@ ld();
           <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">المبلغ (قبل الضريبة)</th>
           <th style="padding:6px 8px;text-align:center;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">خاضع للضريبة؟</th>
           <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">الإجمالي شامل الضريبة</th>
-          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">السيارة</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">رقم السيارة</th>
           <th style="padding:8px 10px;width:40px"></th>
         </tr>
       </thead>
@@ -4527,6 +4558,18 @@ ld();
     <button class="btn" onclick="CM('cuSetM')">إلغاء</button>
     <button class="btn bg3" onclick="saveCuSettle()">&#x1F4BE; حفظ التقفيل</button>
   </div>
+</div></div>
+
+<!-- ADD NEW ITEM MODAL -->
+<div class="mo2" id="itemAddM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">&#x1F3F7;&#xFE0F; إضافة بند جديد</div><button class="mcl" onclick="CM('itemAddM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>مركز التكلفة <span class="req">*</span></label>
+      <select id="ia-cc" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"></select>
+    </div>
+    <div class="fld"><label>اسم البند الجديد <span class="req">*</span></label><input type="text" id="ia-name" placeholder="مثال: صيانة إطارات"></div>
+  </div>
+  <div class="mft"><button class="btn" onclick="CM('itemAddM')">إلغاء</button><button class="btn bp" onclick="saveNewItem()">&#x1F4BE; إضافة البند</button></div>
 </div></div>
 
 
@@ -4588,6 +4631,7 @@ ld();
     <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="boe-d"></div>
     <div class="fld"><label>المبلغ <span class="req">*</span></label><input type="number" id="boe-a" placeholder="0"></div>
     <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="boe-t" placeholder="اسم المستفيد"></div>
+    <div class="fld"><label>رقم الجوال (اختياري)</label><input type="tel" id="boe-phone" placeholder="05xxxxxxxx"></div>
     <div class="fld"><label>رقم العملية</label><input type="text" id="boe-rf" placeholder="رقم المرجع"></div>
     <div class="fld"><label>البيان</label><input type="text" id="boe-ds" placeholder="بيان التحويل"></div>
   </div>
