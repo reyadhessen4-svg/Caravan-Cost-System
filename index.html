@@ -700,8 +700,13 @@ tbody tr:hover td{background:var(--ltr)}
   <div class="page-hdr"><h2>إدارة المستخدمين</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn bp" onclick="OM('usM')">&#x2795; مستخدم جديد</button>
+      <button class="btn" onclick="openRoleM()">&#x1F3F7;&#xFE0F; دور جديد</button>
       <button class="btn bd2" onclick="resetAllData()" title="مسح جميع البيانات وبدء من الصفر">&#x1F5D1;&#xFE0F; مسح كل البيانات</button>
     </div>
+  </div>
+  <div class="card">
+    <div class="cht">&#x1F3F7;&#xFE0F; الأدوار المخصصة <span style="font-size:11px;color:var(--gr);font-weight:400">(بجانب الأدوار الأساسية: مدير النظام، المدير المالي، أمين الخزينة، موظف التشغيل، مسؤول المطالبات)</span></div>
+    <div id="rolesList"></div>
   </div>
   <div class="card"><div class="tw"><table id="usTbl">
     <thead><tr><th>المستخدم</th><th>الدور</th><th>آخر دخول</th><th>وقت الخروج</th><th>الحالة</th><th>إجراءات</th></tr></thead>
@@ -950,7 +955,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],clients:[],costCenters:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
+var S={cu:null,data:{users:[],employees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],clients:[],costCenters:[],customRoles:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
 var BK_KEY='qawafil_v14'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
@@ -1028,8 +1033,9 @@ function ld(){
       var d=snap.val();
       if(d&&d.users){
         S.data=Object.assign({},S.data,d);
-        var arrFields=['users','employees','vehicles','bankAccounts','clients','costCenters','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
+        var arrFields=['users','employees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
         arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
+        mergeCustomRoles();
         setSyncIcon('ok');
       } else {
         _loadLocal();
@@ -1055,6 +1061,9 @@ function _loadLocal(){
     var d=localStorage.getItem(BK_KEY);
     if(d)S.data=Object.assign({},S.data,JSON.parse(d));
   }catch(e){}
+  if(!S.data.customRoles)S.data.customRoles=[];
+  if(!Array.isArray(S.data.customRoles))S.data.customRoles=Object.values(S.data.customRoles);
+  mergeCustomRoles();
   if(!S.data.users.length)seed();
   _showLoginPage();
   _tryAutoLogin();
@@ -1081,13 +1090,14 @@ function _startListener(){
     clearTimeout(_saveTimer);
     S.data=Object.assign({},S.data,d);
     // Ensure arrays
-    var arrF=['users','employees','vehicles','bankAccounts','clients','costCenters',
+    var arrF=['users','employees','vehicles','bankAccounts','clients','costCenters','customRoles',
       'prices','ops','receipts','expenses','bankIn','bankOut','bankRevs',
       'custodies','custodyEnts','claims','audit'];
     arrF.forEach(function(f){
       if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);
       if(!S.data[f])S.data[f]=[];
     });
+    mergeCustomRoles();
     // Refresh current page if app is open
     if(S.cu){
       var pg=document.querySelector('.pg.on');
@@ -1154,6 +1164,22 @@ var ROLES={
             pages:['dash','cl'],
             canDel:false, canEdit:false}
 };
+// Custom roles created by the admin (stored in S.data.customRoles) get merged into ROLES here,
+// so every existing ROLES[u.r] lookup across the app works transparently for custom roles too.
+var BUILTIN_ROLE_KEYS=['admin','finance','treasury','ops','claims'];
+function mergeCustomRoles(){
+  Object.keys(ROLES).forEach(function(k){if(ROLES[k]&&ROLES[k].isCustom)delete ROLES[k];});
+  (S.data.customRoles||[]).forEach(function(cr){
+    if(!cr||!cr.key||BUILTIN_ROLE_KEYS.indexOf(cr.key)>=0)return;
+    ROLES[cr.key]={
+      lbl:cr.lbl||cr.key,c:cr.c||'bg2',all:false,
+      pages:cr.pages||[],
+      canDel:!!cr.canDel,canEdit:!!cr.canEdit,
+      ap:!!cr.ap,bkRev:!!cr.bkRev,rc:!!cr.rc,ex:!!cr.ex,ops:!!cr.ops,claims:!!cr.claims,
+      isCustom:true
+    };
+  });
+}
 var CL_STGS=['حادث جديد','تم رفع المستندات','تم تقديم المطالبة','تحت المراجعة','تمت الموافقة','تم استلام التعويض','مغلقة'];
 var td2=()=>new Date().toISOString().split('T')[0];
 var ym=()=>new Date().toISOString().slice(0,7);
@@ -1251,6 +1277,11 @@ function N(pg,btn){
   document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
   var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',veh:'سجل السيارات',ba:'الحسابات البنكية',emps:'سجل الموظفين',cc:'مراكز التكلفة',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,veh:loadVeh,ba:loadBA,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
 function OM(id){
+  if(id==='usM'){
+    G('us-n').value='';G('us-u').value='';G('us-p').value='';
+    fillRoleSelect('us-r');
+    G('us-r').selectedIndex=0;
+  }
   if(id==='empM'){
     G('emp-id').value='';G('emp-name').value='';G('emp-job').value='';
     G('emp-dept').value='';G('emp-phone').value='';G('emp-idnum').value='';G('emp-notes').value='';
@@ -1676,7 +1707,96 @@ function loadRp(){
   RC(G('chKpi'),'bar',kpiL,[kpiD,'rgba(26,86,219,.7)']);
 }
 /* ─── USERS ─── */
-function loadUs(){G('usTbd').innerHTML=S.data.users.map(u=>'<tr><td><div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:50%;background:var(--'+(u.active?'ry':'gr2')+');display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0">'+u.name[0]+'</div><div><div style="font-weight:600">'+u.name+'</div><div style="font-size:11px;color:var(--gr);font-family:monospace">'+u.u+'</div></div></div></td><td><span class="bdg '+(ROLES[u.r]?ROLES[u.r].c:'bg2')+'">'+(ROLES[u.r]?ROLES[u.r].lbl:u.r)+'</span></td><td style="font-size:12px;color:var(--gr)">'+(u.ll?new Date(u.ll).toLocaleString('en-US'):'لم يدخل بعد')+'</td><td style="font-size:12px;color:var(--gr)">'+(u.lo?new Date(u.lo).toLocaleString('en-US'):'—')+'</td><td><span class="bdg '+(u.active?'bn':'br')+'">'+(u.active?'✅ نشط':'🔒 موقوف')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="editUs(\''+u.id+'\')">✏️ تعديل</button><button class="btn bxs '+(u.active?'bd2':'')+'" onclick="togUs(\''+u.id+'\')">'+  (u.active?'🔒 إيقاف':'✅ تفعيل')+'</button>'+(u.id!==S.cu.id?'<button class="btn bd2 bxs" onclick="delUs(\''+u.id+'\')">🗑️</button>':'')+'</div></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا يوجد مستخدمون</div></div></td></tr>';}
+function loadUs(){loadRolesList();G('usTbd').innerHTML=S.data.users.map(u=>'<tr><td><div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:50%;background:var(--'+(u.active?'ry':'gr2')+');display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0">'+u.name[0]+'</div><div><div style="font-weight:600">'+u.name+'</div><div style="font-size:11px;color:var(--gr);font-family:monospace">'+u.u+'</div></div></div></td><td><span class="bdg '+(ROLES[u.r]?ROLES[u.r].c:'bg2')+'">'+(ROLES[u.r]?ROLES[u.r].lbl:u.r)+'</span></td><td style="font-size:12px;color:var(--gr)">'+(u.ll?new Date(u.ll).toLocaleString('en-US'):'لم يدخل بعد')+'</td><td style="font-size:12px;color:var(--gr)">'+(u.lo?new Date(u.lo).toLocaleString('en-US'):'—')+'</td><td><span class="bdg '+(u.active?'bn':'br')+'">'+(u.active?'✅ نشط':'🔒 موقوف')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="editUs(\''+u.id+'\')">✏️ تعديل</button><button class="btn bxs '+(u.active?'bd2':'')+'" onclick="togUs(\''+u.id+'\')">'+  (u.active?'🔒 إيقاف':'✅ تفعيل')+'</button>'+(u.id!==S.cu.id?'<button class="btn bd2 bxs" onclick="delUs(\''+u.id+'\')">🗑️</button>':'')+'</div></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا يوجد مستخدمون</div></div></td></tr>';}
+/* ─── CUSTOM ROLES MANAGEMENT ─── */
+function loadRolesList(){
+  var el=G('rolesList');
+  if(!el)return;
+  var roles=S.data.customRoles||[];
+  if(!roles.length){
+    el.innerHTML='<div class="es"><div class="essb">لا توجد أدوار مخصصة بعد — دوس "دور جديد" لإضافة أول دور (مثال: محاسب)</div></div>';
+    return;
+  }
+  el.innerHTML=roles.map(function(cr){
+    var userCount=S.data.users.filter(function(u){return u.r===cr.key;}).length;
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;flex-wrap:wrap;gap:8px">'+
+      '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+        '<span class="bdg '+(cr.c||'bg2')+'">'+cr.lbl+'</span>'+
+        '<span style="font-size:12px;color:var(--gr)">'+(cr.pages||[]).length+' صفحة متاحة — '+userCount+' مستخدم</span>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px">'+
+        '<button class="btn bxs" onclick="openRoleM(\''+cr.key+'\')">&#x270F;&#xFE0F; تعديل</button>'+
+        '<button class="btn bd2 bxs" onclick="deleteRole(\''+cr.key+'\')">&#x1F5D1;&#xFE0F; حذف</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+function openRoleM(key){
+  if(!can('all')){toast('إدارة الأدوار الوظيفية مخصصة لمدير النظام فقط','e');return;}
+  var cr=key?(S.data.customRoles||[]).find(function(r){return r.key===key;}):null;
+  G('role-key').value=cr?cr.key:'';
+  G('role-lbl').value=cr?cr.lbl:'';
+  G('role-c').value=cr?(cr.c||'bg2'):'bg2';
+  ['ap','bkRev','rc','ex','ops','claims','canEdit','canDel'].forEach(function(f){
+    G('role-'+f).checked=cr?!!cr[f]:false;
+  });
+  var pages=cr?(cr.pages||[]):['dash'];
+  G('role-pages-list').innerHTML=ALL_PAGES.map(function(p){
+    var checked=pages.indexOf(p.id)>=0;
+    return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px 6px;border-radius:6px;background:var(--wh);border:1px solid var(--bd)"><input type="checkbox" class="role-pg-chk" value="'+p.id+'" '+(checked?'checked':'')+' style="width:14px;height:14px">'+p.lbl+'</label>';
+  }).join('');
+  G('roleMTitle').textContent=cr?'تعديل دور — '+cr.lbl:'دور وظيفي جديد';
+  OM('roleM');
+}
+function saveRole(){
+  var lbl=V('role-lbl').trim();
+  if(!lbl){toast('يرجى إدخال اسم الدور','e');return;}
+  var key=V('role-key');
+  var pages=Array.from(document.querySelectorAll('.role-pg-chk:checked')).map(function(cb){return cb.value;});
+  if(!pages.length){toast('يرجى اختيار صفحة واحدة على الأقل يقدر الدور يدخلها','e');return;}
+  if(!S.data.customRoles)S.data.customRoles=[];
+  if(S.data.customRoles.some(function(r){return r.lbl===lbl&&r.key!==key;})){toast('يوجد دور آخر بنفس الاسم بالفعل','e');return;}
+  var roleData={
+    key:key||('cr_'+Date.now()),
+    lbl:lbl,
+    c:V('role-c')||'bg2',
+    pages:pages,
+    ap:G('role-ap').checked,bkRev:G('role-bkRev').checked,
+    rc:G('role-rc').checked,ex:G('role-ex').checked,
+    ops:G('role-ops').checked,claims:G('role-claims').checked,
+    canEdit:G('role-canEdit').checked,canDel:G('role-canDel').checked
+  };
+  if(key){
+    var idx=S.data.customRoles.findIndex(function(r){return r.key===key;});
+    if(idx>=0)S.data.customRoles[idx]=roleData;
+    alog('تعديل دور وظيفي',lbl);
+  } else {
+    S.data.customRoles.push(roleData);
+    alog('إضافة دور وظيفي جديد',lbl);
+  }
+  mergeCustomRoles();
+  sv();
+  CM('roleM');
+  loadRolesList();
+  toast('تم حفظ الدور بنجاح');
+}
+function deleteRole(key){
+  if(!can('all')){toast('حذف الأدوار الوظيفية مخصص لمدير النظام فقط','e');return;}
+  var cr=(S.data.customRoles||[]).find(function(r){return r.key===key;});
+  if(!cr)return;
+  var usersWithRole=S.data.users.filter(function(u){return u.r===key;});
+  if(usersWithRole.length){
+    toast('لا يمكن حذف هذا الدور — '+usersWithRole.length+' مستخدم مرتبط به حالياً. غيّر دورهم أولاً.','e');
+    return;
+  }
+  if(!confirm('حذف الدور "'+cr.lbl+'"؟'))return;
+  S.data.customRoles=S.data.customRoles.filter(function(r){return r.key!==key;});
+  delete ROLES[key];
+  alog('حذف دور وظيفي',cr.lbl);
+  sv();
+  loadRolesList();
+  toast('تم حذف الدور','w');
+}
 function saveUs(){var n=V('us-n'),u=V('us-u'),p=V('us-p'),r=V('us-r');if(!n||!u||!p){toast('يرجى تعبئة الحقول المطلوبة','e');return;}if(S.data.users.find(x=>x.u===u)){toast('اسم المستخدم مستخدم مسبقاً','e');return;}S.data.users.push({id:uid(),name:n,u:u,p:p,r:r,active:true,ll:'',lo:'',mustChangePass:true});alog('إضافة مستخدم جديد',n+' — '+ROLES[r].lbl);sv();CM('usM');loadUs();toast('تم إضافة المستخدم بنجاح');}
 function togUs(id){var u=S.data.users.find(x=>x.id===id);if(!u)return;if(u.id===S.cu.id){toast('لا يمكن إيقاف حسابك الخاص','e');return;}u.active=!u.active;alog(u.active?'تفعيل مستخدم':'إيقاف مستخدم',u.name);sv();loadUs();toast(u.active?'تم تفعيل الحساب':'تم إيقاف الحساب',u.active?'s':'w');}
 /* ─── AUDIT ─── */
@@ -1713,6 +1833,18 @@ var ALL_PAGES=[
   {id:'au',lbl:'سجل العمليات'}
 ];
 
+// Appends custom (admin-created) roles as extra options to a role <select>, after the built-in ones
+function fillRoleSelect(selId){
+  var sel=G(selId);
+  if(!sel)return;
+  Array.from(sel.querySelectorAll('option[data-custom]')).forEach(function(o){o.remove();});
+  (S.data.customRoles||[]).forEach(function(cr){
+    var o=document.createElement('option');
+    o.value=cr.key;o.textContent=cr.lbl+' (دور مخصص)';o.setAttribute('data-custom','1');
+    sel.appendChild(o);
+  });
+}
+
 function editUs(id){
   var u=S.data.users.find(x=>x.id===id);
   if(!u)return;
@@ -1720,6 +1852,7 @@ function editUs(id){
   G('use-n').value=u.name;
   G('use-u').value=u.u;
   G('use-p').value='';
+  fillRoleSelect('use-r');
   var rs=G('use-r');
   for(var i=0;i<rs.options.length;i++){if(rs.options[i].value===u.r)rs.selectedIndex=i;}
   // Build pages checkboxes
@@ -2570,14 +2703,16 @@ function resetAllData(){
   if(!can('all')){toast('هذه الوظيفة للمدير فقط','e');return;}
   if(!confirm('⚠️ تحذير: سيتم مسح جميع البيانات بالكامل!\n\nسيُحذف:\n• كل العمليات والإيرادات\n• كل الخزينة والبنك\n• كل العهد والمطالبات\n• كل الموظفين والعملاء\n• كل سجلات التدقيق\n\nالمستخدمون ومراكز التكلفة ستبقى.\n\nهل أنت متأكد؟'))return;
   if(!confirm('تأكيد نهائي: لا يمكن التراجع عن هذا الإجراء. هل تريد المتابعة؟'))return;
-  // Keep users and costCenters, reset everything else
+  // Keep users, costCenters and customRoles; reset everything else
   var savedUsers=S.data.users;
   var savedCC=S.data.costCenters;
+  var savedRoles=S.data.customRoles;
   S.data={
     users:savedUsers,
     employees:[],
     clients:[],
     costCenters:savedCC,
+    customRoles:savedRoles,
     prices:[],
     ops:[],
     receipts:[],
@@ -4175,6 +4310,45 @@ ld();
 </div>
 <input type="hidden" id="use-id">
 <div class="mft"><button class="btn" onclick="CM('usEM')">إلغاء</button><button class="btn bp" onclick="saveEditUs()">&#x1F4BE; حفظ التعديلات</button></div></div></div>
+
+<!-- CUSTOM ROLE MODAL -->
+<div class="mo2" id="roleM"><div class="mb2">
+  <div class="mhd"><div class="mtt" id="roleMTitle">دور وظيفي جديد</div><button class="mcl" onclick="CM('roleM')">×</button></div>
+  <div class="fg">
+    <div class="fld"><label>اسم الدور <span class="req">*</span></label><input type="text" id="role-lbl" placeholder="مثال: محاسب"></div>
+    <div class="fld">
+      <label>لون شارة الدور</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span class="bdg bb" style="cursor:pointer" onclick="G('role-c').value='bb'">أزرق</span>
+        <span class="bdg bn" style="cursor:pointer" onclick="G('role-c').value='bn'">أخضر</span>
+        <span class="bdg bo" style="cursor:pointer" onclick="G('role-c').value='bo'">برتقالي</span>
+        <span class="bdg br" style="cursor:pointer" onclick="G('role-c').value='br'">أحمر</span>
+        <span class="bdg bpu" style="cursor:pointer" onclick="G('role-c').value='bpu'">بنفسجي</span>
+        <span class="bdg bg2" style="cursor:pointer" onclick="G('role-c').value='bg2'">رمادي</span>
+      </div>
+      <input type="hidden" id="role-c" value="bg2">
+    </div>
+    <div style="background:var(--ltr);border-radius:10px;padding:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--nv);margin-bottom:10px">&#x1F512; الصفحات المتاحة لهذا الدور <span class="req">*</span></div>
+      <div id="role-pages-list" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+    </div>
+    <div style="background:var(--ltr);border-radius:10px;padding:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--nv);margin-bottom:10px">&#x2699;&#xFE0F; صلاحيات خاصة (اختياري)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-ap" style="width:14px;height:14px"> اعتماد المصروفات والصادر البنكي</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-bkRev" style="width:14px;height:14px"> مراجعة البنك اليومية</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-rc" style="width:14px;height:14px"> تسجيل مقبوضات الخزينة</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-ex" style="width:14px;height:14px"> تسجيل طلبات الصرف</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-ops" style="width:14px;height:14px"> تسجيل العمليات اليومية</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-claims" style="width:14px;height:14px"> إدارة مطالبات التأمين</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-canEdit" style="width:14px;height:14px"> تعديل السجلات المعتمدة</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-canDel" style="width:14px;height:14px"> حذف السجلات</label>
+      </div>
+    </div>
+  </div>
+  <input type="hidden" id="role-key">
+  <div class="mft"><button class="btn" onclick="CM('roleM')">إلغاء</button><button class="btn bp" onclick="saveRole()">&#x1F4BE; حفظ الدور</button></div>
+</div></div>
 
 
 <!-- EMPLOYEE MODAL -->
