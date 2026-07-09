@@ -358,6 +358,11 @@ tbody tr:hover td{background:var(--ltr)}
       <input type="date" id="bkRevJumpDate" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
       <button class="btn bsm bp" onclick="openBkRevManual()">&#x1F50E; مراجعة هذا التاريخ</button>
     </div>
+    <div id="sysStartRow" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--bd);margin-top:10px">
+      <span style="font-size:12px;color:var(--gr)">&#x1F4CC; تاريخ بداية استخدام النظام (لن تُحسب أي أيام قبله ضمن "لم تُراجع"):</span>
+      <input type="date" id="sysStartDate" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+      <button class="btn bsm bp" onclick="saveSysStartDate()">&#x1F4BE; حفظ</button>
+    </div>
   </div>
   <div class="tabs">
     <button class="tabb on" onclick="ST('bkTbs','bkIn',this)">الوارد البنكي</button>
@@ -721,7 +726,7 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ AUDIT ═══ -->
 <div class="pg" id="pg-au">
   <div class="page-hdr"><h2>سجل العمليات</h2>
-    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="assignMissingSerials();toast('تم فحص السيريالات وتطبيع بيانات العمليات القديمة')" title="يصلح السيريالات الناقصة وأي عمليات قديمة بدون حالة اعتماد صريحة">&#x1F522; إصلاح البيانات القديمة</button><button class="btn bsm" onclick="showDeletedSerials()">📋 المحذوفة</button><button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
+    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="assignMissingSerials();toast('تم فحص وتعيين السيريالات الناقصة')">&#x1F522; تعيين السيريالات الناقصة</button><button class="btn bsm" onclick="showDeletedSerials()">📋 المحذوفة</button><button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
   </div>
   <div class="card">
     <div class="srch-bar">
@@ -962,7 +967,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],clients:[],costCenters:[],customRoles:[],prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
+var S={cu:null,data:{users:[],employees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],clients:[],costCenters:[],customRoles:[],systemStartDate:'',prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
 var BK_KEY='qawafil_v14'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
@@ -1499,7 +1504,9 @@ function loadBk(){
   G('bkBal').textContent=fR(bal);G('bkInM').textContent=fR(mI);G('bkOutM').textContent=fR(mO);
   // "أيام لم تراجع" — counted per-account, consistent with the actual review calendar (loadBkCal):
   // a day only counts as reviewed once EVERY active bank account has a review record for it.
+  // Days before the configured "system start date" are never counted (no real data existed then).
   var activeAccs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});
+  var sysStart=S.data.systemStartDate||'';
   var txDays=new Set([
     ...S.data.bankIn.map(b=>b.date),
     ...S.data.bankOut.map(b=>b.date)
@@ -1508,6 +1515,7 @@ function loadBk(){
   for(var i=1;i<=30;i++){
     var d=new Date();d.setDate(d.getDate()-i);
     var dt=d.toISOString().split('T')[0];
+    if(sysStart&&dt<sysStart)continue;
     if(!txDays.has(dt))continue;
     var dayRevs=S.data.bankRevs.filter(function(r){return r.date===dt;});
     var reviewedAccIds=dayRevs.map(function(r){return r.accId;});
@@ -1515,6 +1523,7 @@ function loadBk(){
     if(!allReviewed)unrv.push(dt);
   }
   G('bkUnRv').textContent=unrv.length>0?unrv.length:'—';
+  if(G('sysStartDate'))G('sysStartDate').value=sysStart;
   G('biTbd').innerHTML=bI.sort((a,b)=>b.date.localeCompare(a.date)).map(function(b){
     var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
     var accTag=acc?'<span style="background:'+acc.color+'22;color:'+acc.color+';border:1px solid '+acc.color+'44;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">'+acc.name+'</span>':'<span class="bdg bo" style="font-size:10px">غير مُعيَّن</span>';
@@ -1546,12 +1555,11 @@ function loadBk(){
       '<td>'+(b.desc||'—')+'</td>'+
       '<td style="font-size:11px;color:var(--gr2)">'+b.by+'</td>'+
       '<td>'+sBadge(b.status||'approved')+'</td>'+
-      '<td><div style="display:flex;gap:3px;flex-wrap:wrap">'+
+      '<td><div style="display:flex;gap:3px">'+
         ((can('all')||can('ap'))&&(b.status||'approved')==='pending'?
           '<button class="btn bss bxs" onclick="apBO(this.dataset.id)" data-id="'+b.id+'" title="اعتماد">✓</button>'+
           '<button class="btn bd2 bxs" onclick="rjBO(this.dataset.id)" data-id="'+b.id+'" title="رفض">✗</button>':'')+
-        (b.status==='approved'&&can('all')?'<button class="btn bg3 bxs" onclick="unapproveBO(this.dataset.id)" data-id="'+b.id+'" title="إلغاء الاعتماد للتمكن من التعديل">&#x21A9;&#xFE0F; إلغاء الاعتماد</button>':'')+
-        (b.status!=='approved'?'<button class="btn bxs" onclick="editBO(this.dataset.id)" data-id="'+b.id+'">✏️</button>':'')+
+        (b.status!=='approved'||can('all')?'<button class="btn bxs" onclick="editBO(this.dataset.id)" data-id="'+b.id+'">✏️</button>':'')+
         (can('all')?'<button class="btn bd2 bxs" onclick="delBO(this.dataset.id)" data-id="'+b.id+'">🗑️</button>':'')+
       '</div></td>'+
     '</tr>';
@@ -2069,14 +2077,14 @@ function fillBoFromEmp(){
 }
 
 function addCustodyEntry(custodyId,amount,desc,source){
-  if(!custodyId||!amount)return null;
+  if(!custodyId||!amount)return;
   var cu=S.data.custodies.find(function(c){return c.id===custodyId;});
-  if(!cu)return null;
+  if(!cu)return;
   // صرف من خزينة/بنك للموظف = يزيد رصيد العهدة (opening)
   // مش مصروف من الموظف — المصاريف يسجلها الموظف من عهدته
   cu.opening=cu.opening+amount;
   // سجّل حركة للتاريخ
-  var entry={
+  S.data.custodyEnts.push({
     id:uid(),cid:custodyId,empName:cu.name,
     date:td2(),item:'إضافة رصيد — '+source,amount:0,
     addedToOpening:amount,
@@ -2085,10 +2093,8 @@ function addCustodyEntry(custodyId,amount,desc,source){
     autoLinked:true,linkSource:source,
     isTopup:true,
     by:S.cu?S.cu.u:'system',at:new Date().toISOString()
-  };
-  S.data.custodyEnts.push(entry);
+  });
   alog('إضافة رصيد للعهدة',cu.name+' — '+fR(amount)+' من '+source);
-  return entry;
 }
 
 function loadEmps(){
@@ -3796,7 +3802,6 @@ function saveEditBI(){
 function editBO(id){
   var b=S.data.bankOut.find(function(x){return x.id===id;});
   if(!b)return;
-  if(b.status==='approved'){toast('هذه العملية معتمدة — يجب إلغاء الاعتماد أولاً من الجدول قبل التعديل','e');return;}
   fillAccSelects();
   G('boe-id').value=id;
   G('boe-d').value=b.date;
@@ -3813,7 +3818,6 @@ function saveEditBO(){
   var id=V('boe-id');
   var b=S.data.bankOut.find(function(x){return x.id===id;});
   if(!b)return;
-  if(b.status==='approved'){toast('هذه العملية معتمدة — يجب إلغاء الاعتماد أولاً قبل التعديل','e');return;}
   var a=parseFloat(G('boe-a').value)||0;
   var t=V('boe-t');
   if(!a||!t){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
@@ -3823,7 +3827,7 @@ function saveEditBO(){
   b.amount=a;b.to=t;b.phone=V('boe-phone')||'';b.ref=V('boe-rf');b.desc=V('boe-ds');
   b.accId=accId;b.accName=acc?acc.name:'';
   alog('تعديل صادر بنكي','لـ '+t+' — '+fR(a)+(acc?' — '+acc.name:''));
-  sv();CM('boEM');loadBk();loadBA();toast('تم حفظ التعديل — يمكنك إعادة الاعتماد الآن','i');
+  sv();CM('boEM');loadBk();loadBA();toast('تم حفظ التعديل');
 }
 
 function assignOldTxns(){
@@ -3897,33 +3901,11 @@ function apBO(id){
   b.status='approved';b.apBy=S.cu?S.cu.u:'';b.apAt=new Date().toISOString();
   // Now add to custody if linked
   if(b.custodyLink){
-    var _entry=addCustodyEntry(b.custodyLink,b.amount,b.desc||('صرف بنكي لـ '+b.to),'صادر بنكي');
-    b.custodyEntryId=_entry?_entry.id:'';
+    addCustodyEntry(b.custodyLink,b.amount,b.desc||('صرف بنكي لـ '+b.to),'صادر بنكي');
   }
   alog('اعتماد صادر بنكي',b.to+' — '+fR(b.amount));
   sv();loadBk();loadBkAp();updBkApCnt();
   toast('✅ تم اعتماد الصادر البنكي');
-}
-
-function unapproveBO(id){
-  if(!can('all')){toast('إلغاء الاعتماد مخصص لمدير النظام فقط','e');return;}
-  var b=S.data.bankOut.find(function(x){return x.id===id;});
-  if(!b||b.status!=='approved'){toast('هذه العملية غير معتمدة أصلاً','e');return;}
-  if(!confirm('تأكيد إلغاء اعتماد الصادر البنكي رقم '+b.num+' لـ '+b.to+' — '+fR(b.amount)+'؟\nستعود العملية لحالة "معلق" ويمكنك تعديلها ثم إعادة اعتمادها.'))return;
-  // Reverse the custody top-up effect precisely, if this approval had linked to a custody
-  if(b.custodyEntryId){
-    var entry=S.data.custodyEnts.find(function(e){return e.id===b.custodyEntryId;});
-    if(entry){
-      var cu=S.data.custodies.find(function(c){return c.id===entry.cid;});
-      if(cu)cu.opening=cu.opening-(entry.addedToOpening||0);
-      S.data.custodyEnts=S.data.custodyEnts.filter(function(e){return e.id!==b.custodyEntryId;});
-    }
-    b.custodyEntryId='';
-  }
-  b.status='pending';b.apBy='';b.apAt='';
-  alog('إلغاء اعتماد صادر بنكي','سند '+b.num+' — '+b.to+' — '+fR(b.amount));
-  sv();loadBk();loadBkAp();updBkApCnt();
-  toast('تم إلغاء الاعتماد — يمكنك التعديل الآن ثم إعادة الاعتماد','w');
 }
 
 function rjBO(id){
@@ -4293,17 +4275,52 @@ function _tryAutoLogin(){try{var sess=localStorage.getItem('qawafil_session');if
 function getDeleteReason(t,n){var r=prompt('حذف '+t+' رقم '+n+'\nسبب الحذف:');if(r===null)return null;if(!r.trim()){toast('سبب الحذف إجباري','e');return null;}return r.trim();}
 function logDeletion(t,doc,rsn){alog('حذف '+t,'سريال '+(doc.num||'—')+' — '+rsn);if(!S.data.deletedSerials)S.data.deletedSerials=[];S.data.deletedSerials.push({type:t,num:doc.num,amount:doc.amount||0,desc:doc.desc||'',to:doc.to||'',date:doc.date||td2(),deletedBy:S.cu?S.cu.name:'',deletedAt:new Date().toISOString(),reason:rsn});}
 function showDeletedSerials(){var types=[{name:'مصروفات الخزينة',data:S.data.expenses,ctr:S.data.ctr.ex},{name:'مقبوضات الخزينة',data:S.data.receipts,ctr:S.data.ctr.rc},{name:'الوارد البنكي',data:S.data.bankIn,ctr:S.data.ctr.bi||0},{name:'الصادر البنكي',data:S.data.bankOut,ctr:S.data.ctr.bo||0}];var html='';var total=0;types.forEach(function(t){if(!t.ctr||!t.data.length)return;var es={};t.data.forEach(function(e){if(e.num)es[e.num]=true;});var nums=t.data.filter(function(e){return e.num;}).map(function(e){return e.num;});if(!nums.length)return;var mn=Math.min.apply(null,nums);var missing=[];for(var i=mn;i<=t.ctr;i++){if(!es[i])missing.push(i);}if(!missing.length)return;total+=missing.length;html+='<div style="margin-bottom:16px;border:1px solid #ddd;border-radius:8px;overflow:hidden"><div style="background:#1A56DB;color:#fff;padding:10px 14px;font-weight:700">'+t.name+' ('+missing.length+' محذوف)</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f5f5f5"><th style="padding:8px;text-align:right;border:1px solid #ddd">السريال</th><th style="padding:8px;text-align:right;border:1px solid #ddd">سبب الحذف</th><th style="padding:8px;text-align:right;border:1px solid #ddd">محذوف بواسطة</th></tr></thead><tbody>';missing.forEach(function(n){var d=(S.data.deletedSerials||[]).find(function(x){return x.num==n;});html+='<tr><td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#DC2626">'+n+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.reason:'—')+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.deletedBy:'—')+'</td></tr>';});html+='</tbody></table></div>';});if(!total)html='<div style="padding:40px;text-align:center;color:#059669">لا توجد سيريالات محذوفة</div>';var w=window.open('','_blank','width=800,height=600');w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>السيريالات المحذوفة</title></head><body dir="rtl" style="font-family:Cairo,Arial;padding:20px"><h2>السيريالات المحذوفة</h2>'+html+'</body></html>');w.document.close();}
-function assignMissingSerials(){var changed=false;function assign(arr,k,start){var no=arr.filter(function(e){return !e.num;});if(!no.length)return;no.sort(function(a,b){return(a.at||a.date||'').localeCompare(b.at||b.date||'');});var mx=arr.filter(function(e){return e.num;}).reduce(function(m,e){return Math.max(m,e.num);},S.data.ctr[k]||start);no.forEach(function(e){e.num=++mx;});S.data.ctr[k]=mx;changed=true;}assign(S.data.expenses,'ex',2000);assign(S.data.receipts,'rc',1000);assign(S.data.bankIn,'bi',3000);assign(S.data.bankOut,'bo',4000);
-  // Normalize legacy bank-out/expense records that predate the approval-status field.
-  // They were always TREATED and DISPLAYED as approved (via the `||'approved'` fallback
-  // used throughout the app), so make that explicit — otherwise strict `===` checks
-  // (the un-approve button, the daily bank review, etc.) silently skip them.
-  function normalizeStatus(arr){arr.forEach(function(x){if(!x.status){x.status='approved';changed=true;}});}
-  normalizeStatus(S.data.bankOut);
-  normalizeStatus(S.data.expenses);
-  if(changed){sv();alog('تعيين سيريالات وتطبيع بيانات قديمة','تلقائي');var pg=document.querySelector('.pg.on');if(pg){var pgId=pg.id.replace('pg-','');var L={tr:loadTr,bk:loadBk};if(L[pgId])L[pgId]();}}}
+function assignMissingSerials(){var changed=false;function assign(arr,k,start){var no=arr.filter(function(e){return !e.num;});if(!no.length)return;no.sort(function(a,b){return(a.at||a.date||'').localeCompare(b.at||b.date||'');});var mx=arr.filter(function(e){return e.num;}).reduce(function(m,e){return Math.max(m,e.num);},S.data.ctr[k]||start);no.forEach(function(e){e.num=++mx;});S.data.ctr[k]=mx;changed=true;}assign(S.data.expenses,'ex',2000);assign(S.data.receipts,'rc',1000);assign(S.data.bankIn,'bi',3000);assign(S.data.bankOut,'bo',4000);if(changed){sv();alog('تعيين سيريالات','تلقائي');var pg=document.querySelector('.pg.on');if(pg){var pgId=pg.id.replace('pg-','');var L={tr:loadTr,bk:loadBk};if(L[pgId])L[pgId]();}}}
 function fillBkStmAcc(){var s=G('bkStmAcc');if(!s)return;s.innerHTML='<option value="">كل الحسابات</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>';}).join('');}
-function loadBkCal(){var cal=G('bkCal');var info=G('bkRevInfo');if(!cal)return;var days=[];for(var i=29;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);days.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));}var accs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});var revs=S.data.bankRevs||[];var today=td2();var unreviewed=0;cal.innerHTML='';days.forEach(function(day){var el=document.createElement('div');if(day===today){el.title='اليوم';el.style.cssText='background:var(--bd);border-radius:6px;padding:4px;text-align:center;font-size:10px;color:var(--gr)';var p=day.split('-');el.innerHTML=p[2]+'/'+p[1]+'<br>';cal.appendChild(el);return;}var dayRevs=revs.filter(function(r){return r.date===day;});var reviewedAccs=dayRevs.map(function(r){return r.accId;});var allReviewed=accs.length>0&&accs.every(function(a){return reviewedAccs.indexOf(a.id)>=0;});var anyReviewed=dayRevs.length>0;var hasDiff=dayRevs.some(function(r){return Math.abs(r.diff||0)>0;});if(!anyReviewed)unreviewed++;var color=allReviewed?(hasDiff?'var(--wn)':'var(--sc)'):anyReviewed?'var(--wn)':'var(--dn)';var icon=allReviewed?(hasDiff?'!':'v'):anyReviewed?'~':'x';el.title=day+(allReviewed?' مكتملة':anyReviewed?' جزئية':' لم تراجع');el.style.cssText='background:'+color+'22;border:1px solid '+color+';border-radius:6px;padding:4px;text-align:center;font-size:10px;cursor:pointer';var p=day.split('-');el.innerHTML=p[2]+'/'+p[1]+'<br>'+icon;(function(dy){el.addEventListener('click',function(){openBkRev(dy);});})(day);cal.appendChild(el);});if(info)info.textContent=unreviewed>0?'— '+unreviewed+' يوم غير مراجع':'— كل الأيام مراجعة';}
+function loadBkCal(){
+  var cal=G('bkCal');var info=G('bkRevInfo');if(!cal)return;
+  var sysStart=S.data.systemStartDate||'';
+  var days=[];
+  for(var i=29;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);days.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));}
+  var accs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});
+  var revs=S.data.bankRevs||[];
+  var txDays=new Set([...S.data.bankIn.map(function(b){return b.date;}),...S.data.bankOut.map(function(b){return b.date;})]);
+  var today=td2();
+  var unreviewed=0;
+  cal.innerHTML='';
+  days.forEach(function(day){
+    var el=document.createElement('div');
+    var p=day.split('-');
+    if(day===today){
+      el.title='اليوم';
+      el.style.cssText='background:var(--bd);border-radius:6px;padding:4px;text-align:center;font-size:10px;color:var(--gr)';
+      el.innerHTML=p[2]+'/'+p[1]+'<br>';
+      cal.appendChild(el);return;
+    }
+    if(sysStart&&day<sysStart){
+      // Before the system was actually in use — irrelevant, never counted, not clickable
+      el.title=day+' — قبل تاريخ بداية استخدام النظام';
+      el.style.cssText='background:var(--ltr);border-radius:6px;padding:4px;text-align:center;font-size:10px;color:var(--gr2);opacity:.35';
+      el.innerHTML=p[2]+'/'+p[1]+'<br>—';
+      cal.appendChild(el);return;
+    }
+    var hasTx=txDays.has(day);
+    var dayRevs=revs.filter(function(r){return r.date===day;});
+    var reviewedAccs=dayRevs.map(function(r){return r.accId;});
+    var allReviewed=accs.length>0&&accs.every(function(a){return reviewedAccs.indexOf(a.id)>=0;});
+    var anyReviewed=dayRevs.length>0;
+    var hasDiff=dayRevs.some(function(r){return Math.abs(r.diff||0)>0;});
+    if(hasTx&&!allReviewed)unreviewed++;
+    var color=!hasTx?'var(--gr2)':allReviewed?(hasDiff?'var(--wn)':'var(--sc)'):anyReviewed?'var(--wn)':'var(--dn)';
+    var icon=!hasTx?'·':allReviewed?(hasDiff?'!':'✓'):anyReviewed?'~':'✗';
+    el.title=day+(!hasTx?' — لا توجد حركات':allReviewed?' — مراجعة مكتملة':anyReviewed?' — مراجعة جزئية':' — يحتاج مراجعة');
+    el.style.cssText='background:'+color+(hasTx?'22':'11')+';border:1px solid '+color+';border-radius:6px;padding:4px;text-align:center;font-size:10px;cursor:pointer;'+(hasTx?'':'opacity:.5');
+    el.innerHTML=p[2]+'/'+p[1]+'<br>'+icon;
+    (function(dy){el.addEventListener('click',function(){openBkRev(dy);});})(day);
+    cal.appendChild(el);
+  });
+  if(info)info.textContent=unreviewed>0?'— '+unreviewed+' يوم فيه حركات غير مراجَعة بالكامل':'— كل الأيام اللي فيها حركات تمت مراجعتها';
+}
 function openBkRev(date){var accs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});if(!accs.length){toast('لا توجد حسابات بنكية','w');return;}var revs=(S.data.bankRevs||[]).filter(function(r){return r.date===date;});var reviewedAccs=revs.map(function(r){return r.accId;});var acc=accs.find(function(a){return reviewedAccs.indexOf(a.id)<0;})||accs[0];openBkRevForAcc(date,acc.id);}
 function openBkRevManual(){
   var d=G('bkRevJumpDate').value;
@@ -4312,7 +4329,30 @@ function openBkRevManual(){
 }
 function openBkRevForAcc(date,accId){var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});if(!acc)return;G('bkRevMTitle').textContent=date+' — '+acc.name;G('bkRevMAccName').textContent=acc.name;G('bkRevMAcc').value=accId;G('bkRevMDate').value=date;G('bkRevMActual').value='';G('bkRevMNotes').value='';G('bkRevMDiff').style.display='none';var allBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date<=date;});var allBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date<=date&&b.status==='approved';});var openBal=acc.balance||0;var sysBal=openBal+allBi.reduce(function(s,b){return s+b.amount;},0)-allBo.reduce(function(s,b){return s+b.amount;},0);var dayBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date===date;});var dayBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date===date&&b.status==='approved';});var txHtml='';dayBi.forEach(function(b){txHtml+='<div style="color:var(--sc)">+ '+fR(b.amount)+' — '+(b.desc||b.from||'')+'</div>';});dayBo.forEach(function(b){txHtml+='<div style="color:var(--dn)">- '+fR(b.amount)+' — '+(b.desc||b.to||'')+'</div>';});if(!txHtml)txHtml='<div style="color:var(--gr)">لا توجد حركات</div>';G('bkRevMTxns').innerHTML=txHtml;G('bkRevMSysbal').textContent=fR(sysBal);var existing=(S.data.bankRevs||[]).find(function(r){return r.date===date&&r.accId===accId;});if(existing){G('bkRevMActual').value=existing.actualBal||'';G('bkRevMNotes').value=existing.notes||'';}OM('bkRevM');}
 function calcBkRevDiff(){var actual=parseFloat(G('bkRevMActual').value)||0;var diffEl=G('bkRevMDiff');if(!actual||!diffEl){if(diffEl)diffEl.style.display='none';return;}var sysBalText=G('bkRevMSysbal').textContent.replace(/[^0-9.-]/g,'');var sysBal=parseFloat(sysBalText)||0;var diff=actual-sysBal;diffEl.style.display='block';if(Math.abs(diff)<0.01){diffEl.style.background='var(--sc)22';diffEl.style.color='var(--sc)';diffEl.textContent='الارصدة متطابقة';}else{diffEl.style.background='var(--dn)22';diffEl.style.color='var(--dn)';diffEl.textContent='فارق: '+(diff>=0?'+':'')+fR(diff)+' ريال';}}
-function saveBkRev(){var date=G('bkRevMDate').value;var accId=G('bkRevMAcc').value;var actual=parseFloat(G('bkRevMActual').value);if(!date||!accId||isNaN(actual)){toast('يرجى تعبئة كل الحقول المطلوبة','e');return;}var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});var allBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date<=date;});var allBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date<=date&&b.status==='approved';});var openBal=acc?acc.balance||0:0;var sysBal=openBal+allBi.reduce(function(s,b){return s+b.amount;},0)-allBo.reduce(function(s,b){return s+b.amount;},0);var diff=actual-sysBal;if(!S.data.bankRevs)S.data.bankRevs=[];var existing=(S.data.bankRevs||[]).find(function(r){return r.date===date&&r.accId===accId;});if(existing){existing.actualBal=actual;existing.sysBal=sysBal;existing.diff=diff;existing.notes=G('bkRevMNotes').value;existing.by=S.cu?S.cu.u:'';existing.at=new Date().toISOString();}else{S.data.bankRevs.push({id:uid(),date:date,accId:accId,accName:acc?acc.name:'',actualBal:actual,sysBal:sysBal,diff:diff,notes:G('bkRevMNotes').value,by:S.cu?S.cu.u:'',at:new Date().toISOString()});}alog('مراجعة بنك',(acc?acc.name:'')+' — '+date);sv();CM('bkRevM');loadBkCal();toast(Math.abs(diff)<0.01?'تم الحفظ — متطابق':'تم الحفظ — فارق '+fR(diff),Math.abs(diff)<0.01?'i':'w');}
+function saveBkRev(){var date=G('bkRevMDate').value;var accId=G('bkRevMAcc').value;var actual=parseFloat(G('bkRevMActual').value);if(!date||!accId||isNaN(actual)){toast('يرجى تعبئة كل الحقول المطلوبة','e');return;}var acc=(S.data.bankAccounts||[]).find(function(a){return a.id===accId;});var allBi=(S.data.bankIn||[]).filter(function(b){return b.accId===accId&&b.date<=date;});var allBo=(S.data.bankOut||[]).filter(function(b){return b.accId===accId&&b.date<=date&&b.status==='approved';});var openBal=acc?acc.balance||0:0;var sysBal=openBal+allBi.reduce(function(s,b){return s+b.amount;},0)-allBo.reduce(function(s,b){return s+b.amount;},0);var diff=actual-sysBal;if(!S.data.bankRevs)S.data.bankRevs=[];var existing=(S.data.bankRevs||[]).find(function(r){return r.date===date&&r.accId===accId;});if(existing){existing.actualBal=actual;existing.sysBal=sysBal;existing.diff=diff;existing.notes=G('bkRevMNotes').value;existing.by=S.cu?S.cu.u:'';existing.at=new Date().toISOString();}else{S.data.bankRevs.push({id:uid(),date:date,accId:accId,accName:acc?acc.name:'',actualBal:actual,sysBal:sysBal,diff:diff,notes:G('bkRevMNotes').value,by:S.cu?S.cu.u:'',at:new Date().toISOString()});}alog('مراجعة بنك',(acc?acc.name:'')+' — '+date);sv();
+  // Chain to the next unreviewed active account for the SAME date, if any — this is what
+  // was causing days to appear perpetually "unreviewed": with more than one bank account,
+  // reviewing just one used to close the modal, silently leaving the other(s) unreviewed.
+  var activeAccs=(S.data.bankAccounts||[]).filter(function(a){return a.active;});
+  var reviewedNow=(S.data.bankRevs||[]).filter(function(r){return r.date===date;}).map(function(r){return r.accId;});
+  var nextAcc=activeAccs.find(function(a){return reviewedNow.indexOf(a.id)<0;});
+  if(nextAcc){
+    toast((Math.abs(diff)<0.01?'✅ تم حفظ حساب '+(acc?acc.name:''):'⚠️ تم الحفظ بفارق '+fR(diff))+' — يتبقى حساب "'+nextAcc.name+'" لنفس اليوم',Math.abs(diff)<0.01?'i':'w');
+    openBkRevForAcc(date,nextAcc.id);
+  } else {
+    CM('bkRevM');loadBkCal();loadBk();
+    toast(Math.abs(diff)<0.01?'✅ تم حفظ مراجعة جميع الحسابات لهذا اليوم — متطابقة':'⚠️ تم الحفظ — فارق '+fR(diff),Math.abs(diff)<0.01?'i':'w');
+  }
+}
+function saveSysStartDate(){
+  if(!can('all')){toast('هذا الإعداد مخصص لمدير النظام فقط','e');return;}
+  var d=G('sysStartDate').value;
+  S.data.systemStartDate=d||'';
+  alog('تحديد تاريخ بداية النظام',d||'(بدون تحديد)');
+  sv();
+  loadBk();
+  toast(d?'✅ تم تحديد تاريخ بداية النظام: '+d:'تم إلغاء تحديد تاريخ البداية');
+}
 function exportStmExcel(){var d=window._stmData;if(!d){toast('يرجى عرض الكشف اولا','w');return;}var rows2=[['التاريخ','السند','البيان','النوع','وارد','صادر','الرصيد']];var running=d.openingBal;d.rows.forEach(function(r){running+=r.in-r.out;rows2.push([r.d,r.num,r.desc,r.type,r.in||'',r.out||'',running]);});var csv='\uFEFF'+'كشف الخزينة\n'+'من '+d.f+' الى '+d.t+'\n\n'+'رصيد افتتاحي,'+d.openingBal+'\n\n'+rows2.map(function(r){return r.map(function(c){return '"'+c+'"';}).join(',');}).join('\n')+'\n\nاجمالي الوارد,'+d.tI+'\naجمالي الصادر,'+d.tO+'\nالرصيد الختامي,'+d.closingBal;var b=new Blob([csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='treasury_'+d.f+'_'+d.t+'.csv';a.click();toast('تم التصدير');}
 function loadStm(){var f=V('stF'),t=V('stT');if(!f||!t){toast('يرجى تحديد الفترة','w');return;}var allRc=S.data.receipts;var allEx=S.data.expenses.filter(function(e){return e.status==='approved';});var oI=allRc.filter(function(r){return r.date<f;}).reduce(function(s,r){return s+r.amount;},0);var oO=allEx.filter(function(e){return e.date<f;}).reduce(function(s,e){return s+e.amount;},0);var openBal=oI-oO;var rc=allRc.filter(function(r){return r.date>=f&&r.date<=t;});var ex=allEx.filter(function(e){return e.date>=f&&e.date<=t;});var tI=rc.reduce(function(s,r){return s+r.amount;},0);var tO=ex.reduce(function(s,e){return s+e.amount;},0);var closeBal=openBal+tI-tO;var rows=rc.map(function(r){return{d:r.date,num:r.num||'',desc:r.desc||'',type:'وارد',in:r.amount,out:0};}).concat(ex.map(function(e){return{d:e.date,num:e.num||'',desc:e.desc||'',type:'صادر',in:0,out:e.amount};})).sort(function(a,b){return a.d.localeCompare(b.d);});var run=openBal;var rHtml=rows.map(function(r){run+=r.in-r.out;return'<tr><td style="font-family:monospace">'+r.d+'</td><td style="font-size:11px;color:var(--gr)">'+r.num+'</td><td>'+r.desc+'</td><td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td><td style="color:var(--sc);font-family:monospace">'+(r.in?fR(r.in):'')+'</td><td style="color:var(--dn);font-family:monospace">'+(r.out?fR(r.out):'')+'</td><td style="font-weight:700;font-family:monospace;color:'+(run>=0?'var(--sc)':'var(--dn)')+'">'+fR(run)+'</td></tr>';}).join('');G('stmC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">رصيد افتتاحي</div><div class="mv2" style="color:var(--ry)">'+fR(openBal)+'</div><div class="ms2">قبل '+f+'</div></div><div class="met mg"><div class="ml2">وارد</div><div class="mv2">'+fR(tI)+'</div></div><div class="met mr"><div class="ml2">صادر</div><div class="mv2">'+fR(tO)+'</div></div><div class="met '+(closeBal>=0?'mg':'mr')+'"><div class="ml2">رصيد ختامي</div><div class="mv2">'+fR(closeBal)+'</div></div></div><div style="margin-bottom:8px;text-align:left"><button class="btn bsm" onclick="exportStmExcel()">Excel</button></div><div class="tw"><table id="stmTbl"><thead><tr><th>التاريخ</th><th>السند</th><th>البيان</th><th>النوع</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody><tr style="background:var(--ltr)"><td colspan="4" style="font-weight:700">رصيد افتتاحي</td><td></td><td></td><td style="font-weight:700;font-family:monospace">'+fR(openBal)+'</td></tr>'+rHtml+'</tbody></table></div>';window._stmData={f:f,t:t,openingBal:openBal,tI:tI,tO:tO,closingBal:closeBal,rows:rows};}
 function loadBkStm(){var f=V('bkStF'),t=V('bkStT');if(!f||!t){toast('يرجى تحديد الفترة','w');return;}var accId=G('bkStmAcc')?G('bkStmAcc').value:'';var accName=accId?(S.data.bankAccounts||[]).find(function(a){return a.id===accId;}):'';accName=accName?accName.name:'كل الحسابات';var allBi=(S.data.bankIn||[]).filter(function(b){return !accId||b.accId===accId;});var allBo=(S.data.bankOut||[]).filter(function(b){return(!accId||b.accId===accId)&&b.status==='approved';});var oI=allBi.filter(function(b){return b.date<f;}).reduce(function(s,b){return s+b.amount;},0);var oO=allBo.filter(function(b){return b.date<f;}).reduce(function(s,b){return s+b.amount;},0);var accBal=accId?((S.data.bankAccounts||[]).find(function(a){return a.id===accId;})||{}).balance||0:0;var openBal=accBal+oI-oO;var bI=allBi.filter(function(b){return b.date>=f&&b.date<=t;});var bO=allBo.filter(function(b){return b.date>=f&&b.date<=t;});var tI=bI.reduce(function(s,b){return s+b.amount;},0);var tO=bO.reduce(function(s,b){return s+b.amount;},0);var closeBal=openBal+tI-tO;var rows=bI.map(function(b){return{d:b.date,num:b.num||'',desc:b.desc||b.from||'',acc:b.accName||'',type:'وارد',in:b.amount,out:0};}).concat(bO.map(function(b){return{d:b.date,num:b.num||'',desc:b.desc||b.to||'',acc:b.accName||'',type:'صادر',in:0,out:b.amount};})).sort(function(a,b){return a.d.localeCompare(b.d);});var run=openBal;var rHtml=rows.map(function(r){run+=r.in-r.out;return'<tr><td style="font-family:monospace">'+r.d+'</td><td style="font-size:11px;color:var(--gr)">'+r.num+'</td><td>'+r.desc+'</td>'+(!accId?'<td style="font-size:11px">'+r.acc+'</td>':'')+'<td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td><td style="color:var(--sc);font-family:monospace">'+(r.in?fR(r.in):'')+'</td><td style="color:var(--dn);font-family:monospace">'+(r.out?fR(r.out):'')+'</td><td style="font-weight:700;font-family:monospace;color:'+(run>=0?'var(--sc)':'var(--dn)')+'">'+fR(run)+'</td></tr>';}).join('');G('bkStmC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">رصيد افتتاحي</div><div class="mv2" style="color:var(--ry)">'+fR(openBal)+'</div><div class="ms2">قبل '+f+'</div></div><div class="met mg"><div class="ml2">وارد</div><div class="mv2">'+fR(tI)+'</div></div><div class="met mr"><div class="ml2">صادر</div><div class="mv2">'+fR(tO)+'</div></div><div class="met '+(closeBal>=0?'mg':'mr')+'"><div class="ml2">رصيد ختامي</div><div class="mv2">'+fR(closeBal)+'</div></div></div><div style="margin-bottom:8px;text-align:left"><button class="btn bsm" onclick="exportBkStmExcel()">Excel</button></div><div class="tw"><table id="bkStmTbl"><thead><tr><th>التاريخ</th><th>السند</th><th>البيان</th>'+(!accId?'<th>الحساب</th>':'')+'<th>النوع</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody>'+rHtml+'</tbody></table></div>';window._bkStmData={f:f,t:t,accName:accName,openingBal:openBal,tI:tI,tO:tO,closingBal:closeBal,rows:rows,accId:accId};}
