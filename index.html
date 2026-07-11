@@ -1017,6 +1017,9 @@ var _saveTimer=null;
 var _localChangeGraceUntil=0; // while Date.now() is before this, incoming realtime snapshots are ignored
 // so a just-made local change (e.g. a deletion) can't be silently overwritten by a stale/echoed
 // snapshot before its own save has had time to complete.
+var _firebaseUnconfirmed=false; // true only when the initial Firebase read timed out — in this state
+// we do NOT know the true server data, so writes are blocked and auto-seeding is disabled to
+// prevent silently overwriting real production data with an empty/stale local fallback.
 function sv(){
   // Always save to localStorage as backup
   try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){}
@@ -1027,6 +1030,15 @@ function sv(){
   clearTimeout(_saveTimer);
   _saveTimer=setTimeout(function(){
     if(!DB){return;}
+    if(_firebaseUnconfirmed){
+      // We never got a confirmed read of the real server data this session — writing now
+      // could silently overwrite real production data with a stale/empty local snapshot.
+      // Refuse and make it visible instead of saving.
+      setSyncIcon('error');
+      console.warn('Skipped Firebase write: connection was never confirmed this session.');
+      toast('⚠️ لم يتم الحفظ في السيرفر — تعذّر تأكيد الاتصال. أعد تحميل الصفحة بعد التأكد من الإنترنت','e');
+      return;
+    }
     setSyncIcon('saving');
     _localChangeGraceUntil=Date.now()+2500;
     DB.ref(DB_REF).update(S.data).then(function(){
@@ -1065,9 +1077,10 @@ function ld(){
     var _fbTimeout=setTimeout(function(){
       console.warn('Firebase timeout — falling back to localStorage');
       setSyncIcon('error');
+      _firebaseUnconfirmed=true;
       _loadLocal();
       _startListener();
-      toast('تعذّر الاتصال بالسيرفر — تم التحميل من الذاكرة المحلية','w');
+      toast('تعذّر الاتصال بالسيرفر — تم التحميل من الذاكرة المحلية (وضع آمن: لن يتم الكتابة على السيرفر حتى يتأكد الاتصال)','w');
     },8000);
 
     DB.ref(DB_REF).once('value').then(function(snap){
@@ -1090,6 +1103,7 @@ function ld(){
       clearTimeout(_fbTimeout);
       console.warn('Firebase read failed, using localStorage:',err);
       setSyncIcon('error');
+      _firebaseUnconfirmed=true;
       _loadLocal();
       _startListener();
     });
@@ -1107,7 +1121,17 @@ function _loadLocal(){
   if(!Array.isArray(S.data.customRoles))S.data.customRoles=Object.values(S.data.customRoles);
   if(!S.data.deletedEmployees)S.data.deletedEmployees=[];
   mergeCustomRoles();
-  if(!S.data.users.length)seed();
+  if(!S.data.users.length){
+    if(_firebaseUnconfirmed){
+      // We couldn't confirm the real server state (timeout/error) AND there's no local backup
+      // either. Seeding here would silently overwrite real production data once connectivity
+      // returns — refuse instead, and make the risk visible.
+      console.error('No local data and Firebase connection unconfirmed — refusing to auto-seed to avoid overwriting real data.');
+      toast('⚠️ تعذّر تأكيد الاتصال بالسيرفر ولا توجد نسخة محلية — أعد تحميل الصفحة بعد التأكد من الاتصال بالإنترنت','e');
+    } else {
+      seed();
+    }
+  }
   _showLoginPage();
   _tryAutoLogin();
 }
@@ -1130,6 +1154,7 @@ function _startListener(){
   DB.ref(DB_REF).on('value',function(snap){
     var d=snap.val();
     if(!d||!d.users)return;
+    _firebaseUnconfirmed=false; // genuine data received — connection is confirmed, writes can resume
     if(Date.now()<_localChangeGraceUntil){
       // A local change was just made (or is being saved) — skip this snapshot so it can't be
       // silently overwritten. The pending save (or its echo) will reconcile state shortly.
