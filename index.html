@@ -2277,6 +2277,8 @@ function saveEmp(){
 function editEmp(id){
   var emp=S.data.employees.find(function(e){return e.id===id;});
   if(!emp)return;
+  OM('empM'); // opens the modal (its reset logic runs first)
+  // Populate AFTER OM() so this data isn't wiped by OM's own "new employee" reset
   G('emp-id').value=id;
   G('emp-name').value=emp.name;
   G('emp-num').value=emp.num||'';
@@ -2286,7 +2288,6 @@ function editEmp(id){
   G('emp-phone').value=emp.phone||'';
   G('emp-idnum').value=emp.idNum||'';
   G('emp-notes').value=emp.notes||'';
-  OM('empM');
 }
 
 function delEmp(id){
@@ -2622,11 +2623,11 @@ function saveCC(){
 function editCC(id){
   var cc=getCCs().find(function(c){return c.id===id;});
   if(!cc)return;
+  OM('ccM');
   G('cc-id').value=id;
   G('cc-name').value=cc.name;
   G('cc-desc').value=cc.desc||'';
   G('cc-color').value=cc.color||'#1A56DB';
-  OM('ccM');
 }
 
 function toggleCC(id){
@@ -3024,6 +3025,7 @@ function saveVeh(){
 function editVeh(id){
   var v=(S.data.vehicles||[]).find(function(x){return x.id===id;});
   if(!v)return;
+  OM('vehM');
   document.getElementById('veh-id').value=id;
   document.getElementById('veh-num').value=v.num||'';
   document.getElementById('veh-letters').value=v.letters||'';
@@ -3038,7 +3040,6 @@ function editVeh(id){
   for(var i=0;i<fs.options.length;i++){if(fs.options[i].value===v.fuel)fs.selectedIndex=i;}
   var ss=document.getElementById('veh-status');
   for(var i=0;i<ss.options.length;i++){if(ss.options[i].value===v.status)ss.selectedIndex=i;}
-  OM('vehM');
 }
 
 function delVeh(id){
@@ -3911,11 +3912,11 @@ function saveBA(){
 function editBA(id){
   var acc=getBankAccounts().find(function(a){return a.id===id;});
   if(!acc)return;
+  OM('baM');
   G('ba-id').value=id;G('ba-name').value=acc.name;G('ba-number').value=acc.number||'';
   G('ba-branch').value=acc.branch||'';G('ba-color').value=acc.color||'#059669';
   var cs=G('ba-currency');
   for(var i=0;i<cs.options.length;i++){if(cs.options[i].value===acc.currency)cs.selectedIndex=i;}
-  OM('baM');
 }
 
 function loadBAStm(){
