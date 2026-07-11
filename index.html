@@ -1043,7 +1043,7 @@ function sv(){
     _localChangeGraceUntil=Date.now()+2500;
     DB.ref(DB_REF).update(S.data).then(function(){
       setSyncIcon('ok');
-      _localChangeGraceUntil=Date.now()+300; // brief settle window for the echo to arrive
+      _localChangeGraceUntil=Date.now()+1500; // settle window for the echo to arrive, wide enough to cover quick back-to-back local changes
     }).catch(function(err){
       console.error('Firebase save error:',err);
       setSyncIcon('error');
