@@ -502,7 +502,10 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ EMPLOYEES ═══ -->
 <div class="pg" id="pg-emps">
   <div class="page-hdr"><h2>سجل الموظفين</h2>
-    <button class="btn bp" onclick="OM('empM')">&#x2795; إضافة موظف</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn bp" onclick="OM('empM')">&#x2795; إضافة موظف</button>
+      <button class="btn" onclick="showDeletedEmployees()">&#x1F5D1;&#xFE0F; الموظفون المحذوفون</button>
+    </div>
   </div>
   <div class="mets">
     <div class="met mb"><div class="mi2">&#x1F464;</div><div class="ml2">إجمالي الموظفين</div><div class="mv2" id="emp-total">—</div></div>
@@ -967,7 +970,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],clients:[],costCenters:[],customRoles:[],systemStartDate:'',prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
+var S={cu:null,data:{users:[],employees:[],deletedEmployees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],clients:[],costCenters:[],customRoles:[],systemStartDate:'',prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
 var BK_KEY='qawafil_v14'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
@@ -1045,7 +1048,7 @@ function ld(){
       var d=snap.val();
       if(d&&d.users){
         S.data=Object.assign({},S.data,d);
-        var arrFields=['users','employees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
+        var arrFields=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
         arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
         mergeCustomRoles();
         setSyncIcon('ok');
@@ -1075,6 +1078,7 @@ function _loadLocal(){
   }catch(e){}
   if(!S.data.customRoles)S.data.customRoles=[];
   if(!Array.isArray(S.data.customRoles))S.data.customRoles=Object.values(S.data.customRoles);
+  if(!S.data.deletedEmployees)S.data.deletedEmployees=[];
   mergeCustomRoles();
   if(!S.data.users.length)seed();
   _showLoginPage();
@@ -1102,7 +1106,7 @@ function _startListener(){
     clearTimeout(_saveTimer);
     S.data=Object.assign({},S.data,d);
     // Ensure arrays
-    var arrF=['users','employees','vehicles','bankAccounts','clients','costCenters','customRoles',
+    var arrF=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles',
       'prices','ops','receipts','expenses','bankIn','bankOut','bankRevs',
       'custodies','custodyEnts','claims','audit'];
     arrF.forEach(function(f){
@@ -2190,9 +2194,49 @@ function delEmp(id){
   if(!emp)return;
   var hasCu=S.data.custodies.some(function(c){return c.empId===id&&c.status==='open';});
   if(hasCu){toast('لا يمكن حذف موظف لديه عهدة مفتوحة','e');return;}
-  if(!confirm('حذف الموظف "'+emp.name+'"؟'))return;
+  var rsn=getDeleteReason('موظف',emp.name+' (رقم '+(emp.num||'—')+')');
+  if(!rsn)return;
+  if(!S.data.deletedEmployees)S.data.deletedEmployees=[];
+  S.data.deletedEmployees.push(Object.assign({},emp,{
+    deletedAt:new Date().toISOString(),
+    deletedBy:S.cu?S.cu.name:'',
+    deleteReason:rsn
+  }));
   S.data.employees=S.data.employees.filter(function(e){return e.id!==id;});
-  alog('حذف موظف',emp.name);sv();loadEmps();toast('تم الحذف','w');
+  alog('حذف موظف',emp.name+' (رقم '+(emp.num||'—')+') — السبب: '+rsn);
+  sv();loadEmps();toast('تم الحذف','w');
+}
+function showDeletedEmployees(){
+  var list=S.data.deletedEmployees||[];
+  var el=G('delEmpListC');
+  if(!el)return;
+  el.innerHTML=list.length?list.slice().reverse().map(function(e){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;flex-wrap:wrap;gap:8px">'+
+      '<div><div style="font-weight:700">'+e.name+' <span style="font-family:monospace;color:var(--gr);font-size:12px">('+(e.num||'—')+')</span></div>'+
+      '<div style="font-size:12px;color:var(--gr)">'+(e.jobTitle||'—')+' — حُذف بواسطة '+(e.deletedBy||'—')+' في '+new Date(e.deletedAt).toLocaleDateString('en-GB')+'</div>'+
+      '<div style="font-size:12px;color:var(--dn)">السبب: '+(e.deleteReason||'—')+'</div></div>'+
+      '<button class="btn bsm bp" onclick="restoreEmployee(\''+e.id+'\')">&#x21A9;&#xFE0F; استرجاع</button>'+
+    '</div>';
+  }).join(''):'<div class="es"><div class="esic">&#x1F464;</div><div class="essb">لا يوجد موظفون محذوفون</div></div>';
+  OM('delEmpM');
+}
+function restoreEmployee(id){
+  var idx=(S.data.deletedEmployees||[]).findIndex(function(e){return e.id===id;});
+  if(idx<0)return;
+  var emp=S.data.deletedEmployees[idx];
+  if(S.data.employees.find(function(e){return e.num===emp.num;})){
+    toast('تنبيه: رقم الموظف "'+emp.num+'" مستخدم حاليًا لموظف آخر — عدّل رقمه بعد الاسترجاع من "تعديل"','w');
+  }
+  var restored=Object.assign({},emp);
+  delete restored.deletedAt;delete restored.deletedBy;delete restored.deleteReason;
+  if(!S.data.employees)S.data.employees=[];
+  S.data.employees.push(restored);
+  S.data.deletedEmployees.splice(idx,1);
+  alog('استرجاع موظف محذوف',emp.name+' (رقم '+(emp.num||'—')+')');
+  sv();
+  loadEmps();
+  showDeletedEmployees();
+  toast('✅ تم استرجاع الموظف: '+emp.name);
 }
 
 /* ── Override saveCu to link with employee ── */
@@ -4497,6 +4541,14 @@ ld();
   </div>
   <input type="hidden" id="emp-id">
   <div class="mft"><button class="btn" onclick="CM('empM')">إلغاء</button><button class="btn bp" onclick="saveEmp()">&#x1F4BE; حفظ</button></div>
+</div></div>
+
+<!-- DELETED EMPLOYEES MODAL -->
+<div class="mo2" id="delEmpM"><div class="mb2">
+  <div class="mhd"><div class="mtt">&#x1F5D1;&#xFE0F; الموظفون المحذوفون</div><button class="mcl" onclick="CM('delEmpM')">×</button></div>
+  <div class="al ai">&#x1F4A1; يمكنك استرجاع أي موظف محذوف بضغطة واحدة. لو رقمه مستخدم حاليًا لموظف آخر، عدّل رقمه بعد الاسترجاع.</div>
+  <div id="delEmpListC"></div>
+  <div class="mft"><button class="btn" onclick="CM('delEmpM')">إغلاق</button></div>
 </div></div>
 
 <!-- EXPENSE WITH CUSTODY LINK OPTION (upgrade existing expense modal) -->
