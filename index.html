@@ -1014,16 +1014,24 @@ var AUDIT_REF=DB_REF+'/auditLog'; // Durable, append-only child of the SAME alre
 
 /* ── Save: Firebase primary, localStorage backup ── */
 var _saveTimer=null;
+var _localChangeGraceUntil=0; // while Date.now() is before this, incoming realtime snapshots are ignored
+// so a just-made local change (e.g. a deletion) can't be silently overwritten by a stale/echoed
+// snapshot before its own save has had time to complete.
 function sv(){
   // Always save to localStorage as backup
   try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){}
+  // Protect this local change from being clobbered by an incoming realtime snapshot
+  // until the save below has had a real chance to complete.
+  _localChangeGraceUntil=Date.now()+2500;
   // Save to Firebase (debounced 800ms)
   clearTimeout(_saveTimer);
   _saveTimer=setTimeout(function(){
     if(!DB){return;}
     setSyncIcon('saving');
+    _localChangeGraceUntil=Date.now()+2500;
     DB.ref(DB_REF).update(S.data).then(function(){
       setSyncIcon('ok');
+      _localChangeGraceUntil=Date.now()+300; // brief settle window for the echo to arrive
     }).catch(function(err){
       console.error('Firebase save error:',err);
       setSyncIcon('error');
@@ -1122,6 +1130,11 @@ function _startListener(){
   DB.ref(DB_REF).on('value',function(snap){
     var d=snap.val();
     if(!d||!d.users)return;
+    if(Date.now()<_localChangeGraceUntil){
+      // A local change was just made (or is being saved) — skip this snapshot so it can't be
+      // silently overwritten. The pending save (or its echo) will reconcile state shortly.
+      return;
+    }
     clearTimeout(_saveTimer);
     S.data=Object.assign({},S.data,d);
     // Ensure arrays
