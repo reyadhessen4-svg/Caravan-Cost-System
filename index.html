@@ -2263,38 +2263,49 @@ function autoRelinkOrphanedRecords(newEmp){
   return counts;
 }
 function saveEmp(){
+  console.log('%c[DEBUG] saveEmp() called','color:orange;font-weight:bold');
   var name=V('emp-name'),num=V('emp-num'),job=V('emp-job');
-  if(!name||!job){toast('يرجى تعبئة اسم الموظف والوظيفة','e');return;}
+  console.log('[DEBUG] read fields:',{name:name,num:num,job:job,emp_id_field:V('emp-id')});
+  if(!name||!job){console.log('[DEBUG] BLOCKED: name or job empty');toast('يرجى تعبئة اسم الموظف والوظيفة','e');return;}
   if(!num){
     // fallback auto-generate
     var emps2=S.data.employees||[];
     var maxNum2=0;
     emps2.forEach(function(e){var n=parseInt((e.num||'').replace(/\D/g,''));if(!isNaN(n)&&n>maxNum2)maxNum2=n;});
     num=String(maxNum2+1).padStart(3,'0');
+    console.log('[DEBUG] auto-generated num:',num);
   }
   var id=V('emp-id');
+  console.log('[DEBUG] id value (empty=Add mode, non-empty=Edit mode):',JSON.stringify(id));
   if(id){
+    console.log('[DEBUG] ENTERED EDIT MODE BRANCH with id:',id);
     // Edit mode
     var emp=S.data.employees.find(function(e){return e.id===id;});
-    if(!emp)return;
-    if(S.data.employees.find(function(e){return e.num===num&&e.id!==id;})){toast('رقم الموظف مستخدم مسبقاً','e');return;}
+    console.log('[DEBUG] found matching employee for edit?',!!emp);
+    if(!emp){console.log('[DEBUG] BLOCKED: edit mode but no matching employee found — SILENT RETURN (this is likely the bug)');return;}
+    if(S.data.employees.find(function(e){return e.num===num&&e.id!==id;})){console.log('[DEBUG] BLOCKED: duplicate num in edit mode');toast('رقم الموظف مستخدم مسبقاً','e');return;}
     emp.name=name;emp.num=num;emp.jobTitle=job;emp.dept=V('emp-dept');emp.phone=V('emp-phone');emp.idNum=V('emp-idnum');emp.notes=V('emp-notes');
     alog('تعديل موظف',name+' — '+job);
     sv();CM('empM');loadEmps();fillAllEmpDropdowns();
     toast('تم حفظ التعديلات');
   } else {
+    console.log('[DEBUG] ENTERED ADD MODE BRANCH');
     // Add mode
-    if(S.data.employees.find(function(e){return e.num===num;})){toast('رقم الموظف مستخدم مسبقاً','e');return;}
+    if(S.data.employees.find(function(e){return e.num===num;})){console.log('[DEBUG] BLOCKED: duplicate num in add mode:',num);toast('رقم الموظف مستخدم مسبقاً','e');return;}
     if(!S.data.employees)S.data.employees=[];
     var newEmp={id:uid(),name:name,num:num,jobTitle:job,dept:V('emp-dept'),phone:V('emp-phone'),idNum:V('emp-idnum'),notes:V('emp-notes'),active:true,at:new Date().toISOString(),by:S.cu?S.cu.u:''};
+    console.log('[DEBUG] about to push newEmp:',JSON.stringify(newEmp));
     var relinked=autoRelinkOrphanedRecords(newEmp);
+    console.log('[DEBUG] relinked counts:',JSON.stringify(relinked));
     S.data.employees.push(newEmp);
+    console.log('[DEBUG] AFTER push, S.data.employees.length:',S.data.employees.length,JSON.stringify(S.data.employees.map(function(e){return e.name;})));
     alog('إضافة موظف جديد',name+' — '+num+' — '+job);
     var totalRelinked=relinked.expenses+relinked.bankOut+relinked.custodies;
     if(totalRelinked>0){
       alog('ربط تلقائي بسجلات سابقة',name+' — طلبات صرف: '+relinked.expenses+' — صادر بنكي: '+relinked.bankOut+' — عهد: '+relinked.custodies);
     }
     sv();CM('empM');loadEmps();fillAllEmpDropdowns();
+    console.log('[DEBUG] end of saveEmp, final S.data.employees.length:',S.data.employees.length);
     toast(totalRelinked>0?'✅ تم إضافة الموظف وربط '+totalRelinked+' سجل سابق تلقائيًا به':'تم إضافة الموظف بنجاح');
   }
 }
