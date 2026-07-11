@@ -1153,13 +1153,16 @@ function _startListener(){
   _listenerActive=true;
   DB.ref(DB_REF).on('value',function(snap){
     var d=snap.val();
+    console.log('%c[DEBUG-LISTENER] fired. employees in snapshot:','color:red;font-weight:bold',d&&d.employees?(Array.isArray(d.employees)?d.employees.length:Object.keys(d.employees).length):'(none)','| now:',Date.now(),'| graceUntil:',_localChangeGraceUntil,'| willSkip:',Date.now()<_localChangeGraceUntil);
     if(!d||!d.users)return;
     _firebaseUnconfirmed=false; // genuine data received — connection is confirmed, writes can resume
     if(Date.now()<_localChangeGraceUntil){
       // A local change was just made (or is being saved) — skip this snapshot so it can't be
       // silently overwritten. The pending save (or its echo) will reconcile state shortly.
+      console.log('[DEBUG-LISTENER] SKIPPED due to grace period');
       return;
     }
+    console.log('%c[DEBUG-LISTENER] APPLYING snapshot (grace period expired or was never set!)','color:red;font-weight:bold;font-size:14px');
     clearTimeout(_saveTimer);
     S.data=Object.assign({},S.data,d);
     // Ensure arrays
