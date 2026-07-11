@@ -729,7 +729,7 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ AUDIT ═══ -->
 <div class="pg" id="pg-au">
   <div class="page-hdr"><h2>سجل العمليات</h2>
-    <div style="display:flex;gap:8px"><button class="btn bsm" onclick="assignMissingSerials();toast('تم فحص وتعيين السيريالات الناقصة')">&#x1F522; تعيين السيريالات الناقصة</button><button class="btn bsm" onclick="showDeletedSerials()">📋 المحذوفة</button><button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn bsm" onclick="assignMissingSerials();toast('تم فحص السيريالات وتطبيع بيانات العمليات القديمة')" title="يصلح السيريالات الناقصة وأي عمليات قديمة بدون حالة اعتماد صريحة">&#x1F522; إصلاح البيانات القديمة</button><button class="btn bsm" onclick="recoverAuditLog()" title="استرجاع السجل الكامل من الأرشيف الدائم المنفصل">&#x1F504; استرجاع الأرشيف الدائم</button><button class="btn bsm" onclick="showDeletedSerials()">📋 المحذوفة</button><button class="btn bsm" onclick="ET('auTbl')">&#x1F4E5; تصدير</button></div>
   </div>
   <div class="card">
     <div class="srch-bar">
@@ -907,6 +907,22 @@ tbody tr:hover td{background:var(--ltr)}
 </div>
 <div class="mft"><button class="btn" onclick="CM('cuM')">إلغاء</button><button class="btn bp" onclick="saveCu()">&#x1F4BE; إنشاء العهدة</button></div></div></div>
 
+<!-- LINK ORPHANED CUSTODY TO EMPLOYEE -->
+<div class="mo2" id="linkCuM"><div class="mb2 sm">
+  <div class="mhd"><div class="mtt">&#x1F517; ربط العهدة بموظف</div><button class="mcl" onclick="CM('linkCuM')">×</button></div>
+  <div class="al aw">&#x26A0;&#xFE0F; سجل الموظف الأصلي المرتبط بهذه العهدة غير موجود (تم حذفه على الأرجح). اختر الموظف الحالي الذي تريد ربط هذه العهدة به.</div>
+  <div class="fg">
+    <div class="fld"><label>العهدة</label><div id="linkCuName" style="font-weight:700;color:var(--nv);padding:6px 0"></div></div>
+    <div class="fld"><label>الموظف <span class="req">*</span></label>
+      <select id="link-emp-sel" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+        <option value="">— اختر الموظف —</option>
+      </select>
+      <div class="hint" style="font-size:11px;color:var(--gr2);margin-top:3px">لو الموظف مش موجود في السجل، أضفه أولاً من "سجل الموظفين" ثم عد هنا</div>
+    </div>
+  </div>
+  <div class="mft"><button class="btn" onclick="CM('linkCuM')">إلغاء</button><button class="btn bp" onclick="saveLinkCu()">&#x1F4BE; ربط</button></div>
+</div></div>
+
 <div class="mo2" id="ceM"><div class="mb2"><div class="mhd"><div class="mtt">&#x1F4B8; تسجيل مصروف على عهدة</div><button class="mcl" onclick="CM('ceM')">×</button></div>
 <div class="fg">
   <div class="fr"><div class="fld"><label>الموظف <span class="req">*</span></label><select id="ce-c"><option value="">اختر الموظف</option></select></div><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="ce-d"></div></div>
@@ -974,6 +990,7 @@ var S={cu:null,data:{users:[],employees:[],deletedEmployees:[],vehicles:[],bankA
 var BK_KEY='qawafil_v14'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
+var AUDIT_REF='/qawafil_audit_log'; // Separate, append-only path — immune to the whole-document overwrite race condition below
 
 /* ── Firebase Init ── */
 (function(){
@@ -1218,7 +1235,36 @@ var G=id=>document.getElementById(id);
 var V=id=>(G(id)||{}).value||'';
 var Nv=id=>parseFloat(V(id))||0;
 function toast(msg,t){t=t||'s';var c=G('TC'),el=document.createElement('div');el.className='tst t'+t;el.innerHTML='<span>'+(t==='s'?'✅':t==='e'?'❌':t==='w'?'⚠️':'ℹ️')+'</span><span>'+msg+'</span>';c.appendChild(el);setTimeout(()=>{if(el.parentNode)el.remove();},3800);}
-function alog(a,det){S.data.audit.unshift({id:uid(),dt:new Date().toISOString(),user:S.cu?S.cu.name:'نظام',role:S.cu?ROLES[S.cu.r].lbl:'',action:a,details:det||'',res:'نجح'});if(S.data.audit.length>1000)S.data.audit=S.data.audit.slice(0,1000);}
+function alog(a,det){
+  var entry={id:uid(),dt:new Date().toISOString(),user:S.cu?S.cu.name:'نظام',role:S.cu?ROLES[S.cu.r].lbl:'',action:a,details:det||'',res:'نجح'};
+  S.data.audit.unshift(entry);
+  if(S.data.audit.length>1000)S.data.audit=S.data.audit.slice(0,1000);
+  // Durable copy: pushed independently to its own Firebase path so a stale client's later
+  // whole-document save (via sv()) can never silently erase audit history again.
+  if(DB){
+    try{DB.ref(AUDIT_REF).push(entry);}catch(e){}
+  }
+}
+function recoverAuditLog(){
+  if(!can('all')){toast('استرجاع سجل العمليات مخصص لمدير النظام فقط','e');return;}
+  if(!DB){toast('لا يوجد اتصال بالسيرفر حاليًا','e');return;}
+  toast('جاري البحث عن السجل الكامل من الأرشيف الدائم...','i');
+  DB.ref(AUDIT_REF).once('value').then(function(snap){
+    var d=snap.val();
+    if(!d){toast('لا يوجد أرشيف دائم بعد (سيبدأ التسجيل الدائم من الآن فصاعدًا)','w');return;}
+    var entries=Object.values(d);
+    // Merge with whatever exists locally, dedupe by id, sort newest first
+    var byId={};
+    entries.concat(S.data.audit||[]).forEach(function(e){if(e&&e.id)byId[e.id]=e;});
+    var merged=Object.values(byId).sort(function(a,b){return (b.dt||'').localeCompare(a.dt||'');});
+    S.data.audit=merged.slice(0,2000);
+    sv();
+    loadAudit();
+    toast('✅ تم استرجاع '+merged.length+' سجل من الأرشيف الدائم');
+  }).catch(function(err){
+    toast('تعذّر الوصول للأرشيف الدائم: '+err.message,'e');
+  });
+}
 function getPr(cid,date){var p=S.data.prices.filter(x=>x.cid===cid&&x.from<=date&&(!x.to||x.to>=date));p.sort((a,b)=>b.from.localeCompare(a.from));return p.length?p[0].price:0;}
 function doLogin(){
   var u=V('lgu').trim(),p=V('lgp');
@@ -1616,7 +1662,7 @@ function loadCu(){
   var tSp=en.filter(e=>e.amount>0).reduce((s,e)=>s+e.amount,0),tRm=cu.reduce((s,c)=>{return s+cuBalanceInfo(c.id).remaining;},0);
   G('cuOpn').textContent=open.length;G('cuSpt').textContent=fR(tSp);G('cuRem').textContent=fR(tRm);G('cuSet').textContent=sett.length;
   fillDrops();
-  G('cuTbd').innerHTML=cu.map(c=>{var enC=en.filter(e=>e.cid===c.id),expSum=enC.filter(e=>e.amount>0).reduce((s,e)=>s+e.amount,0),retSum=enC.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0),rm=c.opening-expSum-retSum,pct=c.opening?Math.round(expSum/c.opening*100):0,rc=pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)';return'<tr><td style="font-weight:600">'+c.name+'</td><td style="font-family:monospace;font-size:12px">'+(c.num||'—')+'</td><td>'+c.date+'</td><td style="color:var(--ry)">'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(expSum)+'</td><td style="color:var(--sc)">'+(retSum?fR(retSum):'—')+'</td><td style="font-weight:700;color:'+rc+'">'+fR(rm)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="stb" style="width:80px;flex-shrink:0"><div class="stf" style="width:'+pct+'%;background:'+rc+'"></div></div><span style="font-size:11px;color:'+rc+'">'+pct+'%</span></div></td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="vwCu(\''+c.id+'\')">&#x1F4CB; تفاصيل</button>'+(c.status==='open'?'<button class="btn bg3 bxs" onclick="prepSetCu(\''+c.id+'\')">تسوية</button>':'')+'</div></td></tr>';}).join('')||'<tr><td colspan="10"><div class="es"><div class="essb">لا توجد عهد مسجَّلة</div></div></td></tr>';
+  G('cuTbd').innerHTML=cu.map(c=>{var enC=en.filter(e=>e.cid===c.id),expSum=enC.filter(e=>e.amount>0).reduce((s,e)=>s+e.amount,0),retSum=enC.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0),rm=c.opening-expSum-retSum,pct=c.opening?Math.round(expSum/c.opening*100):0,rc=pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)';var isLinked=c.empId&&S.data.employees.some(function(e){return e.id===c.empId;});return'<tr'+(isLinked?'':' style="background:rgba(217,119,6,.05)"')+'><td style="font-weight:600">'+c.name+(isLinked?'':' <span class="bdg bo" style="font-size:9px" title="سجل الموظف الأصلي غير موجود">&#x26A0;&#xFE0F; غير مرتبطة</span>')+'</td><td style="font-family:monospace;font-size:12px">'+(c.num||'—')+'</td><td>'+c.date+'</td><td style="color:var(--ry)">'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(expSum)+'</td><td style="color:var(--sc)">'+(retSum?fR(retSum):'—')+'</td><td style="font-weight:700;color:'+rc+'">'+fR(rm)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="stb" style="width:80px;flex-shrink:0"><div class="stf" style="width:'+pct+'%;background:'+rc+'"></div></div><span style="font-size:11px;color:'+rc+'">'+pct+'%</span></div></td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td><td><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn bxs" onclick="vwCu(\''+c.id+'\')">&#x1F4CB; تفاصيل</button>'+(c.status==='open'?'<button class="btn bg3 bxs" onclick="prepSetCu(\''+c.id+'\')">تسوية</button>':'')+(isLinked?'':'<button class="btn bo bxs" onclick="openLinkCuM(\''+c.id+'\')" title="ربط هذه العهدة بسجل موظف حالي">&#x1F517; ربط بموظف</button>')+'</div></td></tr>';}).join('')||'<tr><td colspan="10"><div class="es"><div class="essb">لا توجد عهد مسجَّلة</div></div></td></tr>';
   G('cuEnTbd').innerHTML=en.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{
     var isReturn=e.isReturn||e.amount<0;
     var isTopup=e.isTopup;
@@ -2144,6 +2190,34 @@ function loadEmps(){
   }).join(''):'<tr><td colspan="9"><div class="es"><div class="esic">&#x1F464;</div><div class="esti">لا يوجد موظفون</div><div class="essb">أضف أول موظف بالضغط على الزر أعلاه</div></div></td></tr>';
 }
 
+// When a new employee is registered, automatically reconnect any historical records
+// (expense requests, bank-out, custodies) that reference the SAME name but whose
+// empId points to nothing current — e.g. because the original employee record was
+// deleted and is now being re-created. Receipts aren't included: they don't carry
+// an empId field at all in this system (the "from" field is always free text), so
+// there's nothing structural to reconnect there — they already surface via name search.
+function autoRelinkOrphanedRecords(newEmp){
+  var name=(newEmp.name||'').trim();
+  if(!name)return{expenses:0,bankOut:0,custodies:0};
+  var currentEmpIds=S.data.employees.map(function(e){return e.id;});
+  var counts={expenses:0,bankOut:0,custodies:0};
+  (S.data.expenses||[]).forEach(function(x){
+    if((x.to||'').trim()===name&&(!x.empId||currentEmpIds.indexOf(x.empId)<0)){
+      x.empId=newEmp.id;counts.expenses++;
+    }
+  });
+  (S.data.bankOut||[]).forEach(function(x){
+    if((x.to||'').trim()===name&&(!x.empId||currentEmpIds.indexOf(x.empId)<0)){
+      x.empId=newEmp.id;counts.bankOut++;
+    }
+  });
+  (S.data.custodies||[]).forEach(function(c){
+    if((c.name||'').trim()===name&&(!c.empId||currentEmpIds.indexOf(c.empId)<0)){
+      c.empId=newEmp.id;c.num=newEmp.num;counts.custodies++;
+    }
+  });
+  return counts;
+}
 function saveEmp(){
   var name=V('emp-name'),num=V('emp-num'),job=V('emp-job');
   if(!name||!job){toast('يرجى تعبئة اسم الموظف والوظيفة','e');return;}
@@ -2162,16 +2236,23 @@ function saveEmp(){
     if(S.data.employees.find(function(e){return e.num===num&&e.id!==id;})){toast('رقم الموظف مستخدم مسبقاً','e');return;}
     emp.name=name;emp.num=num;emp.jobTitle=job;emp.dept=V('emp-dept');emp.phone=V('emp-phone');emp.idNum=V('emp-idnum');emp.notes=V('emp-notes');
     alog('تعديل موظف',name+' — '+job);
+    sv();CM('empM');loadEmps();fillAllEmpDropdowns();
     toast('تم حفظ التعديلات');
   } else {
     // Add mode
     if(S.data.employees.find(function(e){return e.num===num;})){toast('رقم الموظف مستخدم مسبقاً','e');return;}
     if(!S.data.employees)S.data.employees=[];
-    S.data.employees.push({id:uid(),name:name,num:num,jobTitle:job,dept:V('emp-dept'),phone:V('emp-phone'),idNum:V('emp-idnum'),notes:V('emp-notes'),active:true,at:new Date().toISOString(),by:S.cu?S.cu.u:''});
+    var newEmp={id:uid(),name:name,num:num,jobTitle:job,dept:V('emp-dept'),phone:V('emp-phone'),idNum:V('emp-idnum'),notes:V('emp-notes'),active:true,at:new Date().toISOString(),by:S.cu?S.cu.u:''};
+    var relinked=autoRelinkOrphanedRecords(newEmp);
+    S.data.employees.push(newEmp);
     alog('إضافة موظف جديد',name+' — '+num+' — '+job);
-    toast('تم إضافة الموظف بنجاح');
+    var totalRelinked=relinked.expenses+relinked.bankOut+relinked.custodies;
+    if(totalRelinked>0){
+      alog('ربط تلقائي بسجلات سابقة',name+' — طلبات صرف: '+relinked.expenses+' — صادر بنكي: '+relinked.bankOut+' — عهد: '+relinked.custodies);
+    }
+    sv();CM('empM');loadEmps();fillAllEmpDropdowns();
+    toast(totalRelinked>0?'✅ تم إضافة الموظف وربط '+totalRelinked+' سجل سابق تلقائيًا به':'تم إضافة الموظف بنجاح');
   }
-  sv();CM('empM');loadEmps();fillAllEmpDropdowns();
 }
 
 function editEmp(id){
@@ -2255,6 +2336,38 @@ function saveCu(){
   alog('إنشاء عهدة',n+' — رصيد ابتدائي: '+fR(op));
   sv();CM('cuM');loadCu();fillAllEmpDropdowns();
   toast('تم إنشاء العهدة');
+}
+
+var curLinkCuId=null;
+function openLinkCuM(cuId){
+  if(!can('all')){toast('ربط العهدة بموظف مخصص لمدير النظام فقط','e');return;}
+  var cu=S.data.custodies.find(function(c){return c.id===cuId;});
+  if(!cu)return;
+  curLinkCuId=cuId;
+  G('linkCuName').textContent=cu.name+' ('+(cu.num||'—')+')';
+  var sel=G('link-emp-sel');
+  sel.innerHTML='<option value="">— اختر الموظف —</option>'+
+    (S.data.employees||[]).filter(function(e){return e.active;}).map(function(e){
+      return '<option value="'+e.id+'">'+e.name+' — '+e.jobTitle+' ('+e.num+')</option>';
+    }).join('');
+  OM('linkCuM');
+}
+function saveLinkCu(){
+  var empId=V('link-emp-sel');
+  if(!empId){toast('يرجى اختيار الموظف','e');return;}
+  var cu=S.data.custodies.find(function(c){return c.id===curLinkCuId;});
+  var emp=S.data.employees.find(function(e){return e.id===empId;});
+  if(!cu||!emp)return;
+  if(S.data.custodies.find(function(c){return c.empId===empId&&c.status==='open'&&c.id!==cu.id;})){
+    toast('هذا الموظف مرتبط بالفعل بعهدة مفتوحة أخرى','e');return;
+  }
+  var oldName=cu.name;
+  cu.empId=empId;
+  cu.name=emp.name;
+  cu.num=emp.num;
+  alog('ربط عهدة بموظف',oldName+' ← '+emp.name+' ('+emp.num+')');
+  sv();CM('linkCuM');loadCu();fillAllEmpDropdowns();
+  toast('✅ تم ربط العهدة بالموظف '+emp.name);
 }
 
 /* ── Override saveEx to auto-link custody ── */
@@ -4348,7 +4461,15 @@ function _tryAutoLogin(){try{var sess=localStorage.getItem('qawafil_session');if
 function getDeleteReason(t,n){var r=prompt('حذف '+t+' رقم '+n+'\nسبب الحذف:');if(r===null)return null;if(!r.trim()){toast('سبب الحذف إجباري','e');return null;}return r.trim();}
 function logDeletion(t,doc,rsn){alog('حذف '+t,'سريال '+(doc.num||'—')+' — '+rsn);if(!S.data.deletedSerials)S.data.deletedSerials=[];S.data.deletedSerials.push({type:t,num:doc.num,amount:doc.amount||0,desc:doc.desc||'',to:doc.to||'',date:doc.date||td2(),deletedBy:S.cu?S.cu.name:'',deletedAt:new Date().toISOString(),reason:rsn});}
 function showDeletedSerials(){var types=[{name:'مصروفات الخزينة',data:S.data.expenses,ctr:S.data.ctr.ex},{name:'مقبوضات الخزينة',data:S.data.receipts,ctr:S.data.ctr.rc},{name:'الوارد البنكي',data:S.data.bankIn,ctr:S.data.ctr.bi||0},{name:'الصادر البنكي',data:S.data.bankOut,ctr:S.data.ctr.bo||0}];var html='';var total=0;types.forEach(function(t){if(!t.ctr||!t.data.length)return;var es={};t.data.forEach(function(e){if(e.num)es[e.num]=true;});var nums=t.data.filter(function(e){return e.num;}).map(function(e){return e.num;});if(!nums.length)return;var mn=Math.min.apply(null,nums);var missing=[];for(var i=mn;i<=t.ctr;i++){if(!es[i])missing.push(i);}if(!missing.length)return;total+=missing.length;html+='<div style="margin-bottom:16px;border:1px solid #ddd;border-radius:8px;overflow:hidden"><div style="background:#1A56DB;color:#fff;padding:10px 14px;font-weight:700">'+t.name+' ('+missing.length+' محذوف)</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f5f5f5"><th style="padding:8px;text-align:right;border:1px solid #ddd">السريال</th><th style="padding:8px;text-align:right;border:1px solid #ddd">سبب الحذف</th><th style="padding:8px;text-align:right;border:1px solid #ddd">محذوف بواسطة</th></tr></thead><tbody>';missing.forEach(function(n){var d=(S.data.deletedSerials||[]).find(function(x){return x.num==n;});html+='<tr><td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#DC2626">'+n+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.reason:'—')+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.deletedBy:'—')+'</td></tr>';});html+='</tbody></table></div>';});if(!total)html='<div style="padding:40px;text-align:center;color:#059669">لا توجد سيريالات محذوفة</div>';var w=window.open('','_blank','width=800,height=600');w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>السيريالات المحذوفة</title></head><body dir="rtl" style="font-family:Cairo,Arial;padding:20px"><h2>السيريالات المحذوفة</h2>'+html+'</body></html>');w.document.close();}
-function assignMissingSerials(){var changed=false;function assign(arr,k,start){var no=arr.filter(function(e){return !e.num;});if(!no.length)return;no.sort(function(a,b){return(a.at||a.date||'').localeCompare(b.at||b.date||'');});var mx=arr.filter(function(e){return e.num;}).reduce(function(m,e){return Math.max(m,e.num);},S.data.ctr[k]||start);no.forEach(function(e){e.num=++mx;});S.data.ctr[k]=mx;changed=true;}assign(S.data.expenses,'ex',2000);assign(S.data.receipts,'rc',1000);assign(S.data.bankIn,'bi',3000);assign(S.data.bankOut,'bo',4000);if(changed){sv();alog('تعيين سيريالات','تلقائي');var pg=document.querySelector('.pg.on');if(pg){var pgId=pg.id.replace('pg-','');var L={tr:loadTr,bk:loadBk};if(L[pgId])L[pgId]();}}}
+function assignMissingSerials(){var changed=false;function assign(arr,k,start){var no=arr.filter(function(e){return !e.num;});if(!no.length)return;no.sort(function(a,b){return(a.at||a.date||'').localeCompare(b.at||b.date||'');});var mx=arr.filter(function(e){return e.num;}).reduce(function(m,e){return Math.max(m,e.num);},S.data.ctr[k]||start);no.forEach(function(e){e.num=++mx;});S.data.ctr[k]=mx;changed=true;}assign(S.data.expenses,'ex',2000);assign(S.data.receipts,'rc',1000);assign(S.data.bankIn,'bi',3000);assign(S.data.bankOut,'bo',4000);
+  // Normalize legacy bank-out/expense records that predate the approval-status field.
+  // They were always TREATED and DISPLAYED as approved (via the `||'approved'` fallback
+  // used throughout the app), so make that explicit — otherwise strict `===` checks
+  // (the un-approve button, the daily bank review, etc.) silently skip them.
+  function normalizeStatus(arr){arr.forEach(function(x){if(!x.status){x.status='approved';changed=true;}});}
+  normalizeStatus(S.data.bankOut);
+  normalizeStatus(S.data.expenses);
+  if(changed){sv();alog('تعيين سيريالات وتطبيع بيانات قديمة','تلقائي');var pg=document.querySelector('.pg.on');if(pg){var pgId=pg.id.replace('pg-','');var L={tr:loadTr,bk:loadBk};if(L[pgId])L[pgId]();}}}
 function fillBkStmAcc(){var s=G('bkStmAcc');if(!s)return;s.innerHTML='<option value="">كل الحسابات</option>'+(S.data.bankAccounts||[]).filter(function(a){return a.active;}).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>';}).join('');}
 function loadBkCal(){
   var cal=G('bkCal');var info=G('bkRevInfo');if(!cal)return;
@@ -4534,7 +4655,7 @@ ld();
 <div class="mo2" id="empM"><div class="mb2">
   <div class="mhd"><div class="mtt">&#x1F464; إضافة / تعديل موظف</div><button class="mcl" onclick="CM('empM')">×</button></div>
   <div class="fg">
-    <div class="fr"><div class="fld"><label>اسم الموظف <span class="req">*</span></label><input type="text" id="emp-name" placeholder="الاسم الكامل"></div><div class="fld"><label>رقم الموظف</label><input type="text" id="emp-num" placeholder="يُولَّد تلقائياً" readonly style="background:var(--ltr);color:var(--ry);font-weight:700;font-family:monospace"></div></div>
+    <div class="fr"><div class="fld"><label>اسم الموظف <span class="req">*</span></label><input type="text" id="emp-name" placeholder="الاسم الكامل"></div><div class="fld"><label>رقم الموظف <span class="req">*</span></label><input type="text" id="emp-num" placeholder="يُقترح تلقائياً — يمكنك تعديله"></div></div>
     <div class="fr"><div class="fld"><label>الوظيفة <span class="req">*</span></label><input type="text" id="emp-job" placeholder="مثال: سائق، مشرف، محاسب"></div><div class="fld"><label>القسم</label><input type="text" id="emp-dept" placeholder="مثال: التشغيل، المالية"></div></div>
     <div class="fr"><div class="fld"><label>رقم الهاتف</label><input type="tel" id="emp-phone" placeholder="05xxxxxxxx"></div><div class="fld"><label>رقم الهوية</label><input type="text" id="emp-idnum" placeholder="رقم الهوية الوطنية"></div></div>
     <div class="fld"><label>ملاحظات</label><textarea id="emp-notes" style="min-height:55px" placeholder="أي ملاحظات إضافية..."></textarea></div>
