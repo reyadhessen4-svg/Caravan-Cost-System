@@ -1153,16 +1153,13 @@ function _startListener(){
   _listenerActive=true;
   DB.ref(DB_REF).on('value',function(snap){
     var d=snap.val();
-    console.log('%c[DEBUG-LISTENER] fired. employees in snapshot:','color:red;font-weight:bold',d&&d.employees?(Array.isArray(d.employees)?d.employees.length:Object.keys(d.employees).length):'(none)','| now:',Date.now(),'| graceUntil:',_localChangeGraceUntil,'| willSkip:',Date.now()<_localChangeGraceUntil);
     if(!d||!d.users)return;
     _firebaseUnconfirmed=false; // genuine data received — connection is confirmed, writes can resume
     if(Date.now()<_localChangeGraceUntil){
       // A local change was just made (or is being saved) — skip this snapshot so it can't be
       // silently overwritten. The pending save (or its echo) will reconcile state shortly.
-      console.log('[DEBUG-LISTENER] SKIPPED due to grace period');
       return;
     }
-    console.log('%c[DEBUG-LISTENER] APPLYING snapshot (grace period expired or was never set!)','color:red;font-weight:bold;font-size:14px');
     clearTimeout(_saveTimer);
     S.data=Object.assign({},S.data,d);
     // Ensure arrays
@@ -1279,6 +1276,9 @@ var V=id=>(G(id)||{}).value||'';
 var Nv=id=>parseFloat(V(id))||0;
 function toast(msg,t){t=t||'s';var c=G('TC'),el=document.createElement('div');el.className='tst t'+t;el.innerHTML='<span>'+(t==='s'?'✅':t==='e'?'❌':t==='w'?'⚠️':'ℹ️')+'</span><span>'+msg+'</span>';c.appendChild(el);setTimeout(()=>{if(el.parentNode)el.remove();},3800);}
 function alog(a,det){
+  // Protect against the listener firing (possibly triggered by our own durable-log write below)
+  // before sv() gets a chance to set this — alog() is called before sv() throughout the app.
+  _localChangeGraceUntil=Date.now()+2500;
   var entry={id:uid(),dt:new Date().toISOString(),user:S.cu?S.cu.name:'نظام',role:S.cu?ROLES[S.cu.r].lbl:'',action:a,details:det||'',res:'نجح'};
   S.data.audit.unshift(entry);
   if(S.data.audit.length>1000)S.data.audit=S.data.audit.slice(0,1000);
@@ -2266,49 +2266,38 @@ function autoRelinkOrphanedRecords(newEmp){
   return counts;
 }
 function saveEmp(){
-  console.log('%c[DEBUG] saveEmp() called','color:orange;font-weight:bold');
   var name=V('emp-name'),num=V('emp-num'),job=V('emp-job');
-  console.log('[DEBUG] read fields:',{name:name,num:num,job:job,emp_id_field:V('emp-id')});
-  if(!name||!job){console.log('[DEBUG] BLOCKED: name or job empty');toast('يرجى تعبئة اسم الموظف والوظيفة','e');return;}
+  if(!name||!job){toast('يرجى تعبئة اسم الموظف والوظيفة','e');return;}
   if(!num){
     // fallback auto-generate
     var emps2=S.data.employees||[];
     var maxNum2=0;
     emps2.forEach(function(e){var n=parseInt((e.num||'').replace(/\D/g,''));if(!isNaN(n)&&n>maxNum2)maxNum2=n;});
     num=String(maxNum2+1).padStart(3,'0');
-    console.log('[DEBUG] auto-generated num:',num);
   }
   var id=V('emp-id');
-  console.log('[DEBUG] id value (empty=Add mode, non-empty=Edit mode):',JSON.stringify(id));
   if(id){
-    console.log('[DEBUG] ENTERED EDIT MODE BRANCH with id:',id);
     // Edit mode
     var emp=S.data.employees.find(function(e){return e.id===id;});
-    console.log('[DEBUG] found matching employee for edit?',!!emp);
-    if(!emp){console.log('[DEBUG] BLOCKED: edit mode but no matching employee found — SILENT RETURN (this is likely the bug)');return;}
-    if(S.data.employees.find(function(e){return e.num===num&&e.id!==id;})){console.log('[DEBUG] BLOCKED: duplicate num in edit mode');toast('رقم الموظف مستخدم مسبقاً','e');return;}
+    if(!emp)return;
+    if(S.data.employees.find(function(e){return e.num===num&&e.id!==id;})){toast('رقم الموظف مستخدم مسبقاً','e');return;}
     emp.name=name;emp.num=num;emp.jobTitle=job;emp.dept=V('emp-dept');emp.phone=V('emp-phone');emp.idNum=V('emp-idnum');emp.notes=V('emp-notes');
     alog('تعديل موظف',name+' — '+job);
     sv();CM('empM');loadEmps();fillAllEmpDropdowns();
     toast('تم حفظ التعديلات');
   } else {
-    console.log('[DEBUG] ENTERED ADD MODE BRANCH');
     // Add mode
-    if(S.data.employees.find(function(e){return e.num===num;})){console.log('[DEBUG] BLOCKED: duplicate num in add mode:',num);toast('رقم الموظف مستخدم مسبقاً','e');return;}
+    if(S.data.employees.find(function(e){return e.num===num;})){toast('رقم الموظف مستخدم مسبقاً','e');return;}
     if(!S.data.employees)S.data.employees=[];
     var newEmp={id:uid(),name:name,num:num,jobTitle:job,dept:V('emp-dept'),phone:V('emp-phone'),idNum:V('emp-idnum'),notes:V('emp-notes'),active:true,at:new Date().toISOString(),by:S.cu?S.cu.u:''};
-    console.log('[DEBUG] about to push newEmp:',JSON.stringify(newEmp));
     var relinked=autoRelinkOrphanedRecords(newEmp);
-    console.log('[DEBUG] relinked counts:',JSON.stringify(relinked));
     S.data.employees.push(newEmp);
-    console.log('[DEBUG] AFTER push, S.data.employees.length:',S.data.employees.length,JSON.stringify(S.data.employees.map(function(e){return e.name;})));
     alog('إضافة موظف جديد',name+' — '+num+' — '+job);
     var totalRelinked=relinked.expenses+relinked.bankOut+relinked.custodies;
     if(totalRelinked>0){
       alog('ربط تلقائي بسجلات سابقة',name+' — طلبات صرف: '+relinked.expenses+' — صادر بنكي: '+relinked.bankOut+' — عهد: '+relinked.custodies);
     }
     sv();CM('empM');loadEmps();fillAllEmpDropdowns();
-    console.log('[DEBUG] end of saveEmp, final S.data.employees.length:',S.data.employees.length);
     toast(totalRelinked>0?'✅ تم إضافة الموظف وربط '+totalRelinked+' سجل سابق تلقائيًا به':'تم إضافة الموظف بنجاح');
   }
 }
