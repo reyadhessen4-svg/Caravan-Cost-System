@@ -990,7 +990,9 @@ var S={cu:null,data:{users:[],employees:[],deletedEmployees:[],vehicles:[],bankA
 var BK_KEY='qawafil_v14'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
-var AUDIT_REF='/qawafil_audit_log'; // Separate, append-only path — immune to the whole-document overwrite race condition below
+var AUDIT_REF=DB_REF+'/auditLog'; // Durable, append-only child of the SAME already-permitted path.
+// Using update() below (not set()) for the main save means this child is never touched/wiped
+// by a stale client's whole-document save — no separate Firebase security rule needed.
 
 /* ── Firebase Init ── */
 (function(){
@@ -1020,7 +1022,7 @@ function sv(){
   _saveTimer=setTimeout(function(){
     if(!DB){return;}
     setSyncIcon('saving');
-    DB.ref(DB_REF).set(S.data).then(function(){
+    DB.ref(DB_REF).update(S.data).then(function(){
       setSyncIcon('ok');
     }).catch(function(err){
       console.error('Firebase save error:',err);
@@ -1239,10 +1241,14 @@ function alog(a,det){
   var entry={id:uid(),dt:new Date().toISOString(),user:S.cu?S.cu.name:'نظام',role:S.cu?ROLES[S.cu.r].lbl:'',action:a,details:det||'',res:'نجح'};
   S.data.audit.unshift(entry);
   if(S.data.audit.length>1000)S.data.audit=S.data.audit.slice(0,1000);
-  // Durable copy: pushed independently to its own Firebase path so a stale client's later
-  // whole-document save (via sv()) can never silently erase audit history again.
+  // Durable copy: pushed as a child of the same already-permitted path (see AUDIT_REF above)
+  // so a stale client's later whole-document save can never silently erase audit history.
   if(DB){
-    try{DB.ref(AUDIT_REF).push(entry);}catch(e){}
+    try{
+      DB.ref(AUDIT_REF).push(entry).catch(function(err){
+        console.warn('Durable audit log write failed (non-critical, local copy is safe):',err&&err.message?err.message:err);
+      });
+    }catch(e){}
   }
 }
 function recoverAuditLog(){
