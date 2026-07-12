@@ -389,10 +389,18 @@ tbody tr:hover td{background:var(--ltr)}
             &#x1F4E4; رفع ملف Excel
             <input type="file" id="boImportFile" accept=".csv,.xlsx,.xls" onchange="importBoFile(this)" style="display:none">
           </label>
+          <button class="btn bsm" onclick="openRefUpdateM()" title="تحديث الأرقام المرجعية لسندات موجودة من ملف">&#x1F517; تحديث الأرقام المرجعية</button>
         </span>
         <button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5; تصدير</button>
       </div>
-    </div><div class="tw"><table id="boTbl" style="min-width:780px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
+    </div>
+    <div id="boImportOptionsRow" style="display:none;margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--nv);background:var(--ltr);border-radius:8px;padding:8px 12px;border:1px solid var(--bd)">
+        <input type="checkbox" id="boImportAddToCustody" style="width:16px;height:16px;cursor:pointer">
+        &#x1F45B; إضافة المبلغ فعليًا لرصيد العهدة عند الاستيراد (استخدمها فقط لو رصيد العهدة اتصفّر ومحتاج تبنيه من جديد من الملف — عادةً تُترك بدون تفعيل)
+      </label>
+    </div>
+    <div class="tw"><table id="boTbl" style="min-width:780px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
     <div class="tabc" id="bkStm"><div class="card"><div class="cht">كشف الحساب البنكي<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="bkStmAcc" onchange="fillBkStmAcc()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none;font-family:var(--fn)"><option value="">كل الحسابات</option></select><input type="date" id="bkStF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><input type="date" id="bkStT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><button class="btn bsm bp" onclick="loadBkStm()">&#x1F50E; عرض</button></div></div><div id="bkStmC"></div></div></div>
     <div class="tabc" id="bkAp">
       <div class="al aw">&#x26A0;&#xFE0F; الصادرات التالية تنتظر اعتمادك. بعد الاعتماد يتم تأثيرها على رصيد الحساب.</div>
@@ -1765,6 +1773,7 @@ function loadBk(){
   if(G('bkRevJumpRow'))G('bkRevJumpRow').style.display=can('all')?'flex':'none';
   if(G('sysStartRow'))G('sysStartRow').style.display=can('all')?'flex':'none';
   if(G('boTemplateBtns'))G('boTemplateBtns').style.display=can('all')?'flex':'none';
+  if(G('boImportOptionsRow'))G('boImportOptionsRow').style.display=can('all')?'block':'none';
   G('biTbd').innerHTML=bI.sort((a,b)=>b.date.localeCompare(a.date)).map(function(b){
     var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
     var accTag=acc?'<span style="background:'+acc.color+'22;color:'+acc.color+';border:1px solid '+acc.color+'44;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">'+acc.name+'</span>':'<span class="bdg bo" style="font-size:10px">غير مُعيَّن</span>';
@@ -4712,6 +4721,7 @@ function importBoFile(input){
     input.value='';
     return;
   }
+  var addToCustody=G('boImportAddToCustody')&&G('boImportAddToCustody').checked;
   var reader=new FileReader();
   reader.onload=function(e){
     try{
@@ -4720,7 +4730,7 @@ function importBoFile(input){
       var lines=text.split('\n').filter(function(l){return l.trim();});
       if(lines.length<2){toast('الملف فارغ أو لا يحتوي على بيانات','e');return;}
 
-      var added=0,skipped=0,errors=[];
+      var added=0,skipped=0,errors=[],custodyAdded=0,custodyTotal=0;
       var accs=S.data.bankAccounts||[];
       for(var i=1;i<lines.length;i++){
         var cols=parseCSVLine(lines[i]);
@@ -4747,9 +4757,7 @@ function importBoFile(input){
           errors.push('سطر '+(i+1)+': اسم الحساب "'+accName+'" غير موجود في النظام');
           skipped++;continue;
         }
-        // Link to an existing open custody by employee name — for traceability only.
-        // This does NOT add to the custody balance again (that already happened historically
-        // and the custody's current balance was never affected by the data-corruption incident).
+        // Link to an existing open custody by employee name.
         var custodyLink='';
         if(empName){
           var cu=(S.data.custodies||[]).find(function(c){return c.name===empName&&c.status==='open';});
@@ -4757,7 +4765,7 @@ function importBoFile(input){
         }
 
         if(!S.data.bankOut)S.data.bankOut=[];
-        S.data.bankOut.push({
+        var rec={
           id:uid(),num:'',date:date,amount:amount,to:to,
           phone:'',ref:ref,desc:desc,
           accId:acc?acc.id:'',accName:acc?acc.name:'',
@@ -4765,17 +4773,27 @@ function importBoFile(input){
           by:S.cu?S.cu.u:'',at:new Date().toISOString(),
           apAt:new Date().toISOString(),apBy:'استيراد بالجملة — '+td2(),
           reviewed:false,reviewedBy:'',reviewedAt:''
-        });
+        };
+        // Optionally rebuild the custody balance effect (use only when the custody balance
+        // was reset/needs to be rebuilt fresh from this import — normally left off, since
+        // re-adding when the balance is already correct would double-count it).
+        if(addToCustody&&custodyLink){
+          var _entry=addCustodyEntry(custodyLink,amount,desc||('صرف بنكي لـ '+to),'صادر بنكي');
+          rec.custodyEntryId=_entry?_entry.id:'';
+          custodyAdded++;custodyTotal+=amount;
+        }
+        S.data.bankOut.push(rec);
         added++;
       }
 
       if(added>0){
         assignMissingSerials();
-        alog('استيراد سندات صادر بنكي بالجملة','تم استيراد '+added+' سند من ملف Excel');
-        sv();loadBk();
+        alog('استيراد سندات صادر بنكي بالجملة','تم استيراد '+added+' سند من ملف Excel'+(addToCustody?' — وإضافة '+custodyAdded+' قيد بإجمالي '+custodyTotal.toFixed(2)+' ريال لأرصدة العهد':''));
+        sv();loadBk();loadCu();
       }
 
       var msg='✅ تم استيراد '+added+' سند';
+      if(addToCustody&&custodyAdded>0)msg+=' | تم تحديث '+custodyAdded+' رصيد عهدة بإجمالي '+custodyTotal.toFixed(2)+' ريال';
       if(skipped>0)msg+=' | تجاهل '+skipped+' سطر (راجع التنبيهات)';
       toast(msg,added>0?'s':'w');
 
@@ -4790,6 +4808,115 @@ function importBoFile(input){
   };
   reader.readAsText(file,'utf-8');
 }
+
+/* ═══════════════════════════════════════════
+   BANK-OUT REFERENCE NUMBER BULK UPDATE
+   (لتصحيح الرقم المرجعي المفقود على سندات موجودة، بدون تخمين — أي حالة غامضة تُعرض للمراجعة اليدوية)
+═══════════════════════════════════════════ */
+function normalizeDateFlexible(s){
+  s=(s+'').trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  return null;
+}
+function findBankOutCandidates(date,amount,benef){
+  var candidates=S.data.bankOut.filter(function(b){
+    return b.date===date&&Math.abs(b.amount-amount)<0.01;
+  });
+  if(benef&&candidates.length>1){
+    var narrowed=candidates.filter(function(b){return (b.to||'').trim()===benef.trim();});
+    if(narrowed.length)candidates=narrowed;
+  }
+  if(candidates.length>1){
+    var noRef=candidates.filter(function(b){return !b.ref;});
+    if(noRef.length===1)candidates=noRef;
+  }
+  return candidates;
+}
+function openRefUpdateM(){
+  if(!can('all')){toast('هذه الأداة مخصصة لمدير النظام فقط','e');return;}
+  G('refUpdateInput').value='';
+  G('refUpdatePreview').innerHTML='';
+  G('refUpdateApplyBtn').style.display='none';
+  window._refUpdateResults=null;
+  OM('refUpdateM');
+}
+function previewRefUpdate(){
+  if(!can('all')){toast('هذه الأداة مخصصة لمدير النظام فقط','e');return;}
+  var text=V('refUpdateInput').trim();
+  if(!text){toast('الصق البيانات أولاً','e');return;}
+  var lines=text.split('\n').map(function(l){return l.replace(/\r$/,'');}).filter(function(l){return l.trim();});
+  var sep=lines[0].indexOf('\t')>=0?'\t':',';
+  var rows=lines.map(function(l){return l.split(sep).map(function(c){return c.trim().replace(/^"|"$/g,'');});});
+  if(rows.length&&normalizeDateFlexible(rows[0][0])===null)rows.shift();
+
+  var unique=[],ambiguous=[],notfound=[],invalid=[];
+  rows.forEach(function(row,idx){
+    var dateRaw=row[0]||'',amountRaw=row[1]||'',benef=row[2]||'',ref=row[3]||'';
+    var date=normalizeDateFlexible(dateRaw);
+    var amount=parseFloat((amountRaw+'').replace(/,/g,''));
+    if(!date||isNaN(amount)||!amount||!ref){
+      invalid.push({row:idx+1,raw:row.join(' | ')});
+      return;
+    }
+    var candidates=findBankOutCandidates(date,amount,benef);
+    if(candidates.length===1){
+      unique.push({record:candidates[0],ref:ref,date:date,amount:amount,benef:benef});
+    }else if(candidates.length===0){
+      notfound.push({date:date,amount:amount,benef:benef,ref:ref});
+    }else{
+      ambiguous.push({date:date,amount:amount,benef:benef,ref:ref,candidates:candidates});
+    }
+  });
+
+  window._refUpdateResults={unique:unique,ambiguous:ambiguous,notfound:notfound,invalid:invalid};
+
+  var html='<div class="g3" style="margin-bottom:16px">'+
+    '<div class="met mg"><div class="ml2">مطابقة مؤكدة (سيتم تحديثها)</div><div class="mv2">'+unique.length+'</div></div>'+
+    '<div class="met mo"><div class="ml2">مطابقة غامضة (تحتاج مراجعة يدوية)</div><div class="mv2">'+ambiguous.length+'</div></div>'+
+    '<div class="met mr"><div class="ml2">لم يتم إيجاد سند مطابق</div><div class="mv2">'+notfound.length+'</div></div>'+
+  '</div>';
+
+  if(invalid.length){
+    html+='<div class="al aw">&#x26A0;&#xFE0F; '+invalid.length+' سطر تم تجاهله (بيانات ناقصة أو تنسيق غير مفهوم): '+invalid.map(function(x){return 'سطر '+x.row;}).join('، ')+'</div>';
+  }
+  if(unique.length){
+    html+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--sc)">&#x2705; سيتم تحديثها ('+unique.length+'):</div>'+
+      '<div class="tw"><table style="font-size:12px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>المستفيد الحالي</th><th>الرقم المرجعي الجديد</th></tr></thead><tbody>'+
+      unique.map(function(u){return '<tr><td>'+u.record.date+'</td><td>'+fR(u.record.amount)+'</td><td>'+u.record.to+'</td><td style="font-weight:700;color:var(--ry)">'+u.ref+'</td></tr>';}).join('')+
+      '</tbody></table></div></div>';
+  }
+  if(ambiguous.length){
+    html+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--wn)">&#x26A0;&#xFE0F; غامضة — راجعها يدويًا من جدول الصادر البنكي ('+ambiguous.length+'):</div>'+
+      '<div class="tw"><table style="font-size:12px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الرقم المرجعي المطلوب</th><th>عدد الاحتمالات</th></tr></thead><tbody>'+
+      ambiguous.map(function(a){return '<tr><td>'+a.date+'</td><td>'+fR(a.amount)+'</td><td>'+a.ref+'</td><td>'+a.candidates.length+' سند محتمل</td></tr>';}).join('')+
+      '</tbody></table></div></div>';
+  }
+  if(notfound.length){
+    html+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--dn)">&#x274C; لم يتم العثور على سند مطابق ('+notfound.length+'):</div>'+
+      '<div class="tw"><table style="font-size:12px"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>الرقم المرجعي</th></tr></thead><tbody>'+
+      notfound.map(function(n){return '<tr><td>'+n.date+'</td><td>'+fR(n.amount)+'</td><td>'+n.ref+'</td></tr>';}).join('')+
+      '</tbody></table></div></div>';
+  }
+  G('refUpdatePreview').innerHTML=html;
+  G('refUpdateApplyBtn').style.display=unique.length>0?'':'none';
+}
+function applyRefUpdate(){
+  if(!can('all')){toast('هذه الأداة مخصصة لمدير النظام فقط','e');return;}
+  var results=window._refUpdateResults;
+  if(!results||!results.unique.length){toast('اعمل معاينة أولاً','e');return;}
+  if(!confirm('تأكيد: سيتم تحديث الرقم المرجعي لـ '+results.unique.length+' سند صادر بنكي (الحالات الغامضة وغير الموجودة لن تتأثر). متابعة؟'))return;
+  results.unique.forEach(function(item){item.record.ref=item.ref;});
+  alog('تحديث أرقام مرجعية بالجملة','تم تحديث '+results.unique.length+' سند صادر بنكي من ملف');
+  sv();
+  loadBk();
+  CM('refUpdateM');
+  toast('✅ تم تحديث '+results.unique.length+' سند بنجاح');
+}
+
 
 function _tryAutoLogin(){try{var sess=localStorage.getItem('qawafil_session');if(!sess)return;var s=JSON.parse(sess);if(!s||!s.u||(Date.now()-s.t)>30*24*60*60*1000){localStorage.removeItem('qawafil_session');return;}if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);if(!S.data.users||!S.data.users.length){setTimeout(_tryAutoLogin,500);return;}var usr=S.data.users.find(function(x){return x.u===s.u&&x.active;});if(!usr){localStorage.removeItem('qawafil_session');return;}S.cu=usr;usr.ll=new Date().toISOString();var lp=G('LP');if(lp&&lp.parentNode)lp.parentNode.removeChild(lp);G('APP').style.display='block';localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now()}));initApp();}catch(e){}}
 function getDeleteReason(t,n){var r=prompt('حذف '+t+' رقم '+n+'\nسبب الحذف:');if(r===null)return null;if(!r.trim()){toast('سبب الحذف إجباري','e');return null;}return r.trim();}
@@ -5282,6 +5409,22 @@ ld();
     <div id="restoreSummaryC"></div>
   </div>
   <div class="mft"><button class="btn" onclick="CM('restoreBackupM')">إلغاء</button><button class="btn bd2" onclick="applyRestoredBackup()">&#x26A0;&#xFE0F; استبدال كل البيانات وتأكيد الاسترجاع</button></div>
+</div></div>
+
+<!-- BANK-OUT REFERENCE NUMBER BULK UPDATE -->
+<div class="mo2" id="refUpdateM"><div class="mb2 xl">
+  <div class="mhd"><div class="mtt">&#x1F517; تحديث الأرقام المرجعية للصادر البنكي</div><button class="mcl" onclick="CM('refUpdateM')">×</button></div>
+  <div class="al ai">&#x1F4A1; الصق بيانات من الإكسيل بترتيب الأعمدة: <strong>التاريخ، المبلغ، المستفيد (اختياري)، الرقم المرجعي</strong> — انسخها من الإكسيل والصقها هنا مباشرة (سطر لكل حركة). الأداة هتطابق كل صف مع السند الصحيح تلقائيًا، وأي حالة فيها أكتر من احتمال هتتعرض عليك بشكل منفصل تراجعها بنفسك — مفيش تخمين.</div>
+  <div class="fld">
+    <label>البيانات الملصوقة</label>
+    <textarea id="refUpdateInput" style="min-height:140px;font-family:monospace;font-size:12px" placeholder="2026-07-06	31	خالد ادم جبريل بشير	REF12345
+2026-07-06	1000	خالد ادم جبريل بشير	REF12346"></textarea>
+  </div>
+  <div class="mft" style="justify-content:flex-start;border-top:none;padding-top:0;margin-top:0">
+    <button class="btn bp" onclick="previewRefUpdate()">&#x1F50E; معاينة المطابقة</button>
+  </div>
+  <div id="refUpdatePreview"></div>
+  <div class="mft"><button class="btn" onclick="CM('refUpdateM')">إغلاق</button><button class="btn bss" id="refUpdateApplyBtn" onclick="applyRefUpdate()" style="display:none">&#x2705; تطبيق التحديثات المؤكدة فقط</button></div>
 </div></div>
 
 </body></html>
