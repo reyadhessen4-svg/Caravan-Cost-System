@@ -383,11 +383,13 @@ tbody tr:hover td{background:var(--ltr)}
     <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:780px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
     <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn bsm" onclick="downloadBoTemplate()" title="تنزيل قالب لتسجيل سندات ناقصة بالجملة">&#x1F4E5; تنزيل القالب</button>
-        <label class="btn bsm" style="cursor:pointer" title="رفع ملف Excel مملوء">
-          &#x1F4E4; رفع ملف Excel
-          <input type="file" id="boImportFile" accept=".csv,.xlsx,.xls" onchange="importBoFile(this)" style="display:none">
-        </label>
+        <span id="boTemplateBtns" style="display:none;gap:8px">
+          <button class="btn bsm" onclick="downloadBoTemplate()" title="تنزيل قالب لتسجيل سندات ناقصة بالجملة">&#x1F4E5; تنزيل القالب</button>
+          <label class="btn bsm" style="cursor:pointer" title="رفع ملف Excel مملوء">
+            &#x1F4E4; رفع ملف Excel
+            <input type="file" id="boImportFile" accept=".csv,.xlsx,.xls" onchange="importBoFile(this)" style="display:none">
+          </label>
+        </span>
         <button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5; تصدير</button>
       </div>
     </div><div class="tw"><table id="boTbl" style="min-width:780px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
@@ -1634,11 +1636,11 @@ function loadOps(){
   G('opTdR').textContent=fR(tO.reduce((s,o)=>s+o.rev,0));
   G('opMnC').textContent=all.reduce((s,o)=>s+o.cars,0);
   G('opMnR').textContent=fR(all.reduce((s,o)=>s+o.rev,0));
-  G('opTbd').innerHTML=ops.length?ops.map(o=>'<tr><td>'+o.date+'</td><td>'+o.cn+'</td><td style="font-weight:700;color:var(--ry)">'+o.cars+'</td><td>'+fR(o.price)+'</td><td style="font-weight:700;color:var(--sc)">'+fR(o.rev)+'</td><td style="font-size:12px;color:var(--gr)">'+(o.contract||'—')+'</td><td style="font-size:12px;color:var(--gr)">'+(o.notes||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+o.by+'</td><td>'+(can('all')||can('ops')?'<button class="btn bd2 bxs" onclick="delOp(\''+o.id+'\')" title="لا يمكن حذف العمليات المعتمدة">حذف</button>':'')+'</td></tr>').join(''):'<tr><td colspan="9"><div class="es"><div class="esic">&#x1F69B;</div><div class="esti">لا توجد عمليات</div><div class="essb">استخدم زر "تسجيل عملية" لإضافة بيانات</div></div></td></tr>';
+  G('opTbd').innerHTML=ops.length?ops.map(o=>'<tr><td>'+o.date+'</td><td>'+o.cn+'</td><td style="font-weight:700;color:var(--ry)">'+o.cars+'</td><td>'+fR(o.price)+'</td><td style="font-weight:700;color:var(--sc)">'+fR(o.rev)+'</td><td style="font-size:12px;color:var(--gr)">'+(o.contract||'—')+'</td><td style="font-size:12px;color:var(--gr)">'+(o.notes||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+o.by+'</td><td>'+(can('all')?'<button class="btn bd2 bxs" onclick="delOp(\''+o.id+'\')" title="لا يمكن حذف العمليات المعتمدة">حذف</button>':'')+'</td></tr>').join(''):'<tr><td colspan="9"><div class="es"><div class="esic">&#x1F69B;</div><div class="esti">لا توجد عمليات</div><div class="essb">استخدم زر "تسجيل عملية" لإضافة بيانات</div></div></td></tr>';
 }
 function calcOpRev(){var ca=Nv('op-n'),pi=Nv('op-p'),cid=V('op-c'),dt=V('op-d')||td2();var ap=cid?getPr(cid,dt):0;G('op-p').placeholder=ap?ap.toLocaleString('en-US')+' (تلقائي)':'أدخل السعر يدوياً';var pr=pi||ap;G('op-r').value=(pr&&ca)?fR(ca*pr):'';}
 function saveOp(){var cid=V('op-c'),ca=parseInt(V('op-n'));if(!cid||!ca||ca<1){toast('يرجى اختيار العميل وإدخال عدد السيارات','e');return;}var dt=V('op-d')||td2();var pi=Nv('op-p');var pr=pi||getPr(cid,dt);if(!pr){toast('لا يوجد سعر محدد لهذا العميل في هذا التاريخ — يرجى إضافة السعر أولاً','w');return;}var cl=S.data.clients.find(c=>c.id===cid);S.data.ops.unshift({id:uid(),date:dt,cid:cid,cn:cl?cl.name:'',contract:V('op-ct')||cl?.contract||'',cars:ca,price:pr,rev:ca*pr,notes:V('op-nt'),by:S.cu.u,at:new Date().toISOString()});alog('تسجيل عملية يومية',(cl?cl.name:'')+' — '+ca+' سيارة — '+fR(ca*pr));sv();CM('opM');loadOps();loadDash();toast('تم تسجيل العملية بنجاح');}
-function delOp(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}if(!confirm('تأكيد الحذف؟ لا يمكن التراجع.'))return;var i=S.data.ops.findIndex(o=>o.id===id);if(i>-1){S.data.ops.splice(i,1);alog('حذف عملية','');sv();loadOps();toast('تم الحذف','w');}}
+function delOp(id){if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}if(!confirm('تأكيد الحذف؟ لا يمكن التراجع.'))return;var i=S.data.ops.findIndex(o=>o.id===id);if(i>-1){S.data.ops.splice(i,1);alog('حذف عملية','');sv();loadOps();toast('تم الحذف','w');}}
 /* ─── REVENUE ─── */
 function loadRev(){
   var yr2=V('rvYr')||yr(),ops=S.data.ops,tdy=td2();
@@ -1660,9 +1662,9 @@ function loadRev(){
   G('rvMTbd').innerHTML=rows;
 }
 /* ─── PRICES ─── */
-function loadPrices(){var td3=td2();G('prTbd').innerHTML=S.data.prices.sort((a,b)=>b.from.localeCompare(a.from)).map(p=>{var act=p.from<=td3&&(!p.to||p.to>=td3);return'<tr><td style="font-weight:600">'+p.cn+'</td><td style="font-weight:700;color:var(--sc)">'+fR(p.price)+'</td><td>'+p.from+'</td><td>'+(p.to||'مفتوح (جاري)')+'</td><td><span class="bdg '+(act?'bn':'bg2')+'">'+(act?'✅ ساري':'⏹ منتهي')+'</span></td><td style="font-size:12px;color:var(--gr)">'+(p.notes||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+p.by+'</td><td><button class="btn bd2 bxs" onclick="delPr(\''+p.id+'\')">حذف</button></td></tr>';}).join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد أسعار محددة</div></div></td></tr>';}
+function loadPrices(){var td3=td2();G('prTbd').innerHTML=S.data.prices.sort((a,b)=>b.from.localeCompare(a.from)).map(p=>{var act=p.from<=td3&&(!p.to||p.to>=td3);return'<tr><td style="font-weight:600">'+p.cn+'</td><td style="font-weight:700;color:var(--sc)">'+fR(p.price)+'</td><td>'+p.from+'</td><td>'+(p.to||'مفتوح (جاري)')+'</td><td><span class="bdg '+(act?'bn':'bg2')+'">'+(act?'✅ ساري':'⏹ منتهي')+'</span></td><td style="font-size:12px;color:var(--gr)">'+(p.notes||'—')+'</td><td style="font-size:11px;color:var(--gr2)">'+p.by+'</td><td>'+(can('all')?'<button class="btn bd2 bxs" onclick="delPr(\''+p.id+'\')">حذف</button>':'')+'</td></tr>';}).join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد أسعار محددة</div></div></td></tr>';}
 function savePr(){var cid=V('pr-c'),pr=parseFloat(V('pr-p')),fr=V('pr-f');if(!cid||!pr||!fr){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var cl=S.data.clients.find(c=>c.id===cid);S.data.prices.push({id:uid(),cid:cid,cn:cl?cl.name:'',price:pr,from:fr,to:V('pr-t'),notes:V('pr-n'),by:S.cu.u,at:new Date().toISOString()});alog('إضافة سعر',(cl?cl.name:'')+' — '+fR(pr)+' — سريان: '+fr);sv();CM('prM');loadPrices();toast('تم حفظ السعر الجديد');}
-function delPr(id){if(!confirm('حذف هذا السعر؟'))return;S.data.prices=S.data.prices.filter(p=>p.id!==id);sv();loadPrices();toast('تم الحذف','w');}
+function delPr(id){if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}if(!confirm('حذف هذا السعر؟'))return;S.data.prices=S.data.prices.filter(p=>p.id!==id);alog('حذف سعر','');sv();loadPrices();toast('تم الحذف','w');}
 /* ─── TREASURY ─── */
 function loadTr(){
   var aE=S.data.expenses.filter(e=>e.status==='approved').reduce((s,e)=>s+e.amount,0),tRc=S.data.receipts.reduce((s,r)=>s+r.amount,0),bal=tRc-aE,tdy=td2();
@@ -1677,7 +1679,7 @@ function loadTr(){
   var revTxt=r.reviewed?'&#x2705; '+r.reviewedBy+'<br><small>'+new Date(r.reviewedAt).toLocaleDateString('en-GB')+'</small>':'&#x2014;';
   var btns='<div style="display:flex;gap:4px">';
   if(can('all'))btns+='<button class="btn bxs '+(r.reviewed?'bg3':'')+'" onclick="reviewRc(this.dataset.id)" data-id="'+lid+'" title="'+(r.reviewed?'فتح القفل':'مراجعة وقفل')+'">'+(r.reviewed?'&#x1F513;':'&#x2705;')+'</button>';
-  if(!r.reviewed||can('all'))btns+='<button class="btn bxs" onclick="editRc(this.dataset.id)" data-id="'+lid+'" title="تعديل">&#x270F;&#xFE0F;</button>';
+  if(!r.reviewed)btns+='<button class="btn bxs" onclick="editRc(this.dataset.id)" data-id="'+lid+'" title="تعديل">&#x270F;&#xFE0F;</button>';
   if(can('all'))btns+='<button class="btn bd2 bxs" onclick="delRc(this.dataset.id)" data-id="'+lid+'" title="حذف">&#x1F5D1;&#xFE0F;</button>';
   btns+='<button class="btn bxs" onclick="printReceipt(this.dataset.id)" data-id="'+lid+'" title="طباعة سند القبض" style="padding:3px 7px">&#x1F9FE;</button>';
   btns+='</div>';
@@ -1695,21 +1697,22 @@ G('exTbd').innerHTML=exps.sort((a,b)=>b.date.localeCompare(a.date)).map(function
   var lid=e.id;
   var lockIco=e.reviewed?'<span title="مراجَع: '+e.reviewedBy+'" style="margin-right:4px">&#x1F512;</span>':'';
   var revTxt=e.reviewed?'&#x2705; '+e.reviewedBy+'<br><small>'+new Date(e.reviewedAt).toLocaleDateString('en-GB')+'</small>':'&#x2014;';
-  var btns='<div style="display:flex;gap:3px;flex-wrap:nowrap">';
+  var btns='<div style="display:flex;gap:3px;flex-wrap:wrap">';
   if((can('all')||can('ap'))&&e.status==='pending'){
     btns+='<button class="btn bss bxs" onclick="apEx(this.dataset.id)" data-id="'+lid+'" title="اعتماد">&#x2713;</button>';
     btns+='<button class="btn bd2 bxs" onclick="rjEx(this.dataset.id)" data-id="'+lid+'" title="رفض">&#x2717;</button>';
   }
   if(can('all')&&e.status==='approved')
     btns+='<button class="btn bxs '+(e.reviewed?'bg3':'')+'" onclick="reviewEx(this.dataset.id)" data-id="'+lid+'" title="'+(e.reviewed?'فتح القفل':'مراجعة وقفل')+'">'+(e.reviewed?'&#x1F513;':'&#x2705; &#x645;&#x631;&#x627;&#x62C;&#x639;&#x629;')+'</button>';
-  var canEdit=!e.reviewed||can('all');
-  if(canEdit&&(e.status!=='approved'||can('all')))
+  if(can('all')&&e.status==='approved'&&!e.reviewed)
+    btns+='<button class="btn bg3 bxs" onclick="unapproveEx(this.dataset.id)" data-id="'+lid+'" title="إلغاء الاعتماد للتمكن من التعديل">&#x21A9;&#xFE0F; إلغاء الاعتماد</button>';
+  if(e.status!=='approved'&&!e.reviewed)
     btns+='<button class="btn bxs" onclick="editEx(this.dataset.id)" data-id="'+lid+'" title="تعديل">&#x270F;&#xFE0F;</button>';
   if(can('all'))
     btns+='<button class="btn bd2 bxs" onclick="delEx(this.dataset.id)" data-id="'+lid+'" title="حذف">&#x1F5D1;&#xFE0F;</button>';
-  if(e.reviewed&&!can('all'))
+  if(e.reviewed)
     btns+='<span style="font-size:11px;color:var(--sc);padding:2px 5px">&#x1F512; &#x645;&#x631;&#x627;&#x62C;&#x64E;&#x639;</span>';
-  else if(e.status==='approved'&&!can('all')&&!canEdit)
+  else if(e.status==='approved')
     btns+='<span style="font-size:11px;color:var(--gr2);padding:2px 5px">&#x645;&#x639;&#x62A;&#x645;&#x62F;</span>';
   if(e.status==='approved')
     btns+='<button class="btn bxs" onclick="printVoucher(this.dataset.id)" data-id="'+lid+'" title="طباعة إذن الصرف" style="padding:3px 7px">&#x1F5A8;&#xFE0F;</button>';
@@ -1761,6 +1764,7 @@ function loadBk(){
   if(G('sysStartDate'))G('sysStartDate').value=sysStart;
   if(G('bkRevJumpRow'))G('bkRevJumpRow').style.display=can('all')?'flex':'none';
   if(G('sysStartRow'))G('sysStartRow').style.display=can('all')?'flex':'none';
+  if(G('boTemplateBtns'))G('boTemplateBtns').style.display=can('all')?'flex':'none';
   G('biTbd').innerHTML=bI.sort((a,b)=>b.date.localeCompare(a.date)).map(function(b){
     var acc=getBankAccounts().find(function(a){return a.id===b.accId;});
     var accTag=acc?'<span style="background:'+acc.color+'22;color:'+acc.color+';border:1px solid '+acc.color+'44;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">'+acc.name+'</span>':'<span class="bdg bo" style="font-size:10px">غير مُعيَّن</span>';
@@ -1823,8 +1827,8 @@ function saveBi(){
   toast('تم تسجيل الوارد البنكي');
 }
 
-function delBI(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var b=S.data.bankIn.find(x=>x.id===id);if(!b)return;var rsn=getDeleteReason('وارد بنكي',b.num||'—');if(!rsn)return;logDeletion('وارد بنكي',{...b,to:b.from,desc:b.desc||'وارد'},rsn);S.data.bankIn=S.data.bankIn.filter(x=>x.id!==id);sv();loadBk();loadBA();toast('تم الحذف');}
-function delBO(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var b=S.data.bankOut.find(x=>x.id===id);if(!b)return;var rsn=getDeleteReason('صادر بنكي',b.num||'—');if(!rsn)return;logDeletion('صادر بنكي',{...b,desc:b.desc||'صادر'},rsn);S.data.bankOut=S.data.bankOut.filter(x=>x.id!==id);sv();loadBk();loadBA();toast('تم الحذف');}
+function delBI(id){if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}var b=S.data.bankIn.find(x=>x.id===id);if(!b)return;var rsn=getDeleteReason('وارد بنكي',b.num||'—');if(!rsn)return;logDeletion('وارد بنكي',{...b,to:b.from,desc:b.desc||'وارد'},rsn);S.data.bankIn=S.data.bankIn.filter(x=>x.id!==id);sv();loadBk();loadBA();toast('تم الحذف');}
+function delBO(id){if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}var b=S.data.bankOut.find(x=>x.id===id);if(!b)return;var rsn=getDeleteReason('صادر بنكي',b.num||'—');if(!rsn)return;logDeletion('صادر بنكي',{...b,desc:b.desc||'صادر'},rsn);S.data.bankOut=S.data.bankOut.filter(x=>x.id!==id);sv();loadBk();loadBA();toast('تم الحذف');}
 
 function loadAp(){var pnd=S.data.expenses.filter(e=>e.status==='pending');var el=G('apList');if(!pnd.length){el.innerHTML='<div class="es"><div class="esic">✅</div><div class="esti">لا توجد طلبات معلقة</div><div class="essb">جميع طلبات الصرف تمت معالجتها</div></div>';return;}el.innerHTML=pnd.map(e=>'<div class="ac"><div class="ahd"><span>&#x1F4E4; سند '+e.num+' — '+e.to+'</span><span class="bdg bo">⏳ معلق</span></div><div class="aro"><span class="ak">المبلغ</span><span class="av" style="font-size:16px;color:var(--dn)">'+fR(e.amount)+'</span></div><div class="aro"><span class="ak">البيان</span><span class="av">'+e.desc+'</span></div><div class="aro"><span class="ak">مركز التكلفة</span><span class="av">'+e.cc+'</span></div><div class="aro"><span class="ak">الطريقة</span><span class="av">'+e.method+'</span></div><div class="aro"><span class="ak">مقدم الطلب</span><span class="av">'+e.by+'</span></div><div class="aro"><span class="ak">تاريخ الطلب</span><span class="av">'+e.date+'</span></div>'+(can('all')||can('ap')?'<div class="ab2"><button class="btn bss" onclick="apEx(this.dataset.id)" data-id="'+e.id+'">✅ اعتماد وترحيل للخزينة</button><button class="btn bd2" onclick="rjEx(\''+e.id+'\')">❌ رفض مع سبب</button></div>':'<div class="al ai" style="margin-top:8px">يتطلب صلاحية المدير المالي أو مدير النظام</div>')+'</div>').join('');}
 /* ─── CUSTODY ─── */
@@ -1952,7 +1956,7 @@ function loadRp(){
   RC(G('chKpi'),'bar',kpiL,[kpiD,'rgba(26,86,219,.7)']);
 }
 /* ─── USERS ─── */
-function loadUs(){loadRolesList();G('usTbd').innerHTML=S.data.users.map(u=>'<tr><td><div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:50%;background:var(--'+(u.active?'ry':'gr2')+');display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0">'+u.name[0]+'</div><div><div style="font-weight:600">'+u.name+'</div><div style="font-size:11px;color:var(--gr);font-family:monospace">'+u.u+'</div></div></div></td><td><span class="bdg '+(ROLES[u.r]?ROLES[u.r].c:'bg2')+'">'+(ROLES[u.r]?ROLES[u.r].lbl:u.r)+'</span></td><td style="font-size:12px;color:var(--gr)">'+(u.ll?new Date(u.ll).toLocaleString('en-US'):'لم يدخل بعد')+'</td><td style="font-size:12px;color:var(--gr)">'+(u.lo?new Date(u.lo).toLocaleString('en-US'):'—')+'</td><td><span class="bdg '+(u.active?'bn':'br')+'">'+(u.active?'✅ نشط':'🔒 موقوف')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="editUs(\''+u.id+'\')">✏️ تعديل</button><button class="btn bxs '+(u.active?'bd2':'')+'" onclick="togUs(\''+u.id+'\')">'+  (u.active?'🔒 إيقاف':'✅ تفعيل')+'</button>'+(u.id!==S.cu.id?'<button class="btn bd2 bxs" onclick="delUs(\''+u.id+'\')">🗑️</button>':'')+'</div></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا يوجد مستخدمون</div></div></td></tr>';}
+function loadUs(){loadRolesList();G('usTbd').innerHTML=S.data.users.map(u=>'<tr><td><div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:50%;background:var(--'+(u.active?'ry':'gr2')+');display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0">'+u.name[0]+'</div><div><div style="font-weight:600">'+u.name+'</div><div style="font-size:11px;color:var(--gr);font-family:monospace">'+u.u+'</div></div></div></td><td><span class="bdg '+(ROLES[u.r]?ROLES[u.r].c:'bg2')+'">'+(ROLES[u.r]?ROLES[u.r].lbl:u.r)+'</span></td><td style="font-size:12px;color:var(--gr)">'+(u.ll?new Date(u.ll).toLocaleString('en-US'):'لم يدخل بعد')+'</td><td style="font-size:12px;color:var(--gr)">'+(u.lo?new Date(u.lo).toLocaleString('en-US'):'—')+'</td><td><span class="bdg '+(u.active?'bn':'br')+'">'+(u.active?'✅ نشط':'🔒 موقوف')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn bxs" onclick="editUs(\''+u.id+'\')">✏️ تعديل</button><button class="btn bxs '+(u.active?'bd2':'')+'" onclick="togUs(\''+u.id+'\')">'+  (u.active?'🔒 إيقاف':'✅ تفعيل')+'</button>'+(u.id!==S.cu.id&&can('all')?'<button class="btn bd2 bxs" onclick="delUs(\''+u.id+'\')">🗑️</button>':'')+'</div></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا يوجد مستخدمون</div></div></td></tr>';}
 /* ─── CUSTOM ROLES MANAGEMENT ─── */
 function loadRolesList(){
   var el=G('rolesList');
@@ -2048,14 +2052,14 @@ function togUs(id){var u=S.data.users.find(x=>x.id===id);if(!u)return;if(u.id===
 function loadAudit(){var df=V('auDt'),uf=V('auUsr');var logs=S.data.audit;if(df)logs=logs.filter(a=>a.dt.startsWith(df));if(uf)logs=logs.filter(a=>a.user===uf);G('auTbd').innerHTML=logs.slice(0,200).map(a=>'<tr><td style="font-family:monospace;font-size:12px;white-space:nowrap">'+new Date(a.dt).toLocaleString('en-US')+'</td><td style="font-weight:600">'+a.user+'</td><td><span class="bdg '+(ROLES[S.data.users.find(u=>u.name===a.user)?.r]?.c||'bg2')+'">'+a.role+'</span></td><td>'+a.action+'</td><td style="color:var(--gr);font-size:12px">'+a.details+'</td><td><span class="bdg bn">'+a.res+'</span></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا توجد سجلات</div></div></td></tr>';}
 
 /* ─── RECEIPT EDIT / DELETE ─── */
-function editRc(id){var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed&&!can('all')){toast('هذا المقبوض تمت مراجعته — التعديل للمدير فقط','e');return;}G('rce-id').value=id;G('rce-d').value=r.date;G('rce-a').value=r.amount;G('rce-f').value=r.from;G('rce-ds').value=r.desc;var ms=G('rce-m');for(var i=0;i<ms.options.length;i++){if(ms.options[i].value===r.method||ms.options[i].text===r.method)ms.selectedIndex=i;}G('rce-rf').value=r.ref||'';G('rce-nt').value=r.notes||'';OM('rcEM');}
-function saveEditRc(){var id=V('rce-id'),a=Nv('rce-a'),f=V('rce-f'),d=V('rce-ds');if(!id||!a||!f||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;var old=fR(r.amount);r.date=V('rce-d')||td2();r.amount=a;r.from=f;r.desc=d;r.method=V('rce-m');r.ref=V('rce-rf');r.notes=V('rce-nt');r.editedBy=S.cu.u;r.editedAt=new Date().toISOString();alog('تعديل مقبوض','سند '+r.num+' — تغيير من '+old+' إلى '+fR(a));sv();CM('rcEM');loadTr();loadDash();toast('تم حفظ التعديل بنجاح');}
-function delRc(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed&&!can('all')){toast('هذا المقبوض تمت مراجعته — الحذف للمدير فقط','e');return;}if(!confirm('حذف مقبوض رقم '+r.num+' بقيمة '+fR(r.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.receipts=S.data.receipts.filter(x=>x.id!==id);alog('حذف مقبوض','سند '+r.num+' — '+fR(r.amount)+' — من '+r.from);sv();loadTr();loadDash();toast('تم حذف المقبوض','w');}
+function editRc(id){var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed){toast('هذا المقبوض تمت مراجعته — يجب فتح القفل أولاً من زر المراجعة قبل التعديل','e');return;}G('rce-id').value=id;G('rce-d').value=r.date;G('rce-a').value=r.amount;G('rce-f').value=r.from;G('rce-ds').value=r.desc;var ms=G('rce-m');for(var i=0;i<ms.options.length;i++){if(ms.options[i].value===r.method||ms.options[i].text===r.method)ms.selectedIndex=i;}G('rce-rf').value=r.ref||'';G('rce-nt').value=r.notes||'';OM('rcEM');}
+function saveEditRc(){var id=V('rce-id'),a=Nv('rce-a'),f=V('rce-f'),d=V('rce-ds');if(!id||!a||!f||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed){toast('هذا المقبوض تمت مراجعته — يجب فتح القفل أولاً','e');return;}var old=fR(r.amount);r.date=V('rce-d')||td2();r.amount=a;r.from=f;r.desc=d;r.method=V('rce-m');r.ref=V('rce-rf');r.notes=V('rce-nt');r.editedBy=S.cu.u;r.editedAt=new Date().toISOString();alog('تعديل مقبوض','سند '+r.num+' — تغيير من '+old+' إلى '+fR(a));sv();CM('rcEM');loadTr();loadDash();toast('تم حفظ التعديل بنجاح');}
+function delRc(id){if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed&&!can('all')){toast('هذا المقبوض تمت مراجعته — الحذف للمدير فقط','e');return;}if(!confirm('حذف مقبوض رقم '+r.num+' بقيمة '+fR(r.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.receipts=S.data.receipts.filter(x=>x.id!==id);alog('حذف مقبوض','سند '+r.num+' — '+fR(r.amount)+' — من '+r.from);sv();loadTr();loadDash();toast('تم حذف المقبوض','w');}
 
 /* ─── EXPENSE EDIT / DELETE ─── */
-function editEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}G('exe-id').value=id;G('exe-d').value=e.date;G('exe-a').value=e.amount;G('exe-t').value=e.to;G('exe-phone').value=e.phone||'';G('exe-ds').value=e.desc;var cc=G('exe-cc');for(var i=0;i<cc.options.length;i++){if(cc.options[i].value===e.cc||cc.options[i].text===e.cc)cc.selectedIndex=i;}var em=G('exe-m');for(var i=0;i<em.options.length;i++){if(em.options[i].value===e.method||em.options[i].text===e.method)em.selectedIndex=i;}G('exe-nt').value=e.notes||'';OM('exEM');}
-function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('هذا المصروف مراجَع — التعديل للمدير فقط','e');return;}if(e.status==='approved'&&!can('all')){toast('هذا المصروف معتمد — التعديل للمدير فقط','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.phone=V('exe-phone')||'';e.desc=d;e.cc=V('exe-cc');e.method=V('exe-m');e.notes=V('exe-nt');if(!can('all')){e.status='pending';e.apBy='';e.apAt='';}e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
-function delEx(id){if(!can('all')&&!ROLES[S.cu?.r]?.canDel){toast('الحذف مخصص للمدير فقط','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('مراجَع','e');return;}if(e.status==='approved'&&!can('all')){toast('معتمد','e');return;}var rsn=getDeleteReason('سند صرف',e.num);if(!rsn)return;logDeletion('سند صرف',e,rsn);S.data.expenses=S.data.expenses.filter(x=>x.id!==id);sv();loadTr();updApCnt();toast('تم حذف سند '+e.num);}
+function editEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed){toast('هذا المصروف مراجَع — يجب فتح القفل أولاً من زر المراجعة قبل التعديل','e');return;}if(e.status==='approved'){toast('هذا المصروف معتمد — يجب إلغاء الاعتماد أولاً من الجدول قبل التعديل','e');return;}G('exe-id').value=id;G('exe-d').value=e.date;G('exe-a').value=e.amount;G('exe-t').value=e.to;G('exe-phone').value=e.phone||'';G('exe-ds').value=e.desc;var cc=G('exe-cc');for(var i=0;i<cc.options.length;i++){if(cc.options[i].value===e.cc||cc.options[i].text===e.cc)cc.selectedIndex=i;}var em=G('exe-m');for(var i=0;i<em.options.length;i++){if(em.options[i].value===e.method||em.options[i].text===e.method)em.selectedIndex=i;}G('exe-nt').value=e.notes||'';OM('exEM');}
+function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed){toast('هذا المصروف مراجَع — يجب فتح القفل أولاً','e');return;}if(e.status==='approved'){toast('هذا المصروف معتمد — يجب إلغاء الاعتماد أولاً','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.phone=V('exe-phone')||'';e.desc=d;e.cc=V('exe-cc');e.method=V('exe-m');e.notes=V('exe-nt');e.status='pending';e.apBy='';e.apAt='';e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
+function delEx(id){if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('مراجَع','e');return;}if(e.status==='approved'&&!can('all')){toast('معتمد','e');return;}var rsn=getDeleteReason('سند صرف',e.num);if(!rsn)return;logDeletion('سند صرف',e,rsn);S.data.expenses=S.data.expenses.filter(x=>x.id!==id);sv();loadTr();updApCnt();toast('تم حذف سند '+e.num);}
 
 
 /* ─── USERS MANAGEMENT ─── */
@@ -2145,6 +2149,7 @@ function saveEditUs(){
 }
 
 function delUs(id){
+  if(!can('all')){toast('حذف المستخدمين مخصص لمدير النظام فقط','e');return;}
   var u=S.data.users.find(x=>x.id===id);
   if(!u)return;
   if(id===S.cu.id){toast('لا يمكن حذف حسابك الخاص','e');return;}
@@ -2457,6 +2462,7 @@ function editEmp(id){
 }
 
 function delEmp(id){
+  if(!can('all')){toast('حذف الموظفين مخصص لمدير النظام فقط','e');return;}
   var emp=S.data.employees.find(function(e){return e.id===id;});
   if(!emp)return;
   var hasCu=S.data.custodies.some(function(c){return c.empId===id&&c.status==='open';});
@@ -2595,7 +2601,8 @@ function apEx(id){
   if(!e.hasOwnProperty('reviewed')){e.reviewed=false;e.reviewedBy='';e.reviewedAt='';}
   // Auto-link to custody if set
   if(e.custodyLink){
-    addCustodyEntry(e.custodyLink,e.amount,e.desc,'طلب صرف #'+e.num);
+    var _entry=addCustodyEntry(e.custodyLink,e.amount,e.desc,'طلب صرف #'+e.num);
+    e.custodyEntryId=_entry?_entry.id:'';
     sv();
     toast('✅ تم الاعتماد — رُحِّل للخزينة وأُضيف لعهدة الموظف تلقائياً');
   } else {
@@ -2603,6 +2610,29 @@ function apEx(id){
     toast('✅ تم الاعتماد — رُحِّل المصروف للخزينة');
   }
   loadTr();loadAp();updApCnt();loadDash();checkAlerts();
+}
+
+function unapproveEx(id){
+  if(!can('all')){toast('إلغاء الاعتماد مخصص لمدير النظام فقط','e');return;}
+  var e=S.data.expenses.find(function(x){return x.id===id;});
+  if(!e||e.status!=='approved'){toast('هذا المصروف غير معتمد أصلاً','e');return;}
+  if(!confirm('تأكيد إلغاء اعتماد المصروف رقم '+e.num+' لـ '+e.to+' — '+fR(e.amount)+'؟\nستعود العملية لحالة "معلق" ويمكنك تعديلها ثم إعادة اعتمادها.'))return;
+  // Reverse the custody top-up effect precisely, if this approval had linked to a custody
+  if(e.custodyEntryId){
+    var entry=S.data.custodyEnts.find(function(x){return x.id===e.custodyEntryId;});
+    if(entry){
+      var cu=S.data.custodies.find(function(c){return c.id===entry.cid;});
+      if(cu)cu.opening=cu.opening-(entry.addedToOpening||0);
+      S.data.custodyEnts=S.data.custodyEnts.filter(function(x){return x.id!==e.custodyEntryId;});
+    }
+    e.custodyEntryId='';
+  }
+  e.status='pending';e.apBy='';e.apAt='';
+  // Un-approving also un-reviews (review only makes sense on an approved record)
+  if(e.reviewed){e.reviewed=false;e.reviewedBy='';e.reviewedAt='';}
+  alog('إلغاء اعتماد مصروف','سند '+e.num+' — '+e.to+' — '+fR(e.amount));
+  sv();loadTr();loadAp();updApCnt();loadDash();checkAlerts();
+  toast('تم إلغاء الاعتماد — يمكنك التعديل الآن ثم إعادة الاعتماد','w');
 }
 
 /* ── Override saveBo to auto-link custody ── */
@@ -2806,6 +2836,7 @@ function toggleCC(id){
 }
 
 function delCC(id){
+  if(!can('all')){toast('حذف مراكز التكلفة مخصص لمدير النظام فقط','e');return;}
   var cc=getCCs().find(function(c){return c.id===id;});
   if(!cc)return;
   var usedIn=S.data.expenses.filter(function(e){return e.cc===cc.name;}).length;
@@ -3209,6 +3240,7 @@ function editVeh(id){
 }
 
 function delVeh(id){
+  if(!can('all')){toast('حذف السيارات مخصص لمدير النظام فقط','e');return;}
   var v=(S.data.vehicles||[]).find(function(x){return x.id===id;});
   if(!v)return;
   if(!confirm('حذف السيارة '+v.plate+'؟'))return;
