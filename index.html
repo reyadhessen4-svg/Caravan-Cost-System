@@ -1344,14 +1344,23 @@ function doLogin(){
   initApp();
 }
 function doLogout(){
-  if(S.cu){S.cu.lo=new Date().toISOString();alog('تسجيل الخروج','المستخدم: '+S.cu.name);sv();}
-  S.cu=null;
-  G('APP').style.display='none';
-  G('LP').style.display='flex';
-  // Clear login fields
-  if(G('lgu'))G('lgu').value='';
-  if(G('lgp'))G('lgp').value='';
-  if(G('lgE'))G('lgE').style.display='none';
+  var finish=function(){
+    try{localStorage.removeItem('qawafil_session');}catch(e){}
+    location.reload();
+  };
+  if(S.cu){
+    S.cu.lo=new Date().toISOString();
+    alog('تسجيل الخروج','المستخدم: '+S.cu.name);
+    try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){}
+    if(DB){
+      clearTimeout(_saveTimer);
+      DB.ref(DB_REF).update(S.data).then(finish).catch(finish);
+    } else {
+      finish();
+    }
+  } else {
+    finish();
+  }
 }
 function initApp(){
   var u=S.cu;G('SBAv').textContent=u.name[0];G('SBNm').textContent=u.name;G('SBRl').textContent=ROLES[u.r].lbl;
