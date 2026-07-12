@@ -381,7 +381,16 @@ tbody tr:hover td{background:var(--ltr)}
   </div>
   <div id="bkTbs">
     <div class="tabc on" id="bkIn"><div class="card"><div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div><div class="tw"><table id="biTbl" style="min-width:780px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>مصدر التحويل</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>إجراء</th></tr></thead><tbody id="biTbd"></tbody></table></div></div></div>
-    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي<button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5;</button></div><div class="tw"><table id="boTbl" style="min-width:780px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn bsm" onclick="downloadBoTemplate()" title="تنزيل قالب لتسجيل سندات ناقصة بالجملة">&#x1F4E5; تنزيل القالب</button>
+        <label class="btn bsm" style="cursor:pointer" title="رفع ملف Excel مملوء">
+          &#x1F4E4; رفع ملف Excel
+          <input type="file" id="boImportFile" accept=".csv,.xlsx,.xls" onchange="importBoFile(this)" style="display:none">
+        </label>
+        <button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5; تصدير</button>
+      </div>
+    </div><div class="tw"><table id="boTbl" style="min-width:780px"><thead><tr><th>رقم السند</th><th>التاريخ</th><th>المبلغ</th><th>الحساب</th><th>المستفيد</th><th>رقم العملية</th><th>البيان</th><th>المسجِّل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="boTbd"></tbody></table></div></div></div>
     <div class="tabc" id="bkStm"><div class="card"><div class="cht">كشف الحساب البنكي<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="bkStmAcc" onchange="fillBkStmAcc()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none;font-family:var(--fn)"><option value="">كل الحسابات</option></select><input type="date" id="bkStF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><input type="date" id="bkStT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none"><button class="btn bsm bp" onclick="loadBkStm()">&#x1F50E; عرض</button></div></div><div id="bkStmC"></div></div></div>
     <div class="tabc" id="bkAp">
       <div class="al aw">&#x26A0;&#xFE0F; الصادرات التالية تنتظر اعتمادك. بعد الاعتماد يتم تأثيرها على رصيد الحساب.</div>
@@ -4623,6 +4632,122 @@ function parseCSVLine(line){
   }
   result.push(cur);
   return result;
+}
+
+/* ═══════════════════════════════════════════
+   BANK-OUT BULK IMPORT (لتسجيل السندات الناقصة)
+═══════════════════════════════════════════ */
+function downloadBoTemplate(){
+  var headers=[
+    'التاريخ (YYYY-MM-DD)',
+    'المبلغ',
+    'اسم الحساب البنكي (يجب أن يطابق حساب موجود بالنظام)',
+    'المستفيد',
+    'رقم العملية (اختياري)',
+    'البيان (اختياري)',
+    'اسم الموظف صاحب العهدة (اختياري — للربط فقط، لن يُضاف مرة أخرى لرصيد العهدة)'
+  ];
+  var accNames=(S.data.bankAccounts||[]).map(function(a){return a.name;});
+  var examples=[
+    ['2026-07-05','1500','البنك الأهلي','خالد ادم جبريل بشير','','سحب نقدي','خالد ادم جبريل بشير'],
+    ['2026-07-07','2200',accNames[0]||'البنك الأهلي','اسم المستفيد','REF123','بيان العملية','']
+  ];
+  var csv='\uFEFF'+headers.join(',')+'\n';
+  examples.forEach(function(r){csv+=r.map(function(c){return'"'+c+'"';}).join(',')+'\n';});
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='قالب_الصادر_البنكي.csv';
+  a.click();
+  toast('تم تنزيل القالب — أدخل السندات الناقصة ثم ارفعه. الحسابات المتاحة: '+accNames.join('، '));
+}
+function importBoFile(input){
+  if(!can('all')){toast('استيراد السندات بالجملة مخصص لمدير النظام فقط','e');input.value='';return;}
+  var file=input.files[0];
+  if(!file)return;
+  var ext=file.name.split('.').pop().toLowerCase();
+  if(ext!=='csv'){
+    toast('يرجى رفع ملف CSV فقط. احفظ ملف Excel بصيغة CSV أولاً','w');
+    input.value='';
+    return;
+  }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var text=e.target.result;
+      text=text.replace(/^\uFEFF/,'');
+      var lines=text.split('\n').filter(function(l){return l.trim();});
+      if(lines.length<2){toast('الملف فارغ أو لا يحتوي على بيانات','e');return;}
+
+      var added=0,skipped=0,errors=[];
+      var accs=S.data.bankAccounts||[];
+      for(var i=1;i<lines.length;i++){
+        var cols=parseCSVLine(lines[i]);
+        if(!cols||cols.length<4)continue;
+
+        var date=(cols[0]||'').trim();
+        var amount=parseFloat(cols[1]);
+        var accName=(cols[2]||'').trim();
+        var to=(cols[3]||'').trim();
+        var ref=(cols[4]||'').trim();
+        var desc=(cols[5]||'').trim();
+        var empName=(cols[6]||'').trim();
+
+        if(!date||!amount||!to){
+          errors.push('سطر '+(i+1)+': بيانات ناقصة (التاريخ/المبلغ/المستفيد)');
+          skipped++;continue;
+        }
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){
+          errors.push('سطر '+(i+1)+': تنسيق التاريخ غير صحيح، يجب أن يكون YYYY-MM-DD ('+date+')');
+          skipped++;continue;
+        }
+        var acc=accName?accs.find(function(a){return a.name===accName;}):null;
+        if(accName&&!acc){
+          errors.push('سطر '+(i+1)+': اسم الحساب "'+accName+'" غير موجود في النظام');
+          skipped++;continue;
+        }
+        // Link to an existing open custody by employee name — for traceability only.
+        // This does NOT add to the custody balance again (that already happened historically
+        // and the custody's current balance was never affected by the data-corruption incident).
+        var custodyLink='';
+        if(empName){
+          var cu=(S.data.custodies||[]).find(function(c){return c.name===empName&&c.status==='open';});
+          if(cu)custodyLink=cu.id;
+        }
+
+        if(!S.data.bankOut)S.data.bankOut=[];
+        S.data.bankOut.push({
+          id:uid(),num:'',date:date,amount:amount,to:to,
+          phone:'',ref:ref,desc:desc,
+          accId:acc?acc.id:'',accName:acc?acc.name:'',
+          status:'approved',custodyLink:custodyLink,
+          by:S.cu?S.cu.u:'',at:new Date().toISOString(),
+          apAt:new Date().toISOString(),apBy:'استيراد بالجملة — '+td2(),
+          reviewed:false,reviewedBy:'',reviewedAt:''
+        });
+        added++;
+      }
+
+      if(added>0){
+        assignMissingSerials();
+        alog('استيراد سندات صادر بنكي بالجملة','تم استيراد '+added+' سند من ملف Excel');
+        sv();loadBk();
+      }
+
+      var msg='✅ تم استيراد '+added+' سند';
+      if(skipped>0)msg+=' | تجاهل '+skipped+' سطر (راجع التنبيهات)';
+      toast(msg,added>0?'s':'w');
+
+      if(errors.length>0){
+        console.warn('أخطاء الاستيراد:',errors);
+        setTimeout(function(){toast('تنبيهات: '+errors.slice(0,5).join(' | ')+(errors.length>5?' ...':''),'w');},1500);
+      }
+    }catch(err){
+      toast('خطأ في قراءة الملف: '+err.message,'e');
+    }
+    input.value='';
+  };
+  reader.readAsText(file,'utf-8');
 }
 
 function _tryAutoLogin(){try{var sess=localStorage.getItem('qawafil_session');if(!sess)return;var s=JSON.parse(sess);if(!s||!s.u||(Date.now()-s.t)>30*24*60*60*1000){localStorage.removeItem('qawafil_session');return;}if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);if(!S.data.users||!S.data.users.length){setTimeout(_tryAutoLogin,500);return;}var usr=S.data.users.find(function(x){return x.u===s.u&&x.active;});if(!usr){localStorage.removeItem('qawafil_session');return;}S.cu=usr;usr.ll=new Date().toISOString();var lp=G('LP');if(lp&&lp.parentNode)lp.parentNode.removeChild(lp);G('APP').style.display='block';localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now()}));initApp();}catch(e){}}
