@@ -1041,6 +1041,7 @@ var AUDIT_REF=DB_REF+'/auditLog'; // Durable, append-only child of the SAME alre
 
 /* ── Save: Firebase primary, localStorage backup ── */
 var _saveTimer=null;
+var _modalZCounter=300; // each OM() call increments this, so newly-opened modals always paint above already-open ones
 var _localChangeGraceUntil=0; // while Date.now() is before this, incoming realtime snapshots are ignored
 // so a just-made local change (e.g. a deletion) can't be silently overwritten by a stale/echoed
 // snapshot before its own save has had time to complete.
@@ -1498,7 +1499,10 @@ function OM(id){
     G('veh-fuel').selectedIndex=0;G('veh-status').selectedIndex=0;
   }
   if(id==='ccM'){G('cc-id').value='';G('cc-name').value='';G('cc-desc').value='';G('cc-color').value='#1A56DB';}
-  G(id).classList.add('on');
+  var _mEl=G(id);
+  _modalZCounter++;
+  _mEl.style.zIndex=_modalZCounter;
+  _mEl.classList.add('on');
 }function CM(id){G(id).classList.remove('on');}
 function FT(tid,q){var t=G(tid);if(!t)return;var rows=t.querySelectorAll('tbody tr');q=q.toLowerCase();rows.forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';});}
 function ET(tid){
@@ -5299,7 +5303,7 @@ ld();
 </div></div>
 
 <!-- ADD NEW ITEM MODAL -->
-<div class="mo2" id="itemAddM"><div class="mb2 sm">
+<div class="mo2" id="itemAddM" style="z-index:400"><div class="mb2 sm">
   <div class="mhd"><div class="mtt">&#x1F3F7;&#xFE0F; إضافة بند جديد</div><button class="mcl" onclick="CM('itemAddM')">×</button></div>
   <div class="fg">
     <div class="fld"><label>مركز التكلفة <span class="req">*</span></label>
