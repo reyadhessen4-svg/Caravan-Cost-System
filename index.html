@@ -578,7 +578,20 @@ tbody tr:hover td{background:var(--ltr)}
   </div>
   <div id="cuTbs">
     <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl" style="min-width:900px"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>المرتجع للخزينة</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
-    <div class="tabc" id="cuEnt"><div class="card"><div class="cht">سجل مصروفات العهد<div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('cuEnTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('cuEnTbl')">&#x1F4E5;</button></div></div><div class="tw"><table id="cuEnTbl" style="min-width:800px"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البند</th><th>المبلغ</th><th>رقم السيارة</th><th>اللوحة</th><th>البيان</th><th></th></tr></thead><tbody id="cuEnTbd"></tbody></table></div></div></div>
+    <div class="tabc" id="cuEnt"><div class="card">
+      <div class="cht">سجل مصروفات العهد<div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('cuEnTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('cuEnTbl')">&#x1F4E5;</button></div></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:10px;background:var(--ltr);border-radius:8px">
+        <span style="font-size:12px;color:var(--gr);font-weight:700">&#x1F464; الموظف:</span>
+        <select id="cuEn-emp" onchange="filterCuEnLog()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none"><option value="">الكل</option></select>
+        <span style="font-size:12px;color:var(--gr);font-weight:700;margin-right:10px">&#x1F4C5; من:</span>
+        <input type="date" id="cuEn-from" onchange="filterCuEnLog()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:7px;font-size:13px;outline:none">
+        <span style="font-size:12px;color:var(--gr)">إلى:</span>
+        <input type="date" id="cuEn-to" onchange="filterCuEnLog()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:7px;font-size:13px;outline:none">
+        <button class="btn bsm" onclick="resetCuEnFilter()">&#x2716;&#xFE0F; إعادة ضبط</button>
+        <span id="cuEnCount" style="font-size:12px;color:var(--gr2);margin-right:auto"></span>
+      </div>
+      <div class="tw"><table id="cuEnTbl" style="min-width:800px"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البند</th><th>المبلغ</th><th>رقم السيارة</th><th>اللوحة</th><th>البيان</th><th></th></tr></thead><tbody id="cuEnTbd"></tbody></table></div>
+    </div></div>
     <div class="tabc" id="cuCar"><div class="card"><div class="cht">تقرير المصروفات حسب السيارة</div><div id="cuCarC"></div></div></div>
     <div class="tabc" id="cuBal"><div class="card"><div class="cht">ملخص أرصدة العهد الحالية</div><div id="cuBalC"></div></div></div>
     <div class="tabc" id="cuRep">
@@ -1865,20 +1878,59 @@ function loadCu(){
   G('cuOpn').textContent=open.length;G('cuSpt').textContent=fR(tSp);G('cuRem').textContent=fR(tRm);G('cuSet').textContent=sett.length;
   fillDrops();
   G('cuTbd').innerHTML=cu.map(c=>{var enC=en.filter(e=>e.cid===c.id),expSum=enC.filter(e=>e.amount>0).reduce((s,e)=>s+e.amount,0),retSum=enC.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0),rm=c.opening-expSum-retSum,pct=c.opening?Math.round(expSum/c.opening*100):0,rc=pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)';var isLinked=c.empId&&S.data.employees.some(function(e){return e.id===c.empId;});return'<tr'+(isLinked?'':' style="background:rgba(217,119,6,.05)"')+'><td style="font-weight:600">'+c.name+(isLinked?'':' <span class="bdg bo" style="font-size:9px" title="سجل الموظف الأصلي غير موجود">&#x26A0;&#xFE0F; غير مرتبطة</span>')+'</td><td style="font-family:monospace;font-size:12px">'+(c.num||'—')+'</td><td>'+c.date+'</td><td style="color:var(--ry)">'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(expSum)+'</td><td style="color:var(--sc)">'+(retSum?fR(retSum):'—')+'</td><td style="font-weight:700;color:'+rc+'">'+fR(rm)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="stb" style="width:80px;flex-shrink:0"><div class="stf" style="width:'+pct+'%;background:'+rc+'"></div></div><span style="font-size:11px;color:'+rc+'">'+pct+'%</span></div></td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td><td><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn bxs" onclick="vwCu(\''+c.id+'\')">&#x1F4CB; تفاصيل</button>'+(c.status==='open'?'<button class="btn bg3 bxs" onclick="curCuId=\''+c.id+'\';openCuSettle()">&#x1F4CB; تسوية</button>':'')+(isLinked?'':'<button class="btn bo bxs" onclick="openLinkCuM(\''+c.id+'\')" title="ربط هذه العهدة بسجل موظف حالي">&#x1F517; ربط بموظف</button>')+'</div></td></tr>';}).join('')||'<tr><td colspan="10"><div class="es"><div class="essb">لا توجد عهد مسجَّلة</div></div></td></tr>';
-  G('cuEnTbd').innerHTML=en.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{
-    var isReturn=e.isReturn||e.amount<0;
-    var isTopup=e.isTopup;
-    var amtColor=isReturn?'var(--sc)':isTopup?'var(--ry)':'var(--dn)';
-    var amtStr=isReturn?('↩ +'+fR(Math.abs(e.amount))):isTopup?('↑ +'+fR(e.addedToOpening||0)+' (زيادة رصيد)'):fR(e.amount);
-    var rowBg=isReturn?'background:rgba(5,150,105,.04)':isTopup?'background:rgba(26,86,219,.04)':'';
-    var badge=isReturn?'<span class="bdg bn" style="font-size:10px">إرجاع</span> ':isTopup?'<span class="bdg bb" style="font-size:10px">إضافة رصيد</span> ':'';
-    if(isTopup&&!e.addedToOpening)return''; // hide zero entries
-    var canEditEntry=can('all')&&!isTopup&&!isReturn;
-    return '<tr style="'+rowBg+'"><td>'+e.date+'</td><td style="font-weight:600">'+e.empName+'</td><td>'+badge+e.item+'</td><td style="color:'+amtColor+';font-weight:700">'+amtStr+'</td><td style="font-size:12px;color:var(--gr)">'+(e.car||'—')+'</td><td style="font-size:12px;color:var(--gr)">'+(e.plate||'—')+'</td><td style="font-size:12px;color:var(--gr)">'+(e.desc||'—')+'</td><td><div style="display:flex;gap:3px">'+(canEditEntry?'<button class="btn bxs" onclick="editCuEntry(\''+e.id+'\')" title="تعديل هذا القيد">&#x270F;&#xFE0F;</button>':'')+(can('all')?'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\')" title="حذف هذا القيد">&#x1F5D1;&#xFE0F;</button>':'')+'</div></td></tr>';
-  }).join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد قيود</div></div></td></tr>';
+
+  // Populate employee filter dropdown (preserve current selection if still valid)
+  var empSel=G('cuEn-emp');
+  if(empSel){
+    var curEmpVal=empSel.value;
+    var empNames=Array.from(new Set(cu.map(c=>c.name))).sort();
+    empSel.innerHTML='<option value="">الكل</option>'+empNames.map(function(n){return '<option value="'+n+'"'+(n===curEmpVal?' selected':'')+'>'+n+'</option>';}).join('');
+  }
+  renderCuEnLog();
+
   var byCar={};en.forEach(e=>{if(e.car){if(!byCar[e.car])byCar[e.car]={count:0,total:0};byCar[e.car].count++;byCar[e.car].total+=e.amount;}});var tcr=Object.values(byCar).reduce((s,v)=>s+v.total,0);
   G('cuCarC').innerHTML=Object.keys(byCar).length?'<div class="tw"><table><thead><tr><th>رقم السيارة</th><th>عدد القيود</th><th>إجمالي المصروف</th><th>النسبة</th></tr></thead><tbody>'+Object.entries(byCar).sort((a,b)=>b[1].total-a[1].total).map(([c,v])=>'<tr><td style="font-weight:600">'+c+'</td><td>'+v.count+'</td><td style="color:var(--dn);font-weight:700">'+fR(v.total)+'</td><td>'+(tcr?Math.round(v.total/tcr*100):0)+'%</td></tr>').join('')+'</tbody></table></div>':'<div class="es"><div class="essb">لا توجد مصروفات مرتبطة بسيارات</div></div>';
   G('cuBalC').innerHTML='<div class="tw"><table><thead><tr><th>الموظف</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>المرتجع للخزينة</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th></tr></thead><tbody>'+cu.map(c=>{var enC=en.filter(e=>e.cid===c.id),expSum=enC.filter(e=>e.amount>0).reduce((s,e)=>s+e.amount,0),retSum=enC.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0),rm=c.opening-expSum-retSum,pct=c.opening?Math.round(expSum/c.opening*100):0;return'<tr><td style="font-weight:600">'+c.name+'</td><td>'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(expSum)+'</td><td style="color:var(--sc)">'+(retSum?fR(retSum):'—')+'</td><td style="font-weight:700;color:'+(pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)')+'">'+fR(rm)+'</td><td>'+pct+'%</td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td></tr>';}).join('')+'</tbody></table></div>';
+}
+
+function renderCuEnLog(){
+  var en=S.data.custodyEnts;
+  var empFilter=G('cuEn-emp')?V('cuEn-emp'):'';
+  var fromDate=G('cuEn-from')?V('cuEn-from'):'';
+  var toDate=G('cuEn-to')?V('cuEn-to'):'';
+
+  var filtered=en;
+  if(empFilter)filtered=filtered.filter(function(e){return e.empName===empFilter;});
+  if(fromDate)filtered=filtered.filter(function(e){return e.date>=fromDate;});
+  if(toDate)filtered=filtered.filter(function(e){return e.date<=toDate;});
+
+  var sorted=filtered.sort((a,b)=>b.date.localeCompare(a.date));
+  var visibleIdx=0;
+  G('cuEnTbd').innerHTML=sorted.map(e=>{
+    var isReturn=e.isReturn||e.amount<0;
+    var isTopup=e.isTopup;
+    if(isTopup&&!e.addedToOpening)return''; // hide zero entries
+    var amtColor=isReturn?'var(--sc)':isTopup?'var(--ry)':'var(--dn)';
+    var amtStr=isReturn?('↩ +'+fR(Math.abs(e.amount))):isTopup?('↑ +'+fR(e.addedToOpening||0)+' (زيادة رصيد)'):fR(e.amount);
+    var zebra=(visibleIdx++%2===1)?'rgba(15,23,42,.015)':'transparent';
+    var rowBg=isReturn?'rgba(5,150,105,.05)':isTopup?'rgba(26,86,219,.05)':zebra;
+    var badge=isReturn?'<span class="bdg bn" style="font-size:10px">إرجاع</span> ':isTopup?'<span class="bdg bb" style="font-size:10px">إضافة رصيد</span> ':'';
+    var canEditEntry=can('all')&&!isTopup&&!isReturn;
+    return '<tr style="background:'+rowBg+';border-bottom:1px solid var(--bd)"><td style="white-space:nowrap">'+e.date+'</td><td style="font-weight:600">'+e.empName+'</td><td>'+badge+e.item+'</td><td style="color:'+amtColor+';font-weight:700;white-space:nowrap">'+amtStr+'</td><td style="font-size:12px;color:var(--gr)">'+(e.car||'—')+'</td><td style="font-size:12px;color:var(--gr)">'+(e.plate||'—')+'</td><td style="font-size:12px;color:var(--gr);max-width:220px">'+(e.desc||'—')+'</td><td><div style="display:flex;gap:3px">'+(canEditEntry?'<button class="btn bxs" onclick="editCuEntry(\''+e.id+'\')" title="تعديل هذا القيد">&#x270F;&#xFE0F;</button>':'')+(can('all')?'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\')" title="حذف هذا القيد">&#x1F5D1;&#xFE0F;</button>':'')+'</div></td></tr>';
+  }).join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد قيود مطابقة</div></div></td></tr>';
+
+  var cntEl=G('cuEnCount');
+  if(cntEl){
+    var activeFilters=empFilter||fromDate||toDate;
+    cntEl.textContent=activeFilters?('عرض '+visibleIdx+' من إجمالي '+en.length+' قيد'):(en.length+' قيد إجمالاً');
+  }
+}
+function filterCuEnLog(){renderCuEnLog();}
+function resetCuEnFilter(){
+  if(G('cuEn-emp'))G('cuEn-emp').value='';
+  if(G('cuEn-from'))G('cuEn-from').value='';
+  if(G('cuEn-to'))G('cuEn-to').value='';
+  renderCuEnLog();
 }
 
 function saveCe(){var cid=V('ce-c'),a=Nv('ce-a'),it=V('ce-it');if(!cid||!a||!it){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var cu=S.data.custodies.find(c=>c.id===cid);if(!cu){toast('الموظف غير موجود','e');return;}var sp=S.data.custodyEnts.filter(e=>e.cid===cid).reduce((s,e)=>s+e.amount,0);if(sp+a>cu.opening*1.1)toast('تحذير: المبلغ سيتجاوز رصيد العهدة','w');S.data.custodyEnts.push({id:uid(),cid:cid,empName:cu.name,date:V('ce-d')||td2(),item:it,amount:a,desc:V('ce-ds'),car:V('ce-cr'),plate:V('ce-pl'),by:S.cu.u,at:new Date().toISOString()});alog('قيد عهدة',cu.name+' — '+it+' — '+fR(a));sv();CM('ceM');loadCu();toast('تم تسجيل مصروف العهدة');}
@@ -3589,7 +3641,7 @@ function updateCuSetSummary(){
   var total=cuSetRows.reduce(function(s,r){return s+cuSetRowTotal(r);},0);
   var ret=parseFloat(document.getElementById('cuSet-return').value)||0;
   var lbl=document.getElementById('cuSet-total-lbl');
-  if(lbl)lbl.textContent='إجمالي المصروفات: '+fR(total);
+  if(lbl)lbl.textContent='إجمالي المصروفات: '+fmt(total,3)+' ريال';
   // Balance check
   var cuid=document.getElementById('cuSet-cuid').value;
   var cu=S.data.custodies.find(function(c){return c.id===cuid;});
@@ -3600,11 +3652,11 @@ function updateCuSetSummary(){
   var alert=document.getElementById('cuSet-balance-alert');
   if(alert){
     if(newBal<-0.01){
-      alert.innerHTML='<div class="al" style="background:var(--dnb);color:#991B1B;border:1px solid #FCA5A5">&#x26A0;&#xFE0F; المصروفات + المُرجَع ('+fR(total+ret)+') أكبر من الرصيد المتبقي ('+fR(rem)+')</div>';
+      alert.innerHTML='<div class="al" style="background:var(--dnb);color:#991B1B;border:1px solid #FCA5A5">&#x26A0;&#xFE0F; المصروفات + المُرجَع ('+fmt(total+ret,3)+' ريال) أكبر من الرصيد المتبقي ('+fmt(rem,3)+' ريال)</div>';
     } else if(Math.abs(newBal)<0.01){
       alert.innerHTML='<div class="al as">&#x2705; الحساب متوازن — الرصيد صفر</div>';
     } else {
-      alert.innerHTML='<div class="al ai">&#x1F4CA; الرصيد المتبقي بعد التقفيل: <strong>'+fR(newBal)+'</strong></div>';
+      alert.innerHTML='<div class="al ai">&#x1F4CA; الرصيد المتبقي بعد التقفيل: <strong>'+fmt(newBal,3)+' ريال</strong></div>';
     }
   }
 }
