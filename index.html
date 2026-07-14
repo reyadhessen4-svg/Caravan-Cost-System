@@ -79,7 +79,7 @@ tbody tr:hover td{background:var(--ltr)}
 .mo2{display:none;position:fixed;inset:0;background:rgba(11,31,75,.55);z-index:300;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
 .mo2.on{display:flex}#cuSetM.on{z-index:9999}
 .mb2{background:var(--wh);border-radius:16px;padding:24px;width:600px;max-width:100%;margin-bottom:30px}
-.mb2.lg{width:820px}.mb2.xl{width:1180px}.mb2.sm{width:420px}
+.mb2.lg{width:820px}.mb2.xl{width:1180px}.mb2.xxl{width:1400px}.mb2.sm{width:420px}
 .mhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .mtt{font-size:16px;font-weight:700}
 .mcl{background:none;border:none;font-size:24px;color:var(--gr);cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px;font-family:var(--fn)}.mcl:hover{background:var(--ltr)}
@@ -128,7 +128,7 @@ tbody tr:hover td{background:var(--ltr)}
 @media print{.sb,.tb,.btn,.mo2,.tc{display:none!important}.mn{margin-right:0!important}.ct{padding:10px!important}}
 @media(max-width:1024px){.sb{width:210px}.mn{margin-right:210px}}
 @media(max-width:768px){.sb{transform:translateX(110%);transition:transform .3s}.sb.open{transform:none}.mn{margin-right:0}.g3{grid-template-columns:1fr 1fr}}
-@media(max-width:580px){.mets,.g2,.g3{grid-template-columns:1fr}.fr,.fr3{grid-template-columns:1fr}.mb2.lg,.mb2.xl{width:100%}}
+@media(max-width:580px){.mets,.g2,.g3{grid-template-columns:1fr}.fr,.fr3{grid-template-columns:1fr}.mb2.lg,.mb2.xl,.mb2.xxl{width:100%}}
 </style>
 </head>
 <body>
@@ -2332,17 +2332,17 @@ function fillBoFromEmp(){
   }
 }
 
-function addCustodyEntry(custodyId,amount,desc,source){
+function addCustodyEntry(custodyId,amount,desc,source,txDate){
   if(!custodyId||!amount)return null;
   var cu=S.data.custodies.find(function(c){return c.id===custodyId;});
   if(!cu)return null;
   // صرف من خزينة/بنك للموظف = يزيد رصيد العهدة (opening)
   // مش مصروف من الموظف — المصاريف يسجلها الموظف من عهدته
   cu.opening=cu.opening+amount;
-  // سجّل حركة للتاريخ
+  // سجّل حركة للتاريخ — بتاريخ العملية الفعلي (مش تاريخ التسجيل) لو اتحدد
   var entry={
     id:uid(),cid:custodyId,empName:cu.name,
-    date:td2(),item:'إضافة رصيد — '+source,amount:0,
+    date:txDate||td2(),item:'إضافة رصيد — '+source,amount:0,
     addedToOpening:amount,
     desc:desc+' — تم إضافته للرصيد الابتدائي',
     car:'',plate:'',
@@ -2614,7 +2614,7 @@ function apEx(id){
   if(!e.hasOwnProperty('reviewed')){e.reviewed=false;e.reviewedBy='';e.reviewedAt='';}
   // Auto-link to custody if set
   if(e.custodyLink){
-    var _entry=addCustodyEntry(e.custodyLink,e.amount,e.desc,'طلب صرف #'+e.num);
+    var _entry=addCustodyEntry(e.custodyLink,e.amount,e.desc,'طلب صرف #'+e.num,e.date);
     e.custodyEntryId=_entry?_entry.id:'';
     sv();
     toast('✅ تم الاعتماد — رُحِّل للخزينة وأُضيف لعهدة الموظف تلقائياً');
@@ -3337,32 +3337,33 @@ function addCuSetRow(){
   cuSetRows.push({date:td2(),item:'',amount:0,taxable:true,vehId:'',desc:''});
   renderCuSetRows();
 }
-// Tax value for one row: 0 if not marked taxable, otherwise amount × CU_VAT_RATE%
+// Tax value for one row: 0 if not marked taxable, otherwise amount × CU_VAT_RATE%, kept to 3 decimals (not rounded to 2)
 function cuSetRowTax(r){
   if(!r.taxable)return 0;
-  return Math.round((r.amount||0)*CU_VAT_RATE)/100;
+  return Math.round((r.amount||0)*CU_VAT_RATE*10)/1000;
 }
-// Total for one settlement row = base amount + calculated tax, rounded to 2 decimals
+// Total for one settlement row = base amount + calculated tax, kept to 3 decimals (not rounded to 2)
 function cuSetRowTotal(r){
   var amt=r.amount||0;
-  return Math.round((amt+cuSetRowTax(r))*100)/100;
+  return Math.round((amt+cuSetRowTax(r))*1000)/1000;
 }
 // Updates just one row's computed total cell (avoids rebuilding the whole table and losing input focus)
 function updateCuSetRowTotal(i){
-  var el=document.getElementById('cuSetTot-'+i);
-  if(el&&cuSetRows[i])el.textContent=fR(cuSetRowTotal(cuSetRows[i]));
+  var totEl=document.getElementById('cuSetTot-'+i);
+  var taxEl=document.getElementById('cuSetTax-'+i);
+  if(cuSetRows[i]){
+    if(totEl)totEl.textContent=fmt(cuSetRowTotal(cuSetRows[i]),3);
+    if(taxEl)taxEl.textContent=fmt(cuSetRowTax(cuSetRows[i]),3);
+  }
   updateCuSetSummary();
 }
 
 function renderCuSetRows(){
   var vehs=(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';});
-  var vehOpts='<option value="">— بدون سيارة —</option>'+vehs.map(function(v){
-    return '<option value="'+v.id+'">'+v.num+' '+v.letters+'</option>';
-  }).join('');
 
   var tbody=document.getElementById('cuSet-rows');
   if(!cuSetRows.length){
-    tbody.innerHTML='<tr><td colspan="9" style="padding:16px;text-align:center;color:var(--gr);font-size:13px">اضغط "إضافة سطر" لتسجيل مصروف</td></tr>';
+    tbody.innerHTML='<tr><td colspan="10" style="padding:16px;text-align:center;color:var(--gr);font-size:13px">اضغط "إضافة سطر" لتسجيل مصروف</td></tr>';
     updateCuSetSummary();
     return;
   }
@@ -3374,6 +3375,9 @@ function renderCuSetRows(){
     var itemOpts='<option value="">— اختر البند —</option>'+itemsForCC.map(function(ci){
       return '<option value="'+ci.name+'"'+(r.item===ci.name?' selected':'')+'>'+ci.name+'</option>';
     }).join('');
+    var vehOpts='<option value=""'+(!r.vehId?' selected':'')+'>— بدون سيارة —</option>'+vehs.map(function(v){
+      return '<option value="'+v.id+'"'+(r.vehId===v.id?' selected':'')+'>'+v.num+' '+v.letters+'</option>';
+    }).join('');
     return '<tr style="border-bottom:1px solid var(--bd)">'+
       '<td style="padding:6px 8px"><input type="date" value="'+r.date+'" onchange="cuSetRows['+i+'].date=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:135px"></td>'+
       '<td style="padding:6px 8px"><input type="text" value="'+(r.desc||'')+'" placeholder="البيان" oninput="cuSetRows['+i+'].desc=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:200px"></td>'+
@@ -3381,7 +3385,8 @@ function renderCuSetRows(){
       '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].item=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+itemOpts+'</select></td>'+
       '<td style="padding:6px 8px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetRowTotal('+i+')" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:110px;text-align:left"></td>'+
       '<td style="padding:6px 8px;text-align:center"><input type="checkbox" '+(r.taxable?'checked':'')+' onchange="cuSetRows['+i+'].taxable=this.checked;updateCuSetRowTotal('+i+')" style="width:20px;height:20px;cursor:pointer" title="خاضع للضريبة؟"></td>'+
-      '<td id="cuSetTot-'+i+'" style="padding:6px 8px;font-weight:700;font-family:monospace;color:var(--nv);white-space:nowrap;font-size:13px">'+fR(cuSetRowTotal(r))+'</td>'+
+      '<td id="cuSetTax-'+i+'" style="padding:6px 8px;font-family:monospace;color:var(--gr);white-space:nowrap;font-size:13px">'+fmt(cuSetRowTax(r),3)+'</td>'+
+      '<td id="cuSetTot-'+i+'" style="padding:6px 8px;font-weight:700;font-family:monospace;color:var(--nv);white-space:nowrap;font-size:13px">'+fmt(cuSetRowTotal(r),3)+'</td>'+
       '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].vehId=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+vehOpts+'</select></td>'+
       '<td style="padding:6px 8px"><button onclick="cuSetRows.splice('+i+',1);renderCuSetRows()" style="background:var(--dnb);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">🗑️</button></td>'+
     '</tr>';
@@ -3444,7 +3449,7 @@ function saveCuSettle(){
       date:r.date||settDate,
       cc:r.cc||'',
       item:r.item||r.desc||'مصروف',
-      desc:(r.desc||'')+(r.taxable?' (شامل ضريبة '+CU_VAT_RATE+'% = '+fR(taxAmt)+' ريال)':''),
+      desc:(r.desc||'')+(r.taxable?' (شامل ضريبة '+CU_VAT_RATE+'% = '+fmt(taxAmt,3)+' ريال)':''),
       amount:rowTotal,
       baseAmount:r.amount,
       taxPct:r.taxable?CU_VAT_RATE:0,
@@ -4296,7 +4301,7 @@ function apBO(id){
   b.status='approved';b.apBy=S.cu?S.cu.u:'';b.apAt=new Date().toISOString();
   // Now add to custody if linked
   if(b.custodyLink){
-    var _entry=addCustodyEntry(b.custodyLink,b.amount,b.desc||('صرف بنكي لـ '+b.to),'صادر بنكي');
+    var _entry=addCustodyEntry(b.custodyLink,b.amount,b.desc||('صرف بنكي لـ '+b.to),'صادر بنكي',b.date);
     b.custodyEntryId=_entry?_entry.id:'';
   }
   alog('اعتماد صادر بنكي',b.to+' — '+fR(b.amount));
@@ -4782,7 +4787,7 @@ function importBoFile(input){
         // was reset/needs to be rebuilt fresh from this import — normally left off, since
         // re-adding when the balance is already correct would double-count it).
         if(addToCustody&&custodyLink){
-          var _entry=addCustodyEntry(custodyLink,amount,desc||('صرف بنكي لـ '+to),'صادر بنكي');
+          var _entry=addCustodyEntry(custodyLink,amount,desc||('صرف بنكي لـ '+to),'صادر بنكي',date);
           rec.custodyEntryId=_entry?_entry.id:'';
           custodyAdded++;custodyTotal+=amount;
         }
@@ -5237,7 +5242,7 @@ ld();
 
 
 <!-- CUSTODY SETTLEMENT MODAL -->
-<div class="mo2" id="cuSetM"><div class="mb2 xl">
+<div class="mo2" id="cuSetM"><div class="mb2 xxl">
   <div class="mhd">
     <div class="mtt">&#x1F4CB; تقفيل عهدة — <span id="cuSetName"></span></div>
     <button class="mcl" onclick="CM('cuSetM')">×</button>
@@ -5269,6 +5274,7 @@ ld();
           <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">البند</th>
           <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">المبلغ (قبل الضريبة)</th>
           <th style="padding:6px 8px;text-align:center;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">خاضع للضريبة؟</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">الضريبة</th>
           <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">الإجمالي شامل الضريبة</th>
           <th style="padding:6px 8px;text-align:right;font-weight:700;color:var(--gr);font-size:11px;white-space:nowrap">رقم السيارة</th>
           <th style="padding:8px 10px;width:40px"></th>
