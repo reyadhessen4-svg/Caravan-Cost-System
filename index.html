@@ -999,7 +999,7 @@ tbody tr:hover td{background:var(--ltr)}
 
 <div class="mo2" id="cuDM"><div class="mb2"><div class="mhd"><div class="mtt" id="cuDT">تفاصيل العهدة</div><button class="mcl" onclick="CM('cuDM')">×</button></div>
 <div id="cuDC"></div>
-<div class="mft"><button class="btn" onclick="CM('cuDM')">إغلاق</button><button class="btn bg3" id="cuDSetBtn" onclick="openCuSettle()">&#x1F4CB; تقفيل العهدة</button></div></div></div>
+<div class="mft"><button class="btn" onclick="CM('cuDM')">إغلاق</button><button class="btn bo" id="cuDReopenBtn" onclick="reopenCustody(curCuId)" style="display:none">&#x1F513; إعادة فتح العهدة</button><button class="btn bg3" id="cuDSetBtn" onclick="openCuSettle()">&#x1F4CB; تقفيل العهدة</button></div></div></div>
 
 <div class="mo2" id="usM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F464; إضافة مستخدم جديد</div><button class="mcl" onclick="CM('usM')">×</button></div>
 <div class="fg">
@@ -1873,7 +1873,8 @@ function loadCu(){
     var rowBg=isReturn?'background:rgba(5,150,105,.04)':isTopup?'background:rgba(26,86,219,.04)':'';
     var badge=isReturn?'<span class="bdg bn" style="font-size:10px">إرجاع</span> ':isTopup?'<span class="bdg bb" style="font-size:10px">إضافة رصيد</span> ':'';
     if(isTopup&&!e.addedToOpening)return''; // hide zero entries
-    return '<tr style="'+rowBg+'"><td>'+e.date+'</td><td style="font-weight:600">'+e.empName+'</td><td>'+badge+e.item+'</td><td style="color:'+amtColor+';font-weight:700">'+amtStr+'</td><td style="font-size:12px;color:var(--gr)">'+(e.car||'—')+'</td><td style="font-size:12px;color:var(--gr)">'+(e.plate||'—')+'</td><td style="font-size:12px;color:var(--gr)">'+(e.desc||'—')+'</td><td>'+(can('all')?'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\')" title="حذف هذا القيد">&#x1F5D1;&#xFE0F;</button>':'')+'</td></tr>';
+    var canEditEntry=can('all')&&!isTopup&&!isReturn;
+    return '<tr style="'+rowBg+'"><td>'+e.date+'</td><td style="font-weight:600">'+e.empName+'</td><td>'+badge+e.item+'</td><td style="color:'+amtColor+';font-weight:700">'+amtStr+'</td><td style="font-size:12px;color:var(--gr)">'+(e.car||'—')+'</td><td style="font-size:12px;color:var(--gr)">'+(e.plate||'—')+'</td><td style="font-size:12px;color:var(--gr)">'+(e.desc||'—')+'</td><td><div style="display:flex;gap:3px">'+(canEditEntry?'<button class="btn bxs" onclick="editCuEntry(\''+e.id+'\')" title="تعديل هذا القيد">&#x270F;&#xFE0F;</button>':'')+(can('all')?'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\')" title="حذف هذا القيد">&#x1F5D1;&#xFE0F;</button>':'')+'</div></td></tr>';
   }).join('')||'<tr><td colspan="8"><div class="es"><div class="essb">لا توجد قيود</div></div></td></tr>';
   var byCar={};en.forEach(e=>{if(e.car){if(!byCar[e.car])byCar[e.car]={count:0,total:0};byCar[e.car].count++;byCar[e.car].total+=e.amount;}});var tcr=Object.values(byCar).reduce((s,v)=>s+v.total,0);
   G('cuCarC').innerHTML=Object.keys(byCar).length?'<div class="tw"><table><thead><tr><th>رقم السيارة</th><th>عدد القيود</th><th>إجمالي المصروف</th><th>النسبة</th></tr></thead><tbody>'+Object.entries(byCar).sort((a,b)=>b[1].total-a[1].total).map(([c,v])=>'<tr><td style="font-weight:600">'+c+'</td><td>'+v.count+'</td><td style="color:var(--dn);font-weight:700">'+fR(v.total)+'</td><td>'+(tcr?Math.round(v.total/tcr*100):0)+'%</td></tr>').join('')+'</tbody></table></div>':'<div class="es"><div class="essb">لا توجد مصروفات مرتبطة بسيارات</div></div>';
@@ -1882,7 +1883,7 @@ function loadCu(){
 
 function saveCe(){var cid=V('ce-c'),a=Nv('ce-a'),it=V('ce-it');if(!cid||!a||!it){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var cu=S.data.custodies.find(c=>c.id===cid);if(!cu){toast('الموظف غير موجود','e');return;}var sp=S.data.custodyEnts.filter(e=>e.cid===cid).reduce((s,e)=>s+e.amount,0);if(sp+a>cu.opening*1.1)toast('تحذير: المبلغ سيتجاوز رصيد العهدة','w');S.data.custodyEnts.push({id:uid(),cid:cid,empName:cu.name,date:V('ce-d')||td2(),item:it,amount:a,desc:V('ce-ds'),car:V('ce-cr'),plate:V('ce-pl'),by:S.cu.u,at:new Date().toISOString()});alog('قيد عهدة',cu.name+' — '+it+' — '+fR(a));sv();CM('ceM');loadCu();toast('تم تسجيل مصروف العهدة');}
 var curCuId=null;
-function vwCu(id){curCuId=id;var cu=S.data.custodies.find(c=>c.id===id);var en=S.data.custodyEnts.filter(e=>e.cid===id);var realExpense=en.filter(function(e){return e.amount>0;}).reduce((s,e)=>s+e.amount,0);var returned=en.filter(function(e){return e.amount<0;}).reduce((s,e)=>s+Math.abs(e.amount),0);var rm=cu.opening-realExpense-returned;G('cuDT').textContent='عهدة '+cu.name;G('cuDSetBtn').style.display=cu.status==='open'?'':'none';G('cuDC').innerHTML='<div class="mets">'+'<div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div><div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(realExpense)+'</div></div><div class="met mg"><div class="ml2">إجمالي المُرجَع للخزينة</div><div class="mv2">'+fR(returned)+'</div></div><div class="met '+(rm<0?'mr':'mg')+'"><div class="ml2">المتبقي</div><div class="mv2">'+fR(rm)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th>'+(can('all')?'<th></th>':'')+'</tr></thead><tbody>'+en.sort((a,b)=>b.date.localeCompare(a.date)).map(function(e){
+function vwCu(id){curCuId=id;var cu=S.data.custodies.find(c=>c.id===id);var en=S.data.custodyEnts.filter(e=>e.cid===id);var realExpense=en.filter(function(e){return e.amount>0;}).reduce((s,e)=>s+e.amount,0);var returned=en.filter(function(e){return e.amount<0;}).reduce((s,e)=>s+Math.abs(e.amount),0);var rm=cu.opening-realExpense-returned;G('cuDT').textContent='عهدة '+cu.name;G('cuDSetBtn').style.display=cu.status==='open'?'':'none';G('cuDReopenBtn').style.display=(cu.status==='settled'&&can('all'))?'':'none';G('cuDC').innerHTML='<div class="mets">'+'<div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div><div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(realExpense)+'</div></div><div class="met mg"><div class="ml2">إجمالي المُرجَع للخزينة</div><div class="mv2">'+fR(returned)+'</div></div><div class="met '+(rm<0?'mr':'mg')+'"><div class="ml2">المتبقي</div><div class="mv2">'+fR(rm)+'</div></div></div><div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th>'+(can('all')?'<th></th>':'')+'</tr></thead><tbody>'+en.sort((a,b)=>b.date.localeCompare(a.date)).map(function(e){
   var isReturn=e.isReturn||e.amount<0;
   var isTopup=e.isTopup;
   var dispAmt=isTopup?(e.addedToOpening||0):e.amount;
@@ -1891,15 +1892,16 @@ function vwCu(id){curCuId=id;var cu=S.data.custodies.find(c=>c.id===id);var en=S
   var badge=isReturn?'<span class="bdg bn" style="font-size:10px;margin-left:4px">إرجاع</span>':
             isTopup?'<span class="bdg bb" style="font-size:10px;margin-left:4px">إضافة رصيد</span>':'';
   if(isTopup&&!dispAmt)return'';
+  var canEditEntry2=can('all')&&!isTopup&&!isReturn;
   return '<tr style="background:'+(isReturn?'rgba(5,150,105,.04)':isTopup?'rgba(26,86,219,.04)':'')+'">'+
     '<td>'+e.date+'</td>'+
     '<td>'+badge+e.item+'</td>'+
     '<td style="color:'+amtColor+';font-weight:700">'+amtPrefix+fR(Math.abs(dispAmt))+'</td>'+
     '<td>'+(e.car?e.car+(e.plate?' ('+e.plate+')':''):'—')+'</td>'+
     '<td>'+(e.desc||'—')+'</td>'+
-    (can('all')?'<td><button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\')" title="حذف هذا القيد">&#x1F5D1;&#xFE0F;</button></td>':'')+
+    (can('all')?'<td><div style="display:flex;gap:3px">'+(canEditEntry2?'<button class="btn bxs" onclick="editCuEntry(\''+e.id+'\')" title="تعديل هذا القيد">&#x270F;&#xFE0F;</button>':'')+'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\')" title="حذف هذا القيد">&#x1F5D1;&#xFE0F;</button></div></td>':'')+
   '</tr>';
-}).join('')+'</tbody></table></div>'+(cu.settHist&&cu.settHist.length?'<div style="margin-top:14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">سجل التسويات:</div>'+cu.settHist.map(h=>'<div style="padding:6px 10px;background:var(--ltr);border-radius:8px;font-size:12px;margin-bottom:4px">'+h.type+' — '+h.date+' — بواسطة '+h.by+'</div>').join('')+'</div>':'');OM('cuDM');}
+}).join('')+'</tbody></table></div>'+(cu.settHist&&cu.settHist.length?'<div style="margin-top:14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">سجل التسويات (دوس على أي تقفيل لعرض واستعراض سطوره):</div>'+cu.settHist.map(h=>'<div onclick="viewSettlementDetail(\''+h.id+'\')" style="padding:10px;background:var(--ltr);border-radius:8px;font-size:12px;margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bd)" onmouseover="this.style.background=\'var(--lt)\'" onmouseout="this.style.background=\'var(--ltr)\'"><div><strong>'+h.type+'</strong> — '+h.date+' — '+(h.items||0)+' سطر — إجمالي '+fR(h.totalExpenses||0)+(h.returned?' — مُرجَع '+fR(h.returned):'')+' — بواسطة '+h.by+'</div><span style="color:var(--ry)">&#x1F441;&#xFE0F; عرض</span></div>').join('')+'</div>':'');OM('cuDM');}
 function deleteCuEntry(entryId){
   if(!can('all')){toast('حذف قيود العهدة مخصص لمدير النظام فقط','e');return;}
   var e=S.data.custodyEnts.find(function(x){return x.id===entryId;});
@@ -1921,7 +1923,123 @@ function deleteCuEntry(entryId){
   if(curCuId)vwCu(curCuId);
   toast('تم حذف القيد بنجاح','w');
 }
+function editCuEntry(entryId){
+  if(!can('all')){toast('تعديل قيود العهدة مخصص لمدير النظام فقط','e');return;}
+  var e=S.data.custodyEnts.find(function(x){return x.id===entryId;});
+  if(!e){toast('القيد غير موجود','e');return;}
+  if(e.isTopup||e.isReturn||e.amount<0){
+    toast('هذا القيد ناتج تلقائيًا من سند بنكي/صرف/قبض — لتعديله يجب إلغاء اعتماد السند الأصلي وتعديله من هناك مباشرة','e');
+    return;
+  }
+  OM('cuEntryEditM');
+  G('cee-id').value=e.id;
+  G('cee-d').value=e.date;
+  G('cee-desc').value=e.desc||'';
+  var ccSel=G('cee-cc');
+  ccSel.innerHTML='<option value="">— اختر المركز —</option>'+(S.data.costCenters||[]).filter(function(c){return c.active;}).map(function(cc){
+    return '<option value="'+cc.name+'"'+(e.cc===cc.name?' selected':'')+'>'+cc.name+'</option>';
+  }).join('');
+  refreshCeeItemOpts();
+  var itemSel=G('cee-item');
+  for(var i=0;i<itemSel.options.length;i++){if(itemSel.options[i].value===e.item)itemSel.selectedIndex=i;}
+  G('cee-amt').value=e.baseAmount!=null?e.baseAmount:e.amount;
+  G('cee-taxable').checked=!!e.taxPct;
+  var vehSel=G('cee-veh');
+  vehSel.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){
+    return '<option value="'+v.id+'"'+(e.vehId===v.id?' selected':'')+'>'+v.num+' '+v.letters+'</option>';
+  }).join('');
+}
+function refreshCeeItemOpts(){
+  var cc=V('cee-cc');
+  var items=cc?getCustodyItems(cc):getCustodyItems();
+  G('cee-item').innerHTML='<option value="">— اختر البند —</option>'+items.map(function(ci){
+    return '<option value="'+ci.name+'">'+ci.name+'</option>';
+  }).join('');
+}
+function saveCuEntryEdit(){
+  if(!can('all')){toast('تعديل قيود العهدة مخصص لمدير النظام فقط','e');return;}
+  var id=V('cee-id');
+  var e=S.data.custodyEnts.find(function(x){return x.id===id;});
+  if(!e){toast('القيد غير موجود','e');return;}
+  var baseAmt=Nv('cee-amt');
+  var item=V('cee-item');
+  if(!baseAmt||!item){toast('يرجى تعبئة المبلغ والبند','e');return;}
+  var taxable=G('cee-taxable').checked;
+  var taxAmt=taxable?Math.round(baseAmt*CU_VAT_RATE*10)/1000:0;
+  var total=Math.round((baseAmt+taxAmt)*1000)/1000;
+
+  // Validate the new total doesn't push the custody balance negative
+  var cu=S.data.custodies.find(function(c){return c.id===e.cid;});
+  if(cu){
+    var otherEntries=S.data.custodyEnts.filter(function(x){return x.cid===e.cid&&x.id!==id;});
+    var otherExpense=otherEntries.filter(function(x){return x.amount>0;}).reduce(function(s,x){return s+x.amount;},0);
+    var otherReturned=otherEntries.filter(function(x){return x.amount<0;}).reduce(function(s,x){return s+Math.abs(x.amount);},0);
+    var newRemaining=cu.opening-otherExpense-otherReturned-total;
+    if(newRemaining<-0.01){
+      if(!confirm('تحذير: هذا التعديل سيجعل رصيد العهدة سالبًا ('+fR(newRemaining)+'). هل تريد المتابعة؟'))return;
+    }
+  }
+
+  var veh=V('cee-veh')?(S.data.vehicles||[]).find(function(v){return v.id===V('cee-veh');}):null;
+  var oldAmt=e.amount;
+  e.date=V('cee-d')||e.date;
+  e.desc=V('cee-desc')+(taxable?' (شامل ضريبة '+CU_VAT_RATE+'% = '+fmt(taxAmt,3)+' ريال)':'');
+  e.cc=V('cee-cc');
+  e.item=item;
+  e.baseAmount=baseAmt;
+  e.taxPct=taxable?CU_VAT_RATE:0;
+  e.taxAmount=taxAmt;
+  e.amount=total;
+  e.vehId=veh?veh.id:'';
+  e.car=veh?veh.num:'';
+  e.plate=veh?veh.letters:'';
+  e.editedBy=S.cu.u;
+  e.editedAt=new Date().toISOString();
+  alog('تعديل قيد عهدة',(cu?cu.name:'')+' — '+item+' — تغيير من '+fR(oldAmt)+' إلى '+fR(total));
+  sv();
+  CM('cuEntryEditM');
+  loadCu();
+  if(curCuId)vwCu(curCuId);
+  var sdm=G('settDetailM');
+  if(sdm&&sdm.classList.contains('on')&&curSettleId)viewSettlementDetail(curSettleId);
+  toast('✅ تم حفظ تعديل القيد بنجاح');
+}
 function prepSetCu(id){curCuId=id;vwCu(id);}
+
+var curSettleId=null;
+function viewSettlementDetail(settleId){
+  curSettleId=settleId;
+  var entries=S.data.custodyEnts.filter(function(e){return e.settleId===settleId;});
+  var cu=curCuId?S.data.custodies.find(function(c){return c.id===curCuId;}):null;
+  var settInfo=cu&&cu.settHist?cu.settHist.find(function(h){return h.id===settleId;}):null;
+
+  G('settDetailTitle').textContent=(settInfo?settInfo.type+' — '+settInfo.date:'تفاصيل التقفيل')+(cu?' — '+cu.name:'');
+
+  var missingVeh=entries.filter(function(e){return !e.isTopup&&!e.isReturn&&!e.vehId;}).length;
+  var warnHtml=missingVeh>0?'<div class="al aw">&#x26A0;&#xFE0F; '+missingVeh+' سطر بدون رقم سيارة — دوس ✏️ لإضافته</div>':'';
+
+  var rowsHtml=entries.length?entries.map(function(e){
+    var isReturn=e.isReturn||e.amount<0;
+    var isTopup=e.isTopup;
+    var canEditEntry=can('all')&&!isTopup&&!isReturn;
+    var amtColor=isReturn?'var(--sc)':isTopup?'var(--ry)':'var(--dn)';
+    var amtStr=isReturn?('↩ +'+fR(Math.abs(e.amount))):isTopup?('↑ +'+fR(e.addedToOpening||0)):fR(e.amount);
+    var vehTxt=e.car?(e.car+(e.plate?' ('+e.plate+')':'')):(isTopup||isReturn?'—':'<span style="color:var(--dn);font-weight:700">⚠️ بدون سيارة</span>');
+    return '<tr'+(!isTopup&&!isReturn&&!e.vehId?' style="background:rgba(217,38,38,.04)"':'')+'>'+
+      '<td>'+e.date+'</td><td>'+(e.item||'—')+'</td><td>'+(e.cc||'—')+'</td>'+
+      '<td style="color:'+amtColor+';font-weight:700">'+amtStr+'</td>'+
+      '<td>'+vehTxt+'</td><td style="font-size:12px;color:var(--gr)">'+(e.desc||'—')+'</td>'+
+      '<td><div style="display:flex;gap:3px">'+(canEditEntry?'<button class="btn bxs" onclick="editCuEntry(\''+e.id+'\')" title="تعديل">&#x270F;&#xFE0F;</button>':'')+(can('all')?'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\');viewSettlementDetail(\''+settleId+'\')" title="حذف">&#x1F5D1;&#xFE0F;</button>':'')+'</div></td>'+
+    '</tr>';
+  }).join(''):'<tr><td colspan="7"><div class="es"><div class="essb">لا توجد سطور مرتبطة بهذا التقفيل</div></div></td></tr>';
+
+  G('settDetailC').innerHTML=warnHtml+
+    '<div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>مركز التكلفة</th><th>المبلغ</th><th>السيارة</th><th>البيان</th><th></th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
+
+  OM('settDetailM');
+}
+
+
 function setCu(){if(!curCuId)return;var type=confirm('تسوية كاملة للعهدة؟\n(موافق = كاملة | إلغاء = جزئية)')?'تسوية كاملة':'تسوية جزئية';var cu=S.data.custodies.find(c=>c.id===curCuId);if(!cu)return;if(type==='تسوية كاملة')cu.status='settled';if(!cu.settHist)cu.settHist=[];cu.settHist.push({type:type,date:td2(),by:S.cu.name});alog('تسوية عهدة',cu.name+' — '+type);sv();CM('cuDM');loadCu();toast('تمت '+type+' للموظف '+cu.name);}
 /* ─── CLAIMS ─── */
 function loadClaims(){
@@ -3302,6 +3420,35 @@ function fillClFromVeh(){
 ═══════════════════════════════════════════ */
 var cuSetRows = [];
 
+function toggleFullSettleWarning(){
+  var type=V('cuSet-type');
+  var warnDiv=G('fullSettleWarning');
+  if(!warnDiv)return;
+  if(type==='full'){
+    warnDiv.style.display='block';
+    warnDiv.innerHTML='<div class="al aw">&#x26A0;&#xFE0F; <strong>تنبيه — تقفيل كامل:</strong> هذا الإجراء سيُغلق العهدة نهائيًا، ولن تتمكن من إضافة أي بند جديد لها بعد ذلك إلا بإعادة فتحها يدويًا. التقفيل الكامل عادةً يكون في <strong>نهاية السنة المالية</strong> أو عند إنهاء عمل الموظف — تأكد أنك في هذه المرحلة فعلًا قبل المتابعة. لو القصد تسجيل مصروفات فترة معينة بس والعهدة مستمرة، استخدم "تقفيل جزئي" بدلًا من ذلك.</div>';
+  } else {
+    warnDiv.style.display='none';
+    warnDiv.innerHTML='';
+  }
+}
+function reopenCustody(id){
+  if(!can('all')){toast('إعادة فتح العهدة مخصصة لمدير النظام فقط','e');return;}
+  var cu=S.data.custodies.find(function(c){return c.id===id;});
+  if(!cu){toast('عهدة غير موجودة','e');return;}
+  if(cu.status!=='settled'){toast('هذه العهدة مفتوحة أصلاً','e');return;}
+  var rsn=prompt('إعادة فتح عهدة "'+cu.name+'"؟\nسبب إعادة الفتح:');
+  if(rsn===null)return;
+  if(!rsn.trim()){toast('سبب إعادة الفتح إجباري','e');return;}
+  cu.status='open';
+  if(!cu.settHist)cu.settHist=[];
+  cu.settHist.push({type:'إعادة فتح',date:td2(),by:S.cu.name,notes:rsn.trim()});
+  alog('إعادة فتح عهدة',cu.name+' — السبب: '+rsn.trim());
+  sv();
+  loadCu();
+  if(curCuId===id)vwCu(id);
+  toast('✅ تم إعادة فتح عهدة '+cu.name);
+}
 function openCuSettle(){
   if(!curCuId)return;
   var cu=S.data.custodies.find(function(c){return c.id===curCuId;});
@@ -3314,6 +3461,7 @@ function openCuSettle(){
   document.getElementById('cuSet-return').value='';
   document.getElementById('cuSet-notes').value='';
   document.getElementById('cuSet-type').value='partial';
+  toggleFullSettleWarning();
   // Summary
   var en=S.data.custodyEnts.filter(function(e){return e.cid===curCuId;});
   var bal=cuBalanceInfo(curCuId);
@@ -3431,6 +3579,10 @@ function saveCuSettle(){
 
   var cu=S.data.custodies.find(function(c){return c.id===cuid;});
   if(!cu){toast('عهدة غير موجودة','e');return;}
+
+  if(settType==='full'){
+    if(!confirm('⚠️ تأكيد التقفيل الكامل\n\nهذا الإجراء سيُغلق عهدة "'+cu.name+'" نهائيًا، ولن تتمكن من إضافة أي بند جديد لها إلا بإعادة فتحها يدويًا.\n\nالتقفيل الكامل عادةً يكون في نهاية السنة المالية أو عند إنهاء عمل الموظف — تأكد أنك في هذه المرحلة فعلًا.\n\nهل أنت متأكد من المتابعة؟'))return;
+  }
 
   // Validate total
   var en=S.data.custodyEnts.filter(function(e){return e.cid===cuid;});
@@ -5255,12 +5407,13 @@ ld();
   <div class="fr" style="margin-bottom:12px">
     <div class="fld"><label>تاريخ التقفيل <span class="req">*</span></label><input type="date" id="cuSet-date"></div>
     <div class="fld"><label>نوع التقفيل</label>
-      <select id="cuSet-type" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none">
+      <select id="cuSet-type" onchange="toggleFullSettleWarning()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none">
         <option value="partial">تقفيل جزئي (العهدة تبقى مفتوحة)</option>
         <option value="full">تقفيل كامل (إغلاق العهدة نهائياً)</option>
       </select>
     </div>
   </div>
+  <div id="fullSettleWarning" style="display:none;margin-bottom:12px"></div>
 
   <!-- Expenses table -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:700;color:var(--nv)">&#x1F4B8; المصروفات</div><button class="btn bsm" onclick="openAddItemM()" style="font-size:11px">&#x2795; بند جديد</button></div>
@@ -5435,6 +5588,31 @@ ld();
   </div>
   <div id="refUpdatePreview"></div>
   <div class="mft"><button class="btn" onclick="CM('refUpdateM')">إغلاق</button><button class="btn bss" id="refUpdateApplyBtn" onclick="applyRefUpdate()" style="display:none">&#x2705; تطبيق التحديثات المؤكدة فقط</button></div>
+</div></div>
+
+<!-- EDIT SAVED CUSTODY EXPENSE ENTRY -->
+<div class="mo2" id="cuEntryEditM"><div class="mb2">
+  <div class="mhd"><div class="mtt">&#x270F;&#xFE0F; تعديل قيد عهدة</div><button class="mcl" onclick="CM('cuEntryEditM')">×</button></div>
+  <input type="hidden" id="cee-id">
+  <div class="fld"><label>التاريخ</label><input type="date" id="cee-d"></div>
+  <div class="fld"><label>البيان</label><input type="text" id="cee-desc" placeholder="البيان"></div>
+  <div class="fr">
+    <div class="fld"><label>مركز التكلفة</label><select id="cee-cc" onchange="refreshCeeItemOpts()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"></select></div>
+    <div class="fld"><label>البند</label><select id="cee-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"></select></div>
+  </div>
+  <div class="fr">
+    <div class="fld"><label>المبلغ (قبل الضريبة)</label><input type="number" id="cee-amt" step="0.001"></div>
+    <div class="fld"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:8px"><input type="checkbox" id="cee-taxable" style="width:18px;height:18px;cursor:pointer"> خاضع للضريبة؟</label></div>
+  </div>
+  <div class="fld"><label>رقم السيارة</label><select id="cee-veh" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"></select></div>
+  <div class="mft"><button class="btn" onclick="CM('cuEntryEditM')">إلغاء</button><button class="btn bp" onclick="saveCuEntryEdit()">&#x1F4BE; حفظ التعديل</button></div>
+</div></div>
+
+<!-- SETTLEMENT DETAIL BROWSER -->
+<div class="mo2" id="settDetailM"><div class="mb2 xl">
+  <div class="mhd"><div class="mtt" id="settDetailTitle">تفاصيل التقفيل</div><button class="mcl" onclick="CM('settDetailM')">×</button></div>
+  <div id="settDetailC"></div>
+  <div class="mft"><button class="btn" onclick="CM('settDetailM')">إغلاق</button></div>
 </div></div>
 
 </body></html>
