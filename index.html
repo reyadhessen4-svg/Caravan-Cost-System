@@ -2806,8 +2806,9 @@ function restoreEmployee(id){
 
 /* ── Override saveCu to link with employee ── */
 function saveCu(){
-  var eid=V('cu-emp-sel'),n=V('cu-nm'),op=Nv('cu-op');
-  if(!n||!op){toast('يرجى اختيار الموظف وتحديد الرصيد الابتدائي','e');return;}
+  var eid=V('cu-emp-sel'),n=V('cu-nm'),opRaw=V('cu-op');
+  if(!n||opRaw===''||isNaN(parseFloat(opRaw))){toast('يرجى اختيار الموظف وتحديد الرصيد الابتدائي','e');return;}
+  var op=parseFloat(opRaw);
   // Check no open custody for this employee already
   if(eid&&S.data.custodies.find(function(c){return c.empId===eid&&c.status==='open';})){
     toast('هذا الموظف لديه عهدة مفتوحة بالفعل','e');return;
