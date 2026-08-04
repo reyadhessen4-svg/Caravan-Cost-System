@@ -2362,15 +2362,61 @@ function togUs(id){var u=S.data.users.find(x=>x.id===id);if(!u)return;if(u.id===
 function loadAudit(){var df=V('auDt'),uf=V('auUsr');var logs=S.data.audit;if(df)logs=logs.filter(a=>a.dt.startsWith(df));if(uf)logs=logs.filter(a=>a.user===uf);G('auTbd').innerHTML=logs.slice(0,200).map(a=>'<tr><td style="font-family:monospace;font-size:12px;white-space:nowrap">'+new Date(a.dt).toLocaleString('en-US')+'</td><td style="font-weight:600">'+a.user+'</td><td><span class="bdg '+(ROLES[S.data.users.find(u=>u.name===a.user)?.r]?.c||'bg2')+'">'+a.role+'</span></td><td>'+a.action+'</td><td style="color:var(--gr);font-size:12px">'+a.details+'</td><td><span class="bdg bn">'+a.res+'</span></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا توجد سجلات</div></div></td></tr>';}
 
 /* ─── RECEIPT EDIT / DELETE ─── */
-function editRc(id){var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed){toast('هذا المقبوض تمت مراجعته — يجب فتح القفل أولاً من زر المراجعة قبل التعديل','e');return;}G('rce-id').value=id;G('rce-d').value=r.date;G('rce-a').value=r.amount;G('rce-f').value=r.from;G('rce-ds').value=r.desc;var ms=G('rce-m');for(var i=0;i<ms.options.length;i++){if(ms.options[i].value===r.method||ms.options[i].text===r.method)ms.selectedIndex=i;}G('rce-rf').value=r.ref||'';G('rce-nt').value=r.notes||'';
-  var cuInfo=G('rce-custody-info');
-  if(r.custodyReturn&&r.custodyId){
-    var cu=S.data.custodies.find(function(c){return c.id===r.custodyId;});
-    G('rce-cu-name').textContent=cu?cu.name:'(عهدة محذوفة)';
-    cuInfo.style.display='block';
+function rceAvailableForCustody(cid){
+  var cu=S.data.custodies.find(function(c){return c.id===cid;});
+  if(!cu)return 0;
+  var curReceipt=S.data.receipts.find(function(r){return r.id===V('rce-id');});
+  var curNum=curReceipt?curReceipt.num:null;
+  var entries=S.data.custodyEnts.filter(function(e){
+    if(e.cid!==cid)return false;
+    if(e.isReturn&&curNum&&e.receiptNum===curNum)return false; // exclude this receipt's own existing link
+    return true;
+  });
+  var exp=entries.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+  var ret=entries.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
+  return cu.opening-exp-ret;
+}
+function toggleRceCustody(){
+  var chk=G('rce-custody-chk');
+  var sec=G('rce-custody-section');
+  if(!sec)return;
+  sec.style.display=chk.checked?'block':'none';
+  if(chk.checked){
+    var sel=G('rce-custody-emp');
+    var curVal=V('rce-custody-id');
+    sel.innerHTML='<option value="">— اختر الموظف —</option>';
+    var openCustodies=S.data.custodies.filter(function(c){return c.status==='open';});
+    if(curVal&&!openCustodies.some(function(c){return c.id===curVal;})){
+      var closedCu=S.data.custodies.find(function(c){return c.id===curVal;});
+      if(closedCu)sel.innerHTML+='<option value="'+closedCu.id+'" selected>'+closedCu.name+' (عهدة مقفولة)</option>';
+    }
+    openCustodies.forEach(function(c){
+      var rem=rceAvailableForCustody(c.id);
+      sel.innerHTML+='<option value="'+c.id+'"'+(c.id===curVal?' selected':'')+'>'+c.name+' — متاح: '+fR(rem)+'</option>';
+    });
+    if(curVal){rceSelectCustody();}else{G('rce-custody-balinfo').style.display='none';}
   } else {
-    cuInfo.style.display='none';
+    G('rce-custody-id').value='';
+    G('rce-custody-balinfo').style.display='none';
   }
+}
+function rceSelectCustody(){
+  var cid=V('rce-custody-emp');
+  G('rce-custody-id').value=cid;
+  if(!cid){G('rce-custody-balinfo').style.display='none';return;}
+  var cu=S.data.custodies.find(function(c){return c.id===cid;});
+  if(!cu)return;
+  var rem=rceAvailableForCustody(cid);
+  var bal=cuBalanceInfo(cid);
+  G('rce-cu-opening').textContent=fR(cu.opening);
+  G('rce-cu-spent').textContent=fR(bal.expense);
+  G('rce-cu-rem').textContent=fR(rem);
+  G('rce-custody-balinfo').style.display='block';
+}
+function editRc(id){var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed){toast('هذا المقبوض تمت مراجعته — يجب فتح القفل أولاً من زر المراجعة قبل التعديل','e');return;}G('rce-id').value=id;G('rce-d').value=r.date;G('rce-a').value=r.amount;G('rce-f').value=r.from;G('rce-ds').value=r.desc;var ms=G('rce-m');for(var i=0;i<ms.options.length;i++){if(ms.options[i].value===r.method||ms.options[i].text===r.method)ms.selectedIndex=i;}G('rce-rf').value=r.ref||'';G('rce-nt').value=r.notes||'';
+  G('rce-custody-chk').checked=!!(r.custodyReturn&&r.custodyId);
+  G('rce-custody-id').value=r.custodyId||'';
+  toggleRceCustody();
   OM('rcEM');}
 function saveEditRc(){
   var id=V('rce-id'),a=Nv('rce-a'),f=V('rce-f'),d=V('rce-ds');
@@ -2379,40 +2425,108 @@ function saveEditRc(){
   if(!r)return;
   if(r.reviewed){toast('هذا المقبوض تمت مراجعته — يجب فتح القفل أولاً','e');return;}
 
-  // If this receipt is linked to a custody return, keep the linked custody entry in sync
-  // so the two never drift apart (this was the source of the reported mismatch bug).
-  var custodyUpdated=false;
-  if(r.custodyReturn&&r.custodyId){
-    var linkedEntry=S.data.custodyEnts.find(function(e){return e.receiptNum===r.num&&e.isReturn;});
-    if(linkedEntry){
-      var cu=S.data.custodies.find(function(c){return c.id===r.custodyId;});
-      if(cu){
-        var otherEntries=S.data.custodyEnts.filter(function(e){return e.cid===r.custodyId&&e.id!==linkedEntry.id;});
-        var otherExpense=otherEntries.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
-        var otherReturned=otherEntries.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
-        var availableBeforeThis=cu.opening-otherExpense-otherReturned;
-        if(a>availableBeforeThis+0.01){
-          toast('المبلغ الجديد ('+fR(a)+') أكبر من الرصيد المتاح في العهدة ('+fR(availableBeforeThis)+')','e');
-          return;
-        }
-      }
+  var newIsCustodyReturn=G('rce-custody-chk').checked;
+  var newCustodyId=V('rce-custody-id');
+  var oldCustodyId=r.custodyId||'';
+  var oldWasCustodyReturn=!!(r.custodyReturn&&oldCustodyId);
+
+  if(newIsCustodyReturn&&!newCustodyId){
+    toast('يرجى اختيار الموظف صاحب العهدة','e');return;
+  }
+
+  var linkedEntry=oldWasCustodyReturn?S.data.custodyEnts.find(function(e){return e.receiptNum===r.num&&e.isReturn;}):null;
+  var custodyChangeMsg='';
+
+  // Validate the amount fits the target custody's balance before touching anything
+  if(newIsCustodyReturn&&newCustodyId){
+    var targetCu=S.data.custodies.find(function(c){return c.id===newCustodyId;});
+    if(!targetCu){toast('العهدة المختارة غير موجودة','e');return;}
+    var excludeId=(linkedEntry&&newCustodyId===oldCustodyId)?linkedEntry.id:null;
+    var others=S.data.custodyEnts.filter(function(e){return e.cid===newCustodyId&&e.id!==excludeId;});
+    var otherExp=others.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+    var otherRet=others.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
+    var available=targetCu.opening-otherExp-otherRet;
+    if(a>available+0.01){
+      toast('المبلغ ('+fR(a)+') أكبر من الرصيد المتاح في العهدة ('+fR(available)+')','e');
+      return;
+    }
+  }
+
+  // Remove the old linked entry if the link was dropped or switched to a different custody
+  if(linkedEntry&&(!newIsCustodyReturn||newCustodyId!==oldCustodyId)){
+    S.data.custodyEnts=S.data.custodyEnts.filter(function(e){return e.id!==linkedEntry.id;});
+    linkedEntry=null;
+    custodyChangeMsg=' — تم إلغاء الربط بالعهدة السابقة';
+  }
+
+  if(newIsCustodyReturn&&newCustodyId){
+    var cu=S.data.custodies.find(function(c){return c.id===newCustodyId;});
+    if(linkedEntry&&newCustodyId===oldCustodyId){
+      // Same custody as before — just keep the amount in sync
       linkedEntry.amount=-a;
       linkedEntry.date=V('rce-d')||linkedEntry.date;
-      custodyUpdated=true;
+      custodyChangeMsg=' — تم تحديث رصيد العهدة تلقائيًا';
+    } else {
+      // Brand-new link, or switched to a different custody
+      S.data.custodyEnts.push({
+        id:uid(),cid:newCustodyId,empName:cu.name,
+        date:V('rce-d')||td2(),item:'إرجاع لخزينة',amount:-a,
+        desc:'إرجاع مبلغ للخزينة — سند '+r.num,
+        car:'',plate:'',isReturn:true,receiptNum:r.num,
+        by:S.cu?S.cu.u:'',at:new Date().toISOString()
+      });
+      custodyChangeMsg=' — تم ربط السند بعهدة '+cu.name;
     }
   }
 
   var old=fR(r.amount);
-  r.date=V('rce-d')||td2();r.amount=a;r.from=f;r.desc=d;r.method=V('rce-m');r.ref=V('rce-rf');r.notes=V('rce-nt');r.editedBy=S.cu.u;r.editedAt=new Date().toISOString();
-  alog('تعديل مقبوض','سند '+r.num+' — تغيير من '+old+' إلى '+fR(a)+(custodyUpdated?' — تم تحديث رصيد العهدة المرتبطة تلقائيًا':''));
+  r.date=V('rce-d')||td2();r.amount=a;r.from=f;r.desc=d;r.method=V('rce-m');r.ref=V('rce-rf');r.notes=V('rce-nt');
+  r.custodyReturn=newIsCustodyReturn&&!!newCustodyId;
+  r.custodyId=newIsCustodyReturn?newCustodyId:'';
+  r.editedBy=S.cu.u;r.editedAt=new Date().toISOString();
+  alog('تعديل مقبوض','سند '+r.num+' — تغيير من '+old+' إلى '+fR(a)+custodyChangeMsg);
   sv();CM('rcEM');loadTr();loadDash();loadCu();
-  toast('تم حفظ التعديل بنجاح'+(custodyUpdated?' — رصيد العهدة تحدَّث معه':''));
+  toast('تم حفظ التعديل بنجاح'+custodyChangeMsg);
 }
 function delRc(id){if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed&&!can('all')){toast('هذا المقبوض تمت مراجعته — الحذف للمدير فقط','e');return;}if(!confirm('حذف مقبوض رقم '+r.num+' بقيمة '+fR(r.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.receipts=S.data.receipts.filter(x=>x.id!==id);alog('حذف مقبوض','سند '+r.num+' — '+fR(r.amount)+' — من '+r.from);sv();loadTr();loadDash();toast('تم حذف المقبوض','w');}
 
 /* ─── EXPENSE EDIT / DELETE ─── */
-function editEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed){toast('هذا المصروف مراجَع — يجب فتح القفل أولاً من زر المراجعة قبل التعديل','e');return;}if(e.status==='approved'){toast('هذا المصروف معتمد — يجب إلغاء الاعتماد أولاً من الجدول قبل التعديل','e');return;}G('exe-id').value=id;G('exe-d').value=e.date;G('exe-a').value=e.amount;G('exe-t').value=e.to;G('exe-phone').value=e.phone||'';G('exe-ds').value=e.desc;var cc=G('exe-cc');for(var i=0;i<cc.options.length;i++){if(cc.options[i].value===e.cc||cc.options[i].text===e.cc)cc.selectedIndex=i;}var em=G('exe-m');for(var i=0;i<em.options.length;i++){if(em.options[i].value===e.method||em.options[i].text===e.method)em.selectedIndex=i;}G('exe-nt').value=e.notes||'';OM('exEM');}
-function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed){toast('هذا المصروف مراجَع — يجب فتح القفل أولاً','e');return;}if(e.status==='approved'){toast('هذا المصروف معتمد — يجب إلغاء الاعتماد أولاً','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.phone=V('exe-phone')||'';e.desc=d;e.cc=V('exe-cc');e.method=V('exe-m');e.notes=V('exe-nt');e.status='pending';e.apBy='';e.apAt='';e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
+function fillExeFromEmp(){
+  var eid=V('exe-emp-sel');
+  var row=G('exe-custody-link-row');
+  if(!eid){if(row)row.style.display='none';return;}
+  var emp=S.data.employees.find(function(e){return e.id===eid;});
+  if(!emp)return;
+  G('exe-t').value=emp.name;
+  var empCu=S.data.custodies.find(function(c){return c.empId===eid&&c.status==='open';});
+  if(empCu){
+    if(row){row.style.display='';fillCustodyLinkDropdown('exe-custody-link');G('exe-custody-link').value=empCu.id;}
+  } else {
+    if(row)row.style.display='none';
+  }
+}
+function fillExeItems(){
+  var cc=V('exe-cc');
+  var items=getCustodyItems(cc);
+  var sel=G('exe-item');
+  if(!sel)return;
+  var curVal=sel.value;
+  sel.innerHTML='<option value="">— اختر البند —</option>'+
+    items.map(function(i){return'<option value="'+i.name+'"'+(i.name===curVal?' selected':'')+'>'+i.name+'</option>';}).join('');
+}
+function editEx(id){var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed){toast('هذا المصروف مراجَع — يجب فتح القفل أولاً من زر المراجعة قبل التعديل','e');return;}if(e.status==='approved'){toast('هذا المصروف معتمد — يجب إلغاء الاعتماد أولاً من الجدول قبل التعديل','e');return;}G('exe-id').value=id;G('exe-d').value=e.date;G('exe-a').value=e.amount;G('exe-t').value=e.to;G('exe-phone').value=e.phone||'';G('exe-ds').value=e.desc;var cc=G('exe-cc');for(var i=0;i<cc.options.length;i++){if(cc.options[i].value===e.cc||cc.options[i].text===e.cc)cc.selectedIndex=i;}fillExeItems();var itemSel=G('exe-item');for(var i=0;i<itemSel.options.length;i++){if(itemSel.options[i].value===e.item)itemSel.selectedIndex=i;}var em=G('exe-m');for(var i=0;i<em.options.length;i++){if(em.options[i].value===e.method||em.options[i].text===e.method)em.selectedIndex=i;}G('exe-nt').value=e.notes||'';
+  var empSel=G('exe-emp-sel');
+  empSel.innerHTML='<option value="">— اختر من سجل الموظفين (اختياري) —</option>'+(S.data.employees||[]).filter(function(x){return x.active;}).map(function(x){return '<option value="'+x.id+'">'+x.name+' — '+x.jobTitle+'</option>';}).join('');
+  var matchingEmp=(S.data.employees||[]).find(function(x){return x.name===e.to;});
+  if(matchingEmp)empSel.value=matchingEmp.id;
+  var row=G('exe-custody-link-row');
+  if(e.custodyLink){row.style.display='';fillCustodyLinkDropdown('exe-custody-link');G('exe-custody-link').value=e.custodyLink;}
+  else{row.style.display='none';}
+  var vehSel=G('exe-veh-sel');
+  vehSel.innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return '<option value="'+v.id+'">'+v.num+' '+v.letters+'</option>';}).join('');
+  if(e.vehId)vehSel.value=e.vehId;
+  OM('exEM');}
+function saveEditEx(){var id=V('exe-id'),a=Nv('exe-a'),t=V('exe-t'),d=V('exe-ds');if(!id||!a||!t||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed){toast('هذا المصروف مراجَع — يجب فتح القفل أولاً','e');return;}if(e.status==='approved'){toast('هذا المصروف معتمد — يجب إلغاء الاعتماد أولاً','e');return;}var old=fR(e.amount);e.date=V('exe-d')||td2();e.amount=a;e.to=t;e.phone=V('exe-phone')||'';e.desc=d;e.cc=V('exe-cc');e.item=V('exe-item')||'';e.method=V('exe-m');e.notes=V('exe-nt');e.custodyLink=V('exe-custody-link')||'';var veh=V('exe-veh-sel')?(S.data.vehicles||[]).find(function(v){return v.id===V('exe-veh-sel');}):null;e.vehId=veh?veh.id:'';e.car=veh?veh.num:'';e.plate=veh?veh.letters:'';e.status='pending';e.apBy='';e.apAt='';e.editedBy=S.cu.u;e.editedAt=new Date().toISOString();alog('تعديل مصروف','سند '+e.num+' — تغيير من '+old+' إلى '+fR(a)+' — أُعيد للاعتماد');sv();CM('exEM');loadTr();updApCnt();loadDash();toast('تم حفظ التعديل — أُعيد الطلب للاعتماد','i');}
 function delEx(id){if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}var e=S.data.expenses.find(x=>x.id===id);if(!e)return;if(e.reviewed&&!can('all')){toast('مراجَع','e');return;}if(e.status==='approved'&&!can('all')){toast('معتمد','e');return;}var rsn=getDeleteReason('سند صرف',e.num);if(!rsn)return;logDeletion('سند صرف',e,rsn);S.data.expenses=S.data.expenses.filter(x=>x.id!==id);sv();loadTr();updApCnt();toast('تم حذف سند '+e.num);}
 
 
@@ -5695,8 +5809,37 @@ ld();
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="rce-ds" placeholder="بيان المقبوض"></div>
   <div class="fr"><div class="fld"><label>طريقة السداد</label><select id="rce-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option><option>بطاقة</option></select></div><div class="fld"><label>رقم مرجعي</label><input type="text" id="rce-rf" placeholder="رقم الشيك / التحويل"></div></div>
   <div class="fld"><label>ملاحظات</label><textarea id="rce-nt" style="min-height:55px"></textarea></div>
-  <div id="rce-custody-info" style="display:none;border-top:2px dashed var(--bd);padding-top:14px;margin-top:4px">
-    <div class="al ai">&#x1F45B; هذا المقبوض مرتبط بإرجاع من عهدة <strong id="rce-cu-name"></strong> — أي تعديل على المبلغ هنا سيُحدَّث تلقائيًا في رصيد العهدة أيضًا.</div>
+  <div style="border-top:2px dashed var(--bd);padding-top:14px;margin-top:4px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--nv)">
+        <input type="checkbox" id="rce-custody-chk" onchange="toggleRceCustody()" style="width:16px;height:16px;cursor:pointer">
+        &#x1F45B; هذا المقبوض إرجاع من عهدة موظف
+      </label>
+    </div>
+    <div id="rce-custody-section" style="display:none">
+      <div class="al as" style="margin-bottom:10px">&#x2139;&#xFE0F; تغيير الموظف هنا سيُلغي الربط بالعهدة القديمة (لو كانت موجودة) ويربطها بالعهدة الجديدة المختارة.</div>
+      <div class="fld">
+        <label>اختر الموظف صاحب العهدة <span class="req">*</span></label>
+        <select id="rce-custody-emp" onchange="rceSelectCustody()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+          <option value="">— اختر الموظف —</option>
+        </select>
+      </div>
+      <div id="rce-custody-balinfo" style="display:none;margin-top:10px;background:var(--ltr);border-radius:10px;padding:12px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:var(--gr)">الرصيد الابتدائي:</span>
+          <span id="rce-cu-opening" style="font-weight:600"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:var(--gr)">إجمالي المصروف:</span>
+          <span id="rce-cu-spent" style="font-weight:600;color:var(--dn)"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding-top:6px;border-top:1px solid var(--bd)">
+          <span style="color:var(--gr)">المتاح لهذا الإرجاع:</span>
+          <span id="rce-cu-rem" style="font-weight:700;font-size:15px;color:var(--sc)"></span>
+        </div>
+      </div>
+      <input type="hidden" id="rce-custody-id">
+    </div>
   </div>
 </div>
 <input type="hidden" id="rce-id">
@@ -5707,10 +5850,29 @@ ld();
 <div class="al aw">&#x26A0;&#xFE0F; يمكن تعديل المصروفات المعلقة والمرفوضة فقط. المعتمدة لا تُعدَّل.</div>
 <div class="fg">
   <div class="fr"><div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="exe-d"></div><div class="fld"><label>المبلغ (ريال) <span class="req">*</span></label><input type="number" id="exe-a" placeholder="0"></div></div>
-  <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="exe-t" placeholder="اسم المستفيد"></div>
+  <div class="fld"><label>المستفيد <span class="req">*</span></label>
+    <select id="exe-emp-sel" onchange="fillExeFromEmp()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none;margin-bottom:6px">
+      <option value="">— اختر من سجل الموظفين (اختياري) —</option>
+    </select>
+    <input type="text" id="exe-t" placeholder="اسم المستفيد">
+  </div>
   <div class="fld"><label>رقم الجوال (اختياري)</label><input type="tel" id="exe-phone" placeholder="05xxxxxxxx"></div>
+  <div class="fld" id="exe-custody-link-row" style="display:none">
+    <label>ربط بعهدة موظف (اختياري)</label>
+    <select id="exe-custody-link" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— لا تربط بعهدة —</option>
+    </select>
+    <div class="hint" style="font-size:11px;color:var(--sc);margin-top:3px">✓ عند الاعتماد سيُضاف المبلغ تلقائياً كمصروف على عهدة الموظف</div>
+  </div>
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="exe-ds" placeholder="وصف واضح للمصروف"></div>
-  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc" style="font-family:var(--fn)"></select></div><div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fr"><div class="fld"><label>مركز التكلفة</label><select id="exe-cc" onchange="fillExeItems()" style="font-family:var(--fn)"></select></div>
+      <div class="fld"><label>البند (اختياري)</label><select id="exe-item" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر البند —</option></select></div>
+      <div class="fld"><label>طريقة الصرف</label><select id="exe-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option></select></div></div>
+  <div class="fld"><label>السيارة (اختياري)</label>
+    <select id="exe-veh-sel" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none">
+      <option value="">— بدون سيارة —</option>
+    </select>
+  </div>
   <div class="fld"><label>ملاحظات</label><textarea id="exe-nt" style="min-height:55px"></textarea></div>
 </div>
 <input type="hidden" id="exe-id">
