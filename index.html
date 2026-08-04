@@ -3633,14 +3633,34 @@ function openCuSettle(){
   if(!curCuId)return;
   var cu=S.data.custodies.find(function(c){return c.id===curCuId;});
   if(!cu){toast('عهدة غير موجودة','e');return;}
-  // Reset
-  cuSetRows=[];
+
+  var draft=loadCuSetDraft(curCuId);
+  if(draft&&draft.rows&&draft.rows.length>0){
+    var savedTime=draft.savedAt?new Date(draft.savedAt).toLocaleString('ar-SA'):'وقت سابق';
+    if(confirm('&#x1F4DD; وجدنا مسودة محفوظة تلقائيًا لهذه العهدة من '+savedTime+' فيها '+draft.rows.length+' سطر لم يُحفظ.\n\nهل تريد استكمالها؟\n(إلغاء = البدء من جديد وحذف المسودة)')){
+      cuSetRows=draft.rows;
+      document.getElementById('cuSet-date').value=draft.date||td2();
+      document.getElementById('cuSet-type').value=draft.type||'partial';
+      document.getElementById('cuSet-return').value=draft.ret||'';
+      document.getElementById('cuSet-notes').value=draft.notes||'';
+    } else {
+      cuSetRows=[];
+      clearCuSetDraft(curCuId);
+      document.getElementById('cuSet-date').value=td2();
+      document.getElementById('cuSet-return').value='';
+      document.getElementById('cuSet-notes').value='';
+      document.getElementById('cuSet-type').value='partial';
+    }
+  } else {
+    cuSetRows=[];
+    document.getElementById('cuSet-date').value=td2();
+    document.getElementById('cuSet-return').value='';
+    document.getElementById('cuSet-notes').value='';
+    document.getElementById('cuSet-type').value='partial';
+  }
+
   document.getElementById('cuSet-cuid').value=curCuId;
   document.getElementById('cuSetName').textContent=cu.name;
-  document.getElementById('cuSet-date').value=td2();
-  document.getElementById('cuSet-return').value='';
-  document.getElementById('cuSet-notes').value='';
-  document.getElementById('cuSet-type').value='partial';
   toggleFullSettleWarning();
   // Summary
   var en=S.data.custodyEnts.filter(function(e){return e.cid===curCuId;});
@@ -3658,12 +3678,36 @@ function openCuSettle(){
   OM('cuSetM');
   G('cuDM').classList.remove('on');
 }
+function loadCuSetDraft(cuid){
+  try{
+    var raw=localStorage.getItem('qawafil_cuset_draft_'+cuid);
+    return raw?JSON.parse(raw):null;
+  }catch(e){return null;}
+}
+function saveCuSetDraft(){
+  var cuid=V('cuSet-cuid');
+  if(!cuid||!cuSetRows.length)return;
+  try{
+    localStorage.setItem('qawafil_cuset_draft_'+cuid,JSON.stringify({
+      rows:cuSetRows,
+      date:V('cuSet-date'),
+      type:V('cuSet-type'),
+      ret:V('cuSet-return'),
+      notes:V('cuSet-notes'),
+      savedAt:new Date().toISOString()
+    }));
+  }catch(e){}
+}
+function clearCuSetDraft(cuid){
+  try{localStorage.removeItem('qawafil_cuset_draft_'+cuid);}catch(e){}
+}
 
 var CU_VAT_RATE=15; // نسبة ضريبة القيمة المضافة الافتراضية (قابلة للتعديل هنا لو تغيّرت النسبة رسمياً)
 
 function addCuSetRow(){
   cuSetRows.push({date:td2(),item:'',amount:0,taxable:true,vehId:'',desc:''});
   renderCuSetRows();
+  saveCuSetDraft();
 }
 // Tax value for one row: 0 if not marked taxable, otherwise amount × CU_VAT_RATE%, kept to 3 decimals (not rounded to 2)
 function cuSetRowTax(r){
@@ -3684,6 +3728,7 @@ function updateCuSetRowTotal(i){
     if(taxEl)taxEl.textContent=fmt(cuSetRowTax(cuSetRows[i]),3);
   }
   updateCuSetSummary();
+  saveCuSetDraft();
 }
 
 function renderCuSetRows(){
@@ -3707,16 +3752,16 @@ function renderCuSetRows(){
       return '<option value="'+v.id+'"'+(r.vehId===v.id?' selected':'')+'>'+v.num+' '+v.letters+'</option>';
     }).join('');
     return '<tr style="border-bottom:1px solid var(--bd)">'+
-      '<td style="padding:6px 8px"><input type="date" value="'+r.date+'" onchange="cuSetRows['+i+'].date=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:135px"></td>'+
-      '<td style="padding:6px 8px"><input type="text" value="'+(r.desc||'')+'" placeholder="البيان" oninput="cuSetRows['+i+'].desc=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:200px"></td>'+
-      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].cc=this.value;cuSetRows['+i+'].item=\'\';renderCuSetRows()" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+ccOpts+'</select></td>'+
-      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].item=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+itemOpts+'</select></td>'+
+      '<td style="padding:6px 8px"><input type="date" value="'+r.date+'" onchange="cuSetRows['+i+'].date=this.value;saveCuSetDraft()" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:135px"></td>'+
+      '<td style="padding:6px 8px"><input type="text" value="'+(r.desc||'')+'" placeholder="البيان" oninput="cuSetRows['+i+'].desc=this.value;saveCuSetDraft()" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:200px"></td>'+
+      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].cc=this.value;cuSetRows['+i+'].item=\'\';renderCuSetRows();saveCuSetDraft()" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+ccOpts+'</select></td>'+
+      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].item=this.value;saveCuSetDraft()" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+itemOpts+'</select></td>'+
       '<td style="padding:6px 8px"><input type="number" value="'+(r.amount||'')+'" placeholder="0" oninput="cuSetRows['+i+'].amount=parseFloat(this.value)||0;updateCuSetRowTotal('+i+')" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:110px;text-align:left"></td>'+
       '<td style="padding:6px 8px;text-align:center"><input type="checkbox" '+(r.taxable?'checked':'')+' onchange="cuSetRows['+i+'].taxable=this.checked;updateCuSetRowTotal('+i+')" style="width:20px;height:20px;cursor:pointer" title="خاضع للضريبة؟"></td>'+
       '<td id="cuSetTax-'+i+'" style="padding:6px 8px;font-family:monospace;color:var(--gr);white-space:nowrap;font-size:13px">'+fmt(cuSetRowTax(r),3)+'</td>'+
       '<td id="cuSetTot-'+i+'" style="padding:6px 8px;font-weight:700;font-family:monospace;color:var(--nv);white-space:nowrap;font-size:13px">'+fmt(cuSetRowTotal(r),3)+'</td>'+
-      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].vehId=this.value" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+vehOpts+'</select></td>'+
-      '<td style="padding:6px 8px"><button onclick="cuSetRows.splice('+i+',1);renderCuSetRows()" style="background:var(--dnb);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">🗑️</button></td>'+
+      '<td style="padding:6px 8px"><select onchange="cuSetRows['+i+'].vehId=this.value;saveCuSetDraft()" style="padding:6px 8px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none;width:150px">'+vehOpts+'</select></td>'+
+      '<td style="padding:6px 8px"><button onclick="cuSetRows.splice('+i+',1);renderCuSetRows();saveCuSetDraft()" style="background:var(--dnb);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">🗑️</button></td>'+
     '</tr>';
   }).join('');
   updateCuSetSummary();
@@ -3840,8 +3885,33 @@ function saveCuSettle(){
     toast('✅ تم التقفيل الجزئي — العهدة لا تزال مفتوحة');
   }
 
+  // Capture a full summary for the PDF/Excel export, before anything gets reset
+  var lineItems=cuSetRows.filter(function(r){return r.amount>0&&r.item;}).map(function(r){
+    return {date:r.date||settDate,item:r.item,cc:r.cc||'',baseAmount:r.amount,taxable:!!r.taxable,taxAmount:cuSetRowTax(r),total:cuSetRowTotal(r),desc:r.desc||'',car:(r.vehId?((S.data.vehicles||[]).find(function(v){return v.id===r.vehId;})||{}).num:'')||''};
+  });
+  window._lastSettlementSummary={
+    empName:cu.name,empNum:cu.num||'',date:settDate,type:settType==='full'?'تقفيل كامل':'تقفيل جزئي',
+    opening:rem,lineItems:lineItems,totalExpenses:total,returned:ret,
+    closing:rem-total-ret,notes:notes,by:S.cu?S.cu.name:''
+  };
+
   sv();CM('cuSetM');loadCu();
   if(G('trBal'))loadTr();
+  clearCuSetDraft(cuid);
+  showSettlementDoneM();
+}
+function showSettlementDoneM(){
+  var s=window._lastSettlementSummary;
+  if(!s)return;
+  G('sDoneTitle').textContent=s.type+' — '+s.empName;
+  G('sDoneC').innerHTML=
+    '<div class="mets">'+
+      '<div class="met mb"><div class="ml2">الرصيد قبل التقفيل</div><div class="mv2">'+fR(s.opening)+'</div></div>'+
+      '<div class="met mr"><div class="ml2">إجمالي المصروفات</div><div class="mv2">'+fR(s.totalExpenses)+'</div></div>'+
+      '<div class="met '+(s.closing<0?'mr':'mg')+'"><div class="ml2">الرصيد بعد التقفيل</div><div class="mv2">'+fR(s.closing)+'</div></div>'+
+    '</div>'+
+    (s.returned?'<div class="al ai">&#x1F4B0; تم إرجاع '+fR(s.returned)+' للخزينة ضمن هذا التقفيل</div>':'');
+  OM('sDoneM');
 }
 
 /* ═══════════════════════════════════════════
@@ -4762,6 +4832,100 @@ function printVoucher(id){
   '</body></html>';
 
   var w=window.open('','_blank','width=800,height=900');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){w.print();},500);
+}
+
+function exportSettlementExcel(){
+  var s=window._lastSettlementSummary;
+  if(!s){toast('لا يوجد تقفيل حديث للتصدير','e');return;}
+  var csv='\uFEFF';
+  csv+='"تقرير تقفيل عهدة"\n';
+  csv+='"الموظف","'+s.empName+'"\n';
+  csv+='"رقم الموظف","'+(s.empNum||'—')+'"\n';
+  csv+='"تاريخ التقفيل","'+s.date+'"\n';
+  csv+='"نوع التقفيل","'+s.type+'"\n';
+  csv+='"الرصيد قبل التقفيل","'+fmt(s.opening,3)+'"\n\n';
+  csv+='"التاريخ","البند","مركز التكلفة","المبلغ قبل الضريبة","الضريبة","الإجمالي","السيارة","البيان"\n';
+  s.lineItems.forEach(function(r){
+    csv+='"'+r.date+'","'+r.item+'","'+(r.cc||'—')+'","'+fmt(r.baseAmount,3)+'","'+(r.taxable?fmt(r.taxAmount,3):'—')+'","'+fmt(r.total,3)+'","'+(r.car||'—')+'","'+(r.desc||'')+'"\n';
+  });
+  csv+='\n"إجمالي المصروفات","'+fmt(s.totalExpenses,3)+'"\n';
+  if(s.returned)csv+='"المبلغ المُرجَع للخزينة","'+fmt(s.returned,3)+'"\n';
+  csv+='"الرصيد بعد التقفيل","'+fmt(s.closing,3)+'"\n';
+  csv+='"بواسطة","'+s.by+'"\n';
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='تقفيل_عهدة_'+s.empName+'_'+s.date+'.csv';
+  a.click();
+  toast('تم تصدير ملف Excel');
+}
+
+function exportSettlementPDF(){
+  var s=window._lastSettlementSummary;
+  if(!s){toast('لا يوجد تقفيل حديث للتصدير','e');return;}
+
+  var rowsHtml=s.lineItems.map(function(r){
+    return '<tr><td>'+r.date+'</td><td>'+r.item+'</td><td>'+(r.cc||'—')+'</td>'+
+      '<td style="text-align:left;font-family:monospace">'+fmt(r.baseAmount,3)+'</td>'+
+      '<td style="text-align:left;font-family:monospace">'+(r.taxable?fmt(r.taxAmount,3):'—')+'</td>'+
+      '<td style="text-align:left;font-family:monospace;font-weight:700">'+fmt(r.total,3)+'</td>'+
+      '<td>'+(r.car||'—')+'</td></tr>';
+  }).join('');
+
+  var html='<!DOCTYPE html><html dir="rtl" lang="ar">'+
+  '<head><meta charset="UTF-8">'+
+  '<style>'+
+    '@page{margin:15mm}'+
+    'body{font-family:Arial,sans-serif;color:#000;font-size:12px;direction:rtl}'+
+    '.header{text-align:center;border-bottom:3px double #000;padding-bottom:12px;margin-bottom:16px}'+
+    '.co-name{font-size:18px;font-weight:900;letter-spacing:1px}'+
+    '.vo-title{font-size:15px;font-weight:700;background:#000;color:#fff;display:inline-block;padding:4px 24px;border-radius:4px;margin-top:8px}'+
+    '.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;border:1px solid #ccc;border-radius:6px;padding:10px}'+
+    '.info-row{display:flex;gap:6px;align-items:baseline}'+
+    '.info-label{font-weight:700;color:#333;font-size:11px;white-space:nowrap;min-width:90px}'+
+    '.info-val{font-size:12px;border-bottom:1px solid #999;flex:1;padding-bottom:2px}'+
+    'table{width:100%;border-collapse:collapse;margin-bottom:14px}'+
+    'th,td{border:1px solid #999;padding:6px 8px;font-size:11px;text-align:right}'+
+    'th{background:#f0f0f0;font-weight:700}'+
+    '.summary-box{border:2px solid #000;border-radius:8px;padding:12px;margin-bottom:14px}'+
+    '.sum-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}'+
+    '.sum-row.total{border-top:1px solid #999;margin-top:6px;padding-top:8px;font-weight:900;font-size:15px}'+
+    '.footer{text-align:center;font-size:10px;color:#aaa;border-top:1px solid #ddd;padding-top:8px;margin-top:8px}'+
+    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'+
+  '</style></head><body>'+
+
+  '<div class="header">'+
+    '<div class="co-name">القوافل الخمسة للخدمات اللوجستية</div>'+
+    '<div class="vo-title">تقرير تقفيل عهدة</div>'+
+  '</div>'+
+
+  '<div class="info-grid">'+
+    '<div class="info-row"><span class="info-label">الموظف:</span><span class="info-val">'+s.empName+'</span></div>'+
+    '<div class="info-row"><span class="info-label">رقم الموظف:</span><span class="info-val">'+(s.empNum||'—')+'</span></div>'+
+    '<div class="info-row"><span class="info-label">تاريخ التقفيل:</span><span class="info-val">'+s.date+'</span></div>'+
+    '<div class="info-row"><span class="info-label">نوع التقفيل:</span><span class="info-val">'+s.type+'</span></div>'+
+  '</div>'+
+
+  '<table><thead><tr><th>التاريخ</th><th>البند</th><th>مركز التكلفة</th><th>المبلغ</th><th>الضريبة</th><th>الإجمالي</th><th>السيارة</th></tr></thead>'+
+  '<tbody>'+(rowsHtml||'<tr><td colspan="7" style="text-align:center;color:#888">لا توجد بنود مصروفات</td></tr>')+'</tbody></table>'+
+
+  '<div class="summary-box">'+
+    '<div class="sum-row"><span>الرصيد قبل التقفيل</span><span style="font-family:monospace">'+fR(s.opening)+'</span></div>'+
+    '<div class="sum-row"><span>إجمالي المصروفات</span><span style="font-family:monospace">'+fR(s.totalExpenses)+'</span></div>'+
+    (s.returned?'<div class="sum-row"><span>المبلغ المُرجَع للخزينة</span><span style="font-family:monospace">'+fR(s.returned)+'</span></div>':'')+
+    '<div class="sum-row total"><span>الرصيد بعد التقفيل</span><span style="font-family:monospace">'+fR(s.closing)+'</span></div>'+
+  '</div>'+
+
+  (s.notes?'<div style="border:1px solid #ccc;border-radius:6px;padding:10px;margin-bottom:14px"><strong>ملاحظات:</strong> '+s.notes+'</div>':'')+
+
+  '<div class="footer">هذا المستند صادر من نظام القوافل الخمسة للإدارة المالية — بواسطة '+s.by+' — تاريخ الطباعة: '+new Date().toLocaleDateString('ar-SA')+'</div>'+
+
+  '</body></html>';
+
+  var w=window.open('','_blank','width=850,height=1000');
   w.document.write(html);
   w.document.close();
   setTimeout(function(){w.print();},500);
@@ -5909,6 +6073,17 @@ ld();
   <div class="mhd"><div class="mtt" id="settDetailTitle">تفاصيل التقفيل</div><button class="mcl" onclick="CM('settDetailM')">×</button></div>
   <div id="settDetailC"></div>
   <div class="mft"><button class="btn" onclick="CM('settDetailM')">إغلاق</button></div>
+</div></div>
+
+<!-- SETTLEMENT COMPLETE — EXPORT OPTIONS -->
+<div class="mo2" id="sDoneM"><div class="mb2">
+  <div class="mhd"><div class="mtt">&#x2705; تم التقفيل — <span id="sDoneTitle"></span></div><button class="mcl" onclick="CM('sDoneM')">×</button></div>
+  <div id="sDoneC"></div>
+  <div class="mft" style="flex-wrap:wrap">
+    <button class="btn" onclick="CM('sDoneM')">إغلاق</button>
+    <button class="btn bp" onclick="exportSettlementExcel()">&#x1F4CA; تصدير Excel</button>
+    <button class="btn bg3" onclick="exportSettlementPDF()">&#x1F4C4; تصدير PDF</button>
+  </div>
 </div></div>
 
 </body></html>
