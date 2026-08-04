@@ -604,7 +604,16 @@ tbody tr:hover td{background:var(--ltr)}
   <div id="cuTbs">
     <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl" style="min-width:900px"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>إجمالي المصروف</th><th>المرتجع للخزينة</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
     <div class="tabc" id="cuEnt"><div class="card">
-      <div class="cht">سجل مصروفات العهد<div style="display:flex;gap:8px"><input class="srch-inp" placeholder="بحث..." oninput="FT('cuEnTbl',this.value)" style="width:130px"><button class="btn bsm" onclick="ET('cuEnTbl')">&#x1F4E5;</button></div></div>
+      <div class="cht">سجل مصروفات العهد<div style="display:flex;gap:8px;flex-wrap:wrap"><input class="srch-inp" placeholder="بحث..." oninput="FT('cuEnTbl',this.value)" style="width:130px">
+        <span id="cuEnTemplateBtns" style="display:none;gap:8px">
+          <button class="btn bsm" onclick="downloadCuExpTemplate()" title="تنزيل قالب لتسجيل مصروفات عهدة بالجملة">&#x1F4E5; تنزيل القالب</button>
+          <label class="btn bsm" style="cursor:pointer" title="رفع ملف Excel مملوء">
+            &#x1F4E4; رفع ملف Excel
+            <input type="file" id="cuExpImportFile" accept=".csv" onchange="importCuExpFile(this)" style="display:none">
+          </label>
+        </span>
+        <button class="btn bsm" onclick="ET('cuEnTbl')">&#x1F4E5; تصدير</button>
+      </div></div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:10px;background:var(--ltr);border-radius:8px">
         <span style="font-size:12px;color:var(--gr);font-weight:700">&#x1F464; الموظف:</span>
         <select id="cuEn-emp" onchange="filterCuEnLog()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none"><option value="">الكل</option></select>
@@ -1960,6 +1969,7 @@ function loadCu(){
     var empNames=Array.from(new Set(cu.map(c=>c.name))).sort();
     empSel.innerHTML='<option value="">الكل</option>'+empNames.map(function(n){return '<option value="'+n+'"'+(n===curEmpVal?' selected':'')+'>'+n+'</option>';}).join('');
   }
+  if(G('cuEnTemplateBtns'))G('cuEnTemplateBtns').style.display=can('all')?'flex':'none';
   renderCuEnLog();
 
   var byCar={};en.forEach(e=>{if(e.car){if(!byCar[e.car])byCar[e.car]={count:0,total:0};byCar[e.car].count++;byCar[e.car].total+=e.amount;}});var tcr=Object.values(byCar).reduce((s,v)=>s+v.total,0);
@@ -5167,6 +5177,122 @@ function findBankOutCandidates(date,amount,benef){
   }
   return candidates;
 }
+
+/* ═══════════════════════════════════════════
+   CUSTODY EXPENSE BULK IMPORT (لتسجيل مصروفات عهدة بالجملة من ملف)
+═══════════════════════════════════════════ */
+function downloadCuExpTemplate(){
+  var empNames=(S.data.custodies||[]).filter(function(c){return c.status==='open';}).map(function(c){return c.name;});
+  var headers=[
+    'التاريخ (YYYY-MM-DD)',
+    'اسم الموظف (يجب أن تكون له عهدة مفتوحة)',
+    'البند',
+    'المبلغ (قبل الضريبة)',
+    'خاضع للضريبة (نعم/لا)',
+    'مركز التكلفة (اختياري)',
+    'رقم السيارة (اختياري — يجب أن يطابق سيارة موجودة)',
+    'البيان (اختياري)'
+  ];
+  var examples=[
+    ['2026-07-05',empNames[0]||'اسم الموظف','شراء بضاعة','500','نعم','التشغيل','1234','بيان العملية'],
+    ['2026-07-06',empNames[0]||'اسم الموظف','سحب نقدي','200','لا','','','']
+  ];
+  var csv='\uFEFF'+headers.join(',')+'\n';
+  examples.forEach(function(r){csv+=r.map(function(c){return'"'+c+'"';}).join(',')+'\n';});
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='قالب_مصروفات_العهدة.csv';
+  a.click();
+  toast('تم تنزيل القالب — العهد المفتوحة المتاحة: '+(empNames.join('، ')||'لا توجد عهد مفتوحة حاليًا'));
+}
+function importCuExpFile(input){
+  if(!can('all')){toast('استيراد المصروفات بالجملة مخصص لمدير النظام فقط','e');input.value='';return;}
+  var file=input.files[0];
+  if(!file)return;
+  var ext=file.name.split('.').pop().toLowerCase();
+  if(ext!=='csv'){
+    toast('يرجى رفع ملف CSV فقط. احفظ ملف Excel بصيغة CSV أولاً','w');
+    input.value='';
+    return;
+  }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var text=e.target.result;
+      text=text.replace(/^\uFEFF/,'');
+      var lines=text.split('\n').filter(function(l){return l.trim();});
+      if(lines.length<2){toast('الملف فارغ أو لا يحتوي على بيانات','e');return;}
+
+      var added=0,skipped=0,errors=[],addedTotal=0;
+      for(var i=1;i<lines.length;i++){
+        var cols=parseCSVLine(lines[i]);
+        if(!cols||cols.length<4)continue;
+
+        var date=(cols[0]||'').trim();
+        var empName=(cols[1]||'').trim();
+        var item=(cols[2]||'').trim();
+        var baseAmt=parseFloat(cols[3]);
+        var taxableRaw=(cols[4]||'').trim();
+        var ccName=(cols[5]||'').trim();
+        var vehNum=(cols[6]||'').trim();
+        var desc=(cols[7]||'').trim();
+
+        if(!date||!empName||!item||!baseAmt){
+          errors.push('سطر '+(i+1)+': بيانات ناقصة (التاريخ/الموظف/البند/المبلغ)');
+          skipped++;continue;
+        }
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){
+          errors.push('سطر '+(i+1)+': تنسيق التاريخ غير صحيح، يجب أن يكون YYYY-MM-DD ('+date+')');
+          skipped++;continue;
+        }
+        var cu=(S.data.custodies||[]).find(function(c){return c.name===empName&&c.status==='open';});
+        if(!cu){
+          errors.push('سطر '+(i+1)+': لا توجد عهدة مفتوحة باسم "'+empName+'"');
+          skipped++;continue;
+        }
+        var taxable=/^نعم$|^yes$|^true$|^1$/i.test(taxableRaw);
+        var taxAmt=taxable?Math.round(baseAmt*CU_VAT_RATE*10)/1000:0;
+        var total=Math.round((baseAmt+taxAmt)*1000)/1000;
+
+        var veh=vehNum?(S.data.vehicles||[]).find(function(v){return v.num===vehNum;}):null;
+        if(vehNum&&!veh){
+          errors.push('سطر '+(i+1)+': رقم السيارة "'+vehNum+'" غير موجود — تم التسجيل بدون سيارة');
+        }
+
+        if(!S.data.custodyEnts)S.data.custodyEnts=[];
+        S.data.custodyEnts.push({
+          id:uid(),cid:cu.id,empName:cu.name,
+          date:date,item:item,amount:total,
+          baseAmount:baseAmt,taxPct:taxable?CU_VAT_RATE:0,taxAmount:taxAmt,
+          desc:desc+(taxable?' (شامل ضريبة '+CU_VAT_RATE+'% = '+fmt(taxAmt,3)+' ريال)':''),
+          cc:ccName,car:veh?veh.num:'',plate:veh?veh.letters:'',vehId:veh?veh.id:'',
+          by:S.cu?S.cu.u:'',at:new Date().toISOString()
+        });
+        added++;addedTotal+=total;
+      }
+
+      if(added>0){
+        alog('استيراد مصروفات عهدة بالجملة','تم استيراد '+added+' قيد بإجمالي '+fmt(addedTotal,3)+' ريال من ملف Excel');
+        sv();loadCu();
+      }
+
+      var msg='✅ تم استيراد '+added+' قيد بإجمالي '+fmt(addedTotal,3)+' ريال';
+      if(skipped>0)msg+=' | تجاهل '+skipped+' سطر (راجع التنبيهات)';
+      toast(msg,added>0?'s':'w');
+
+      if(errors.length>0){
+        console.warn('أخطاء الاستيراد:',errors);
+        setTimeout(function(){toast('تنبيهات: '+errors.slice(0,5).join(' | ')+(errors.length>5?' ...':''),'w');},1500);
+      }
+    }catch(err){
+      toast('خطأ في قراءة الملف: '+err.message,'e');
+    }
+    input.value='';
+  };
+  reader.readAsText(file,'utf-8');
+}
+
 function openRefUpdateM(){
   if(!can('all')){toast('هذه الأداة مخصصة لمدير النظام فقط','e');return;}
   G('refUpdateInput').value='';
