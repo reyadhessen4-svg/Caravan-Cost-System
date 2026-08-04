@@ -862,17 +862,26 @@ tbody tr:hover td{background:var(--ltr)}
         </select>
       </div>
       <div id="rc-custody-info" style="display:none;margin-top:10px;background:var(--ltr);border-radius:10px;padding:12px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
-          <span style="color:var(--gr)">الرصيد الابتدائي:</span>
-          <span id="rc-cu-opening" style="font-weight:600"></span>
+        <div onclick="toggleRcBalDetail()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+          <span style="color:var(--gr);font-size:13px">المتبقي في العهدة:</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="rc-cu-rem" style="font-weight:700;font-size:15px;color:var(--sc)"></span>
+            <span id="rc-bal-toggle-icon" style="font-size:11px;color:var(--gr2);white-space:nowrap">&#x25BC; التفاصيل</span>
+          </div>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
-          <span style="color:var(--gr)">إجمالي المصروف:</span>
-          <span id="rc-cu-spent" style="font-weight:600;color:var(--dn)"></span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;padding-top:6px;border-top:1px solid var(--bd)">
-          <span style="color:var(--gr)">المتبقي في العهدة:</span>
-          <span id="rc-cu-rem" style="font-weight:700;font-size:15px;color:var(--sc)"></span>
+        <div id="rc-bal-detail" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span style="color:var(--gr)">الرصيد الابتدائي:</span>
+            <span id="rc-cu-opening" style="font-weight:600"></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span style="color:var(--gr)">إجمالي المصروف:</span>
+            <span id="rc-cu-spent" style="font-weight:600;color:var(--dn)"></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px">
+            <span style="color:var(--gr)">مُرجَع سابقًا:</span>
+            <span id="rc-cu-returned" style="font-weight:600;color:var(--sc)"></span>
+          </div>
         </div>
       </div>
       <div id="rc-settle-type" style="display:none;margin-top:10px">
@@ -2364,7 +2373,7 @@ function loadAudit(){var df=V('auDt'),uf=V('auUsr');var logs=S.data.audit;if(df)
 /* ─── RECEIPT EDIT / DELETE ─── */
 function rceAvailableForCustody(cid){
   var cu=S.data.custodies.find(function(c){return c.id===cid;});
-  if(!cu)return 0;
+  if(!cu)return {opening:0,expense:0,returned:0,available:0};
   var curReceipt=S.data.receipts.find(function(r){return r.id===V('rce-id');});
   var curNum=curReceipt?curReceipt.num:null;
   var entries=S.data.custodyEnts.filter(function(e){
@@ -2374,7 +2383,7 @@ function rceAvailableForCustody(cid){
   });
   var exp=entries.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
   var ret=entries.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
-  return cu.opening-exp-ret;
+  return {opening:cu.opening,expense:exp,returned:ret,available:cu.opening-exp-ret};
 }
 function toggleRceCustody(){
   var chk=G('rce-custody-chk');
@@ -2391,8 +2400,8 @@ function toggleRceCustody(){
       if(closedCu)sel.innerHTML+='<option value="'+closedCu.id+'" selected>'+closedCu.name+' (عهدة مقفولة)</option>';
     }
     openCustodies.forEach(function(c){
-      var rem=rceAvailableForCustody(c.id);
-      sel.innerHTML+='<option value="'+c.id+'"'+(c.id===curVal?' selected':'')+'>'+c.name+' — متاح: '+fR(rem)+'</option>';
+      var b=rceAvailableForCustody(c.id);
+      sel.innerHTML+='<option value="'+c.id+'"'+(c.id===curVal?' selected':'')+'>'+c.name+' — متاح: '+fR(b.available)+'</option>';
     });
     if(curVal){rceSelectCustody();}else{G('rce-custody-balinfo').style.display='none';}
   } else {
@@ -2400,17 +2409,25 @@ function toggleRceCustody(){
     G('rce-custody-balinfo').style.display='none';
   }
 }
+function toggleRceBalDetail(){
+  var d=G('rce-bal-detail');
+  var icon=G('rce-bal-toggle-icon');
+  if(!d)return;
+  var show=d.style.display==='none';
+  d.style.display=show?'block':'none';
+  if(icon)icon.textContent=show?'\u25B2 إخفاء':'\u25BC التفاصيل';
+}
 function rceSelectCustody(){
   var cid=V('rce-custody-emp');
   G('rce-custody-id').value=cid;
   if(!cid){G('rce-custody-balinfo').style.display='none';return;}
   var cu=S.data.custodies.find(function(c){return c.id===cid;});
   if(!cu)return;
-  var rem=rceAvailableForCustody(cid);
-  var bal=cuBalanceInfo(cid);
-  G('rce-cu-opening').textContent=fR(cu.opening);
-  G('rce-cu-spent').textContent=fR(bal.expense);
-  G('rce-cu-rem').textContent=fR(rem);
+  var b=rceAvailableForCustody(cid);
+  G('rce-cu-opening').textContent=fR(b.opening);
+  G('rce-cu-spent').textContent=fR(b.expense);
+  G('rce-cu-returned').textContent=fR(b.returned);
+  G('rce-cu-rem').textContent=fR(b.available);
   G('rce-custody-balinfo').style.display='block';
 }
 function editRc(id){var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed){toast('هذا المقبوض تمت مراجعته — يجب فتح القفل أولاً من زر المراجعة قبل التعديل','e');return;}G('rce-id').value=id;G('rce-d').value=r.date;G('rce-a').value=r.amount;G('rce-f').value=r.from;G('rce-ds').value=r.desc;var ms=G('rce-m');for(var i=0;i<ms.options.length;i++){if(ms.options[i].value===r.method||ms.options[i].text===r.method)ms.selectedIndex=i;}G('rce-rf').value=r.ref||'';G('rce-nt').value=r.notes||'';
@@ -3407,6 +3424,14 @@ function toggleRcCustody(){
   }
 }
 
+function toggleRcBalDetail(){
+  var d=G('rc-bal-detail');
+  var icon=G('rc-bal-toggle-icon');
+  if(!d)return;
+  var show=d.style.display==='none';
+  d.style.display=show?'block':'none';
+  if(icon)icon.textContent=show?'\u25B2 إخفاء':'\u25BC التفاصيل';
+}
 function rcSelectCustody(){
   var cid=V('rc-custody-emp');
   G('rc-custody-id').value=cid;
@@ -3422,6 +3447,7 @@ function rcSelectCustody(){
   // Show custody info
   G('rc-cu-opening').textContent=fR(cu.opening);
   G('rc-cu-spent').textContent=fR(bal.expense);
+  if(G('rc-cu-returned'))G('rc-cu-returned').textContent=fR(bal.returned);
   G('rc-cu-rem').textContent=fR(rem);
   G('rc-custody-info').style.display='block';
   G('rc-settle-type').style.display='block';
@@ -5825,17 +5851,26 @@ ld();
         </select>
       </div>
       <div id="rce-custody-balinfo" style="display:none;margin-top:10px;background:var(--ltr);border-radius:10px;padding:12px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
-          <span style="color:var(--gr)">الرصيد الابتدائي:</span>
-          <span id="rce-cu-opening" style="font-weight:600"></span>
+        <div onclick="toggleRceBalDetail()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+          <span style="color:var(--gr);font-size:13px">المتاح لهذا الإرجاع:</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="rce-cu-rem" style="font-weight:700;font-size:15px;color:var(--sc)"></span>
+            <span id="rce-bal-toggle-icon" style="font-size:11px;color:var(--gr2);white-space:nowrap">&#x25BC; التفاصيل</span>
+          </div>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
-          <span style="color:var(--gr)">إجمالي المصروف:</span>
-          <span id="rce-cu-spent" style="font-weight:600;color:var(--dn)"></span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;padding-top:6px;border-top:1px solid var(--bd)">
-          <span style="color:var(--gr)">المتاح لهذا الإرجاع:</span>
-          <span id="rce-cu-rem" style="font-weight:700;font-size:15px;color:var(--sc)"></span>
+        <div id="rce-bal-detail" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span style="color:var(--gr)">الرصيد الابتدائي:</span>
+            <span id="rce-cu-opening" style="font-weight:600"></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span style="color:var(--gr)">إجمالي المصروف:</span>
+            <span id="rce-cu-spent" style="font-weight:600;color:var(--dn)"></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px">
+            <span style="color:var(--gr)">مُرجَع سابقًا (غير هذا السند):</span>
+            <span id="rce-cu-returned" style="font-weight:600;color:var(--sc)"></span>
+          </div>
         </div>
       </div>
       <input type="hidden" id="rce-custody-id">
