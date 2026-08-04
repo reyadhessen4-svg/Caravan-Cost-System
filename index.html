@@ -1159,8 +1159,16 @@ function ld(){
         mergeCustomRoles();
         setSyncIcon('ok');
       } else {
+        // The read itself succeeded, but came back empty/missing .users. This does NOT
+        // reliably mean the database is genuinely fresh — it could be a transient sync
+        // glitch. Treat it with the same caution as a timeout/error: never auto-seed and
+        // silently overwrite real data. Only a listener update carrying real data (d.users)
+        // clears this flag and allows writes again.
+        console.warn('Firebase returned no/empty data on initial read — entering safe mode instead of auto-seeding.');
+        _firebaseUnconfirmed=true;
+        setSyncIcon('error');
         _loadLocal();
-        sv();
+        toast('⚠️ تعذّر تأكيد بيانات السيرفر عند التحميل — تم الدخول في وضع آمن (لن يتم الكتابة حتى يتأكد الاتصال بالبيانات الحقيقية)','w');
       }
       _showLoginPage();
       _tryAutoLogin();
