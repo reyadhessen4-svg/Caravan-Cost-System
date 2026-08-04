@@ -2362,8 +2362,52 @@ function togUs(id){var u=S.data.users.find(x=>x.id===id);if(!u)return;if(u.id===
 function loadAudit(){var df=V('auDt'),uf=V('auUsr');var logs=S.data.audit;if(df)logs=logs.filter(a=>a.dt.startsWith(df));if(uf)logs=logs.filter(a=>a.user===uf);G('auTbd').innerHTML=logs.slice(0,200).map(a=>'<tr><td style="font-family:monospace;font-size:12px;white-space:nowrap">'+new Date(a.dt).toLocaleString('en-US')+'</td><td style="font-weight:600">'+a.user+'</td><td><span class="bdg '+(ROLES[S.data.users.find(u=>u.name===a.user)?.r]?.c||'bg2')+'">'+a.role+'</span></td><td>'+a.action+'</td><td style="color:var(--gr);font-size:12px">'+a.details+'</td><td><span class="bdg bn">'+a.res+'</span></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا توجد سجلات</div></div></td></tr>';}
 
 /* ─── RECEIPT EDIT / DELETE ─── */
-function editRc(id){var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed){toast('هذا المقبوض تمت مراجعته — يجب فتح القفل أولاً من زر المراجعة قبل التعديل','e');return;}G('rce-id').value=id;G('rce-d').value=r.date;G('rce-a').value=r.amount;G('rce-f').value=r.from;G('rce-ds').value=r.desc;var ms=G('rce-m');for(var i=0;i<ms.options.length;i++){if(ms.options[i].value===r.method||ms.options[i].text===r.method)ms.selectedIndex=i;}G('rce-rf').value=r.ref||'';G('rce-nt').value=r.notes||'';OM('rcEM');}
-function saveEditRc(){var id=V('rce-id'),a=Nv('rce-a'),f=V('rce-f'),d=V('rce-ds');if(!id||!a||!f||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed){toast('هذا المقبوض تمت مراجعته — يجب فتح القفل أولاً','e');return;}var old=fR(r.amount);r.date=V('rce-d')||td2();r.amount=a;r.from=f;r.desc=d;r.method=V('rce-m');r.ref=V('rce-rf');r.notes=V('rce-nt');r.editedBy=S.cu.u;r.editedAt=new Date().toISOString();alog('تعديل مقبوض','سند '+r.num+' — تغيير من '+old+' إلى '+fR(a));sv();CM('rcEM');loadTr();loadDash();toast('تم حفظ التعديل بنجاح');}
+function editRc(id){var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed){toast('هذا المقبوض تمت مراجعته — يجب فتح القفل أولاً من زر المراجعة قبل التعديل','e');return;}G('rce-id').value=id;G('rce-d').value=r.date;G('rce-a').value=r.amount;G('rce-f').value=r.from;G('rce-ds').value=r.desc;var ms=G('rce-m');for(var i=0;i<ms.options.length;i++){if(ms.options[i].value===r.method||ms.options[i].text===r.method)ms.selectedIndex=i;}G('rce-rf').value=r.ref||'';G('rce-nt').value=r.notes||'';
+  var cuInfo=G('rce-custody-info');
+  if(r.custodyReturn&&r.custodyId){
+    var cu=S.data.custodies.find(function(c){return c.id===r.custodyId;});
+    G('rce-cu-name').textContent=cu?cu.name:'(عهدة محذوفة)';
+    cuInfo.style.display='block';
+  } else {
+    cuInfo.style.display='none';
+  }
+  OM('rcEM');}
+function saveEditRc(){
+  var id=V('rce-id'),a=Nv('rce-a'),f=V('rce-f'),d=V('rce-ds');
+  if(!id||!a||!f||!d){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  var r=S.data.receipts.find(x=>x.id===id);
+  if(!r)return;
+  if(r.reviewed){toast('هذا المقبوض تمت مراجعته — يجب فتح القفل أولاً','e');return;}
+
+  // If this receipt is linked to a custody return, keep the linked custody entry in sync
+  // so the two never drift apart (this was the source of the reported mismatch bug).
+  var custodyUpdated=false;
+  if(r.custodyReturn&&r.custodyId){
+    var linkedEntry=S.data.custodyEnts.find(function(e){return e.receiptNum===r.num&&e.isReturn;});
+    if(linkedEntry){
+      var cu=S.data.custodies.find(function(c){return c.id===r.custodyId;});
+      if(cu){
+        var otherEntries=S.data.custodyEnts.filter(function(e){return e.cid===r.custodyId&&e.id!==linkedEntry.id;});
+        var otherExpense=otherEntries.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+        var otherReturned=otherEntries.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
+        var availableBeforeThis=cu.opening-otherExpense-otherReturned;
+        if(a>availableBeforeThis+0.01){
+          toast('المبلغ الجديد ('+fR(a)+') أكبر من الرصيد المتاح في العهدة ('+fR(availableBeforeThis)+')','e');
+          return;
+        }
+      }
+      linkedEntry.amount=-a;
+      linkedEntry.date=V('rce-d')||linkedEntry.date;
+      custodyUpdated=true;
+    }
+  }
+
+  var old=fR(r.amount);
+  r.date=V('rce-d')||td2();r.amount=a;r.from=f;r.desc=d;r.method=V('rce-m');r.ref=V('rce-rf');r.notes=V('rce-nt');r.editedBy=S.cu.u;r.editedAt=new Date().toISOString();
+  alog('تعديل مقبوض','سند '+r.num+' — تغيير من '+old+' إلى '+fR(a)+(custodyUpdated?' — تم تحديث رصيد العهدة المرتبطة تلقائيًا':''));
+  sv();CM('rcEM');loadTr();loadDash();loadCu();
+  toast('تم حفظ التعديل بنجاح'+(custodyUpdated?' — رصيد العهدة تحدَّث معه':''));
+}
 function delRc(id){if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}var r=S.data.receipts.find(x=>x.id===id);if(!r)return;if(r.reviewed&&!can('all')){toast('هذا المقبوض تمت مراجعته — الحذف للمدير فقط','e');return;}if(!confirm('حذف مقبوض رقم '+r.num+' بقيمة '+fR(r.amount)+'؟\nلا يمكن التراجع عن هذا الإجراء.'))return;S.data.receipts=S.data.receipts.filter(x=>x.id!==id);alog('حذف مقبوض','سند '+r.num+' — '+fR(r.amount)+' — من '+r.from);sv();loadTr();loadDash();toast('تم حذف المقبوض','w');}
 
 /* ─── EXPENSE EDIT / DELETE ─── */
@@ -5651,6 +5695,9 @@ ld();
   <div class="fld"><label>البيان <span class="req">*</span></label><input type="text" id="rce-ds" placeholder="بيان المقبوض"></div>
   <div class="fr"><div class="fld"><label>طريقة السداد</label><select id="rce-m"><option>نقدي</option><option>تحويل بنكي</option><option>شيك</option><option>بطاقة</option></select></div><div class="fld"><label>رقم مرجعي</label><input type="text" id="rce-rf" placeholder="رقم الشيك / التحويل"></div></div>
   <div class="fld"><label>ملاحظات</label><textarea id="rce-nt" style="min-height:55px"></textarea></div>
+  <div id="rce-custody-info" style="display:none;border-top:2px dashed var(--bd);padding-top:14px;margin-top:4px">
+    <div class="al ai">&#x1F45B; هذا المقبوض مرتبط بإرجاع من عهدة <strong id="rce-cu-name"></strong> — أي تعديل على المبلغ هنا سيُحدَّث تلقائيًا في رصيد العهدة أيضًا.</div>
+  </div>
 </div>
 <input type="hidden" id="rce-id">
 <div class="mft"><button class="btn" onclick="CM('rcEM')">إلغاء</button><button class="btn bss" onclick="saveEditRc()">&#x1F4BE; حفظ التعديل</button></div></div></div>
