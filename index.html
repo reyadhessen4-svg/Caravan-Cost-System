@@ -382,6 +382,9 @@ tbody tr:hover td{background:var(--ltr)}
   <div id="bkTbs">
     <div class="tabc on" id="bkIn"><div class="card">
       <div class="cht">الوارد البنكي<button class="btn bsm" onclick="ET('biTbl')">&#x1F4E5;</button></div>
+      <div id="biImportNote" style="display:none">
+        <div class="al ai" style="margin-bottom:10px">&#x1F4A1; للاستيراد بالجملة (وارد وصادر معًا)، استخدم "تنزيل القالب" و"رفع ملف Excel" الموجودين في تبويب <strong>"الصادر البنكي"</strong> — القالب يدعم الاتنين في نفس الملف.</div>
+      </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:10px;background:var(--ltr);border-radius:8px">
         <span style="font-size:12px;color:var(--gr);font-weight:700">&#x1F3E6; الحساب:</span>
         <select id="biF-acc" onchange="filterBiTbl()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:var(--fn);outline:none"><option value="">كل الحسابات</option></select>
@@ -398,8 +401,8 @@ tbody tr:hover td{background:var(--ltr)}
     <div class="tabc" id="bkOut"><div class="card"><div class="cht">الصادر البنكي
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <span id="boTemplateBtns" style="display:none;gap:8px">
-          <button class="btn bsm" onclick="downloadBoTemplate()" title="تنزيل قالب لتسجيل سندات ناقصة بالجملة">&#x1F4E5; تنزيل القالب</button>
-          <label class="btn bsm" style="cursor:pointer" title="رفع ملف Excel مملوء">
+          <button class="btn bsm" onclick="downloadBoTemplate()" title="تنزيل قالب شامل لتسجيل حركات وارد وصادر ناقصة بالجملة">&#x1F4E5; تنزيل القالب (وارد وصادر)</button>
+          <label class="btn bsm" style="cursor:pointer" title="رفع ملف Excel مملوء — يدعم الوارد والصادر معًا">
             &#x1F4E4; رفع ملف Excel
             <input type="file" id="boImportFile" accept=".csv,.xlsx,.xls" onchange="importBoFile(this)" style="display:none">
           </label>
@@ -408,6 +411,7 @@ tbody tr:hover td{background:var(--ltr)}
         <button class="btn bsm" onclick="ET('boTbl')">&#x1F4E5; تصدير</button>
       </div>
     </div>
+    <div class="al ai" style="margin-bottom:10px">&#x2139;&#xFE0F; القالب والاستيراد هنا شاملان: تقدر تسجّل حركات <strong>وارد وصادر معًا في نفس الملف</strong> — كل صف بيحدد نوعه بعمود "نوع الحركة".</div>
     <div id="boImportOptionsRow" style="display:none;margin-bottom:12px">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--nv);background:var(--ltr);border-radius:8px;padding:8px 12px;border:1px solid var(--bd)">
         <input type="checkbox" id="boImportAddToCustody" style="width:16px;height:16px;cursor:pointer">
@@ -1841,6 +1845,7 @@ function loadBk(){
   if(G('bkRevJumpRow'))G('bkRevJumpRow').style.display=can('all')?'flex':'none';
   if(G('sysStartRow'))G('sysStartRow').style.display=can('all')?'flex':'none';
   if(G('boTemplateBtns'))G('boTemplateBtns').style.display=can('all')?'flex':'none';
+  if(G('biImportNote'))G('biImportNote').style.display=can('all')?'block':'none';
   if(G('boImportOptionsRow'))G('boImportOptionsRow').style.display=can('all')?'block':'none';
   // Populate the bank-account filter dropdowns (preserve current selection if still valid)
   [['biF-acc'],['boF-acc']].forEach(function(pair){
@@ -5378,30 +5383,32 @@ function parseCSVLine(line){
 ═══════════════════════════════════════════ */
 function downloadBoTemplate(){
   var headers=[
+    'نوع الحركة (وارد / صادر)',
     'التاريخ (YYYY-MM-DD)',
     'المبلغ',
     'اسم الحساب البنكي (يجب أن يطابق حساب موجود بالنظام)',
-    'المستفيد',
+    'الجهة (المستفيد لو صادر — مصدر التحويل لو وارد)',
     'رقم العملية (اختياري)',
     'البيان (اختياري)',
-    'اسم الموظف صاحب العهدة (اختياري — للربط فقط، لن يُضاف مرة أخرى لرصيد العهدة)'
+    'اسم الموظف صاحب العهدة (اختياري — لسندات الصادر فقط، للربط فقط، لن يُضاف مرة أخرى لرصيد العهدة)'
   ];
   var accNames=(S.data.bankAccounts||[]).map(function(a){return a.name;});
   var examples=[
-    ['2026-07-05','1500','البنك الأهلي','خالد ادم جبريل بشير','','سحب نقدي','خالد ادم جبريل بشير'],
-    ['2026-07-07','2200',accNames[0]||'البنك الأهلي','اسم المستفيد','REF123','بيان العملية','']
+    ['صادر','2026-07-05','1500','البنك الأهلي','خالد ادم جبريل بشير','','سحب نقدي','خالد ادم جبريل بشير'],
+    ['صادر','2026-07-07','2200',accNames[0]||'البنك الأهلي','اسم المستفيد','REF123','بيان العملية',''],
+    ['وارد','2026-07-06','5000',accNames[0]||'البنك الأهلي','اسم العميل / مصدر التحويل','REF456','بيان العملية','']
   ];
   var csv='\uFEFF'+headers.join(',')+'\n';
   examples.forEach(function(r){csv+=r.map(function(c){return'"'+c+'"';}).join(',')+'\n';});
   var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='قالب_الصادر_البنكي.csv';
+  a.download='قالب_حركات_البنك.csv';
   a.click();
-  toast('تم تنزيل القالب — أدخل السندات الناقصة ثم ارفعه. الحسابات المتاحة: '+accNames.join('، '));
+  toast('تم تنزيل القالب الشامل (وارد وصادر) — أدخل الحركات الناقصة ثم ارفعه. الحسابات المتاحة: '+accNames.join('، '));
 }
 function importBoFile(input){
-  if(!can('all')){toast('استيراد السندات بالجملة مخصص لمدير النظام فقط','e');input.value='';return;}
+  if(!can('all')){toast('استيراد الحركات بالجملة مخصص لمدير النظام فقط','e');input.value='';return;}
   var file=input.files[0];
   if(!file)return;
   var ext=file.name.split('.').pop().toLowerCase();
@@ -5419,22 +5426,29 @@ function importBoFile(input){
       var lines=text.split('\n').filter(function(l){return l.trim();});
       if(lines.length<2){toast('الملف فارغ أو لا يحتوي على بيانات','e');return;}
 
-      var added=0,skipped=0,errors=[],custodyAdded=0,custodyTotal=0;
+      var addedOut=0,addedIn=0,skipped=0,errors=[],custodyAdded=0,custodyTotal=0;
       var accs=S.data.bankAccounts||[];
       for(var i=1;i<lines.length;i++){
         var cols=parseCSVLine(lines[i]);
-        if(!cols||cols.length<4)continue;
+        if(!cols||cols.length<5)continue;
 
-        var date=(cols[0]||'').trim();
-        var amount=parseFloat(cols[1]);
-        var accName=(cols[2]||'').trim();
-        var to=(cols[3]||'').trim();
-        var ref=(cols[4]||'').trim();
-        var desc=(cols[5]||'').trim();
-        var empName=(cols[6]||'').trim();
+        var typeRaw=(cols[0]||'').trim();
+        var date=(cols[1]||'').trim();
+        var amount=parseFloat(cols[2]);
+        var accName=(cols[3]||'').trim();
+        var party=(cols[4]||'').trim();
+        var ref=(cols[5]||'').trim();
+        var desc=(cols[6]||'').trim();
+        var empName=(cols[7]||'').trim();
 
-        if(!date||!amount||!to){
-          errors.push('سطر '+(i+1)+': بيانات ناقصة (التاريخ/المبلغ/المستفيد)');
+        var isOut=/^صادر$|^out$/i.test(typeRaw);
+        var isIn=/^وارد$|^in$/i.test(typeRaw);
+        if(!isOut&&!isIn){
+          errors.push('سطر '+(i+1)+': نوع الحركة غير مفهوم ("'+typeRaw+'") — يجب أن يكون "وارد" أو "صادر"');
+          skipped++;continue;
+        }
+        if(!date||!amount||!party){
+          errors.push('سطر '+(i+1)+': بيانات ناقصة (التاريخ/المبلغ/الجهة)');
           skipped++;continue;
         }
         if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){
@@ -5446,42 +5460,51 @@ function importBoFile(input){
           errors.push('سطر '+(i+1)+': اسم الحساب "'+accName+'" غير موجود في النظام');
           skipped++;continue;
         }
-        // Link to an existing open custody by employee name.
-        var custodyLink='';
-        if(empName){
-          var cu=(S.data.custodies||[]).find(function(c){return c.name===empName&&c.status==='open';});
-          if(cu)custodyLink=cu.id;
-        }
 
-        if(!S.data.bankOut)S.data.bankOut=[];
-        var rec={
-          id:uid(),num:'',date:date,amount:amount,to:to,
-          phone:'',ref:ref,desc:desc,
-          accId:acc?acc.id:'',accName:acc?acc.name:'',
-          status:'approved',custodyLink:custodyLink,
-          by:S.cu?S.cu.u:'',at:new Date().toISOString(),
-          apAt:new Date().toISOString(),apBy:'استيراد بالجملة — '+td2(),
-          reviewed:false,reviewedBy:'',reviewedAt:''
-        };
-        // Optionally rebuild the custody balance effect (use only when the custody balance
-        // was reset/needs to be rebuilt fresh from this import — normally left off, since
-        // re-adding when the balance is already correct would double-count it).
-        if(addToCustody&&custodyLink){
-          var _entry=addCustodyEntry(custodyLink,amount,desc||('صرف بنكي لـ '+to),'صادر بنكي',date);
-          rec.custodyEntryId=_entry?_entry.id:'';
-          custodyAdded++;custodyTotal+=amount;
+        if(isOut){
+          // Link to an existing open custody by employee name (bank-out only).
+          var custodyLink='';
+          if(empName){
+            var cu=(S.data.custodies||[]).find(function(c){return c.name===empName&&c.status==='open';});
+            if(cu)custodyLink=cu.id;
+          }
+          if(!S.data.bankOut)S.data.bankOut=[];
+          var recOut={
+            id:uid(),num:'',date:date,amount:amount,to:party,
+            phone:'',ref:ref,desc:desc,
+            accId:acc?acc.id:'',accName:acc?acc.name:'',
+            status:'approved',custodyLink:custodyLink,
+            by:S.cu?S.cu.u:'',at:new Date().toISOString(),
+            apAt:new Date().toISOString(),apBy:'استيراد بالجملة — '+td2(),
+            reviewed:false,reviewedBy:'',reviewedAt:''
+          };
+          if(addToCustody&&custodyLink){
+            var _entry=addCustodyEntry(custodyLink,amount,desc||('صرف بنكي لـ '+party),'صادر بنكي',date);
+            recOut.custodyEntryId=_entry?_entry.id:'';
+            custodyAdded++;custodyTotal+=amount;
+          }
+          S.data.bankOut.push(recOut);
+          addedOut++;
+        } else {
+          if(!S.data.bankIn)S.data.bankIn=[];
+          S.data.bankIn.push({
+            id:uid(),num:'',date:date,amount:amount,from:party,
+            ref:ref,desc:desc,
+            accId:acc?acc.id:'',accName:acc?acc.name:'',
+            by:S.cu?S.cu.u:'',at:new Date().toISOString()
+          });
+          addedIn++;
         }
-        S.data.bankOut.push(rec);
-        added++;
       }
 
+      var added=addedOut+addedIn;
       if(added>0){
         assignMissingSerials();
-        alog('استيراد سندات صادر بنكي بالجملة','تم استيراد '+added+' سند من ملف Excel'+(addToCustody?' — وإضافة '+custodyAdded+' قيد بإجمالي '+custodyTotal.toFixed(2)+' ريال لأرصدة العهد':''));
+        alog('استيراد حركات بنكية بالجملة','تم استيراد '+addedOut+' صادر و'+addedIn+' وارد من ملف Excel'+(addToCustody?' — وإضافة '+custodyAdded+' قيد بإجمالي '+custodyTotal.toFixed(2)+' ريال لأرصدة العهد':''));
         sv();loadBk();loadCu();
       }
 
-      var msg='✅ تم استيراد '+added+' سند';
+      var msg='✅ تم استيراد '+addedOut+' صادر و'+addedIn+' وارد';
       if(addToCustody&&custodyAdded>0)msg+=' | تم تحديث '+custodyAdded+' رصيد عهدة بإجمالي '+custodyTotal.toFixed(2)+' ريال';
       if(skipped>0)msg+=' | تجاهل '+skipped+' سطر (راجع التنبيهات)';
       toast(msg,added>0?'s':'w');
