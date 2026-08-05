@@ -22,6 +22,7 @@
 <title>القوافل الخمسة &#8212; نظام الإدارة المتكامل</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -5029,27 +5030,178 @@ function printVoucher(id){
 function exportSettlementExcel(){
   var s=window._lastSettlementSummary;
   if(!s){toast('لا يوجد تقفيل حديث للتصدير','e');return;}
-  var csv='\uFEFF';
-  csv+='"تقرير تقفيل عهدة"\n';
-  csv+='"الموظف","'+s.empName+'"\n';
-  csv+='"رقم الموظف","'+(s.empNum||'—')+'"\n';
-  csv+='"تاريخ التقفيل","'+s.date+'"\n';
-  csv+='"نوع التقفيل","'+s.type+'"\n';
-  csv+='"الرصيد قبل التقفيل","'+fmt(s.opening,3)+'"\n\n';
-  csv+='"التاريخ","البند","مركز التكلفة","المبلغ قبل الضريبة","الضريبة","الإجمالي","السيارة","البيان"\n';
-  s.lineItems.forEach(function(r){
-    csv+='"'+r.date+'","'+r.item+'","'+(r.cc||'—')+'","'+fmt(r.baseAmount,3)+'","'+(r.taxable?fmt(r.taxAmount,3):'—')+'","'+fmt(r.total,3)+'","'+(r.car||'—')+'","'+(r.desc||'')+'"\n';
+  if(typeof ExcelJS==='undefined'){toast('تعذّر تحميل مكتبة Excel — تأكد من الاتصال بالإنترنت وأعد المحاولة','e');return;}
+
+  var NAVY='1A56DB',DARK='0B1F4B',RED='DC2626',GREEN='059669',AMBER='D97706',LIGHT='EFF6FF',GRAY='F3F4F6',WHITE='FFFFFF';
+  function argb(hex){return 'FF'+hex;}
+  function thinBorder(){return {top:{style:'thin',color:{argb:argb('D1D5DB')}},left:{style:'thin',color:{argb:argb('D1D5DB')}},bottom:{style:'thin',color:{argb:argb('D1D5DB')}},right:{style:'thin',color:{argb:argb('D1D5DB')}}};}
+
+  var wb=new ExcelJS.Workbook();
+  wb.creator='نظام القوافل الخمسة';
+  wb.created=new Date();
+  var ws=wb.addWorksheet('تقفيل عهدة',{views:[{rightToLeft:true,showGridLines:false}]});
+  var COLS=8;
+  ws.columns=[{width:13},{width:22},{width:16},{width:14},{width:12},{width:14},{width:14},{width:26}];
+
+  // ── Header banner ──
+  ws.mergeCells(1,1,1,COLS);
+  var titleCell=ws.getCell(1,1);
+  titleCell.value='القوافل الخمسة للخدمات اللوجستية';
+  titleCell.font={name:'Arial',size:16,bold:true,color:{argb:argb(WHITE)}};
+  titleCell.alignment={horizontal:'center',vertical:'middle'};
+  titleCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(DARK)}};
+  ws.getRow(1).height=28;
+
+  ws.mergeCells(2,1,2,COLS);
+  var subCell=ws.getCell(2,1);
+  subCell.value='تقرير تقفيل عهدة';
+  subCell.font={name:'Arial',size:13,bold:true,color:{argb:argb(WHITE)}};
+  subCell.alignment={horizontal:'center',vertical:'middle'};
+  subCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(NAVY)}};
+  ws.getRow(2).height=22;
+
+  // ── Info grid ──
+  var infoRows=[
+    ['الموظف',s.empName,'رقم الموظف',s.empNum||'—'],
+    ['تاريخ التقفيل',s.date,'نوع التقفيل',s.type]
+  ];
+  var r=4;
+  infoRows.forEach(function(pair){
+    ws.mergeCells(r,1,r,2);ws.mergeCells(r,3,r,4);
+    ws.mergeCells(r,5,r,6);ws.mergeCells(r,7,r,8);
+    var lbl1=ws.getCell(r,1);lbl1.value=pair[0]+':  '+pair[1];
+    lbl1.font={name:'Arial',size:11,bold:true,color:{argb:argb(DARK)}};
+    lbl1.alignment={horizontal:'right',vertical:'middle'};
+    lbl1.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(LIGHT)}};
+    var lbl2=ws.getCell(r,5);lbl2.value=pair[2]+':  '+pair[3];
+    lbl2.font={name:'Arial',size:11,bold:true,color:{argb:argb(DARK)}};
+    lbl2.alignment={horizontal:'right',vertical:'middle'};
+    lbl2.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(LIGHT)}};
+    ws.getRow(r).height=20;
+    r++;
   });
-  csv+='\n"إجمالي المصروفات","'+fmt(s.totalExpenses,3)+'"\n';
-  if(s.returned)csv+='"المبلغ المُرجَع للخزينة","'+fmt(s.returned,3)+'"\n';
-  csv+='"الرصيد بعد التقفيل","'+fmt(s.closing,3)+'"\n';
-  csv+='"بواسطة","'+s.by+'"\n';
-  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='تقفيل_عهدة_'+s.empName+'_'+s.date+'.csv';
-  a.click();
-  toast('تم تصدير ملف Excel');
+  r++; // spacer
+
+  // ── Summary boxes (opening / expenses / closing) ──
+  var boxRow=r;
+  var boxes=[
+    ['الرصيد قبل التقفيل',s.opening,AMBER],
+    ['إجمالي المصروفات',s.totalExpenses,RED],
+    ['الرصيد بعد التقفيل',s.closing,s.closing>=0?GREEN:RED]
+  ];
+  var boxColSpan=Math.floor(COLS/3);
+  boxes.forEach(function(b,i){
+    var startCol=i*boxColSpan+1;
+    var endCol=(i===boxes.length-1)?COLS:(startCol+boxColSpan-1);
+    ws.mergeCells(boxRow,startCol,boxRow,endCol);
+    ws.mergeCells(boxRow+1,startCol,boxRow+1,endCol);
+    var lblCell=ws.getCell(boxRow,startCol);
+    lblCell.value=b[0];
+    lblCell.font={name:'Arial',size:10,color:{argb:argb('6B7280')}};
+    lblCell.alignment={horizontal:'center'};
+    var valCell=ws.getCell(boxRow+1,startCol);
+    valCell.value=b[1];
+    valCell.numFmt='#,##0.00 "ريال"';
+    valCell.font={name:'Arial',size:14,bold:true,color:{argb:argb(b[2])}};
+    valCell.alignment={horizontal:'center'};
+    for(var c=startCol;c<=endCol;c++){
+      ws.getCell(boxRow,c).border=thinBorder();
+      ws.getCell(boxRow+1,c).border=thinBorder();
+    }
+  });
+  ws.getRow(boxRow).height=16;
+  ws.getRow(boxRow+1).height=24;
+  r=boxRow+3;
+
+  if(s.returned){
+    ws.mergeCells(r,1,r,COLS);
+    var retCell=ws.getCell(r,1);
+    retCell.value='💰 تم إرجاع '+s.returned.toFixed(2)+' ريال للخزينة ضمن هذا التقفيل';
+    retCell.font={name:'Arial',size:11,bold:true,color:{argb:argb(GREEN)}};
+    retCell.alignment={horizontal:'center'};
+    retCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb('ECFDF5')}};
+    r+=2;
+  } else {
+    r++;
+  }
+
+  // ── Line items table ──
+  var headerRow=r;
+  var headers=['التاريخ','البند','مركز التكلفة','المبلغ','الضريبة','الإجمالي','السيارة','البيان'];
+  headers.forEach(function(h,i){
+    var cell=ws.getCell(headerRow,i+1);
+    cell.value=h;
+    cell.font={name:'Arial',size:11,bold:true,color:{argb:argb(WHITE)}};
+    cell.alignment={horizontal:'center',vertical:'middle'};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(NAVY)}};
+    cell.border=thinBorder();
+  });
+  ws.getRow(headerRow).height=22;
+  r++;
+
+  s.lineItems.forEach(function(item,idx){
+    var rowBg=idx%2===0?WHITE:GRAY;
+    var vals=[item.date,item.item,item.cc||'—',item.baseAmount,item.taxable?item.taxAmount:0,item.total,item.car||'—',item.desc||''];
+    vals.forEach(function(v,i){
+      var cell=ws.getCell(r,i+1);
+      cell.value=v;
+      cell.font={name:'Arial',size:10.5};
+      cell.alignment={horizontal:(i===3||i===4||i===5)?'left':'right',vertical:'middle'};
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(rowBg)}};
+      cell.border=thinBorder();
+      if(i===3||i===5)cell.numFmt='#,##0.000';
+      if(i===4)cell.numFmt=item.taxable?'#,##0.000':'@';
+      if(i===5)cell.font={name:'Arial',size:10.5,bold:true,color:{argb:argb(NAVY)}};
+    });
+    r++;
+  });
+  if(!s.lineItems.length){
+    ws.mergeCells(r,1,r,COLS);
+    var emptyCell=ws.getCell(r,1);
+    emptyCell.value='لا توجد بنود مصروفات';
+    emptyCell.font={name:'Arial',size:11,color:{argb:argb('9CA3AF')}};
+    emptyCell.alignment={horizontal:'center'};
+    r++;
+  }
+
+  // ── Totals row ──
+  ws.mergeCells(r,1,r,5);
+  var totLbl=ws.getCell(r,1);
+  totLbl.value='الإجمالي';
+  totLbl.font={name:'Arial',size:11,bold:true,color:{argb:argb(WHITE)}};
+  totLbl.alignment={horizontal:'right',vertical:'middle'};
+  totLbl.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(DARK)}};
+  var totVal=ws.getCell(r,6);
+  totVal.value=s.totalExpenses;
+  totVal.numFmt='#,##0.000';
+  totVal.font={name:'Arial',size:11,bold:true,color:{argb:argb(WHITE)}};
+  totVal.alignment={horizontal:'left',vertical:'middle'};
+  totVal.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(DARK)}};
+  ws.mergeCells(r,7,r,8);
+  var totFill=ws.getCell(r,7);
+  totFill.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(DARK)}};
+  for(var c=1;c<=COLS;c++)ws.getCell(r,c).border=thinBorder();
+  ws.getRow(r).height=22;
+  r+=2;
+
+  // ── Footer ──
+  ws.mergeCells(r,1,r,COLS);
+  var footCell=ws.getCell(r,1);
+  footCell.value='صادر من نظام القوافل الخمسة — بواسطة '+s.by+' — '+new Date().toLocaleDateString('ar-SA');
+  footCell.font={name:'Arial',size:9,italic:true,color:{argb:argb('9CA3AF')}};
+  footCell.alignment={horizontal:'center'};
+
+  wb.xlsx.writeBuffer().then(function(buf){
+    var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='تقفيل_عهدة_'+s.empName+'_'+s.date+'.xlsx';
+    a.click();
+    toast('✅ تم تصدير ملف Excel بتنسيق كامل');
+  }).catch(function(err){
+    console.error('Excel export error:',err);
+    toast('تعذّر إنشاء ملف Excel: '+err.message,'e');
+  });
 }
 
 function exportSettlementPDF(){
