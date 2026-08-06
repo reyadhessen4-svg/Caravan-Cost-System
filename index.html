@@ -497,7 +497,7 @@ tbody tr:hover td{background:var(--ltr)}
           </div>
         </div>
         <div class="tw"><table id="baTbl">
-          <thead><tr><th>رقم السند</th><th>التاريخ</th><th>الحساب</th><th>النوع</th><th>المبلغ</th><th>الرصيد</th><th>المستفيد/المصدر</th><th>رقم العملية</th><th>البيان</th></tr></thead>
+          <thead><tr><th>رقم السند</th><th>التاريخ</th><th>الحساب</th><th>وارد</th><th>منصرف</th><th>الرصيد</th><th>المستفيد/المصدر</th><th>رقم العملية</th><th>البيان</th></tr></thead>
           <tbody id="baTbd"></tbody>
         </table></div>
       </div>
@@ -4673,21 +4673,33 @@ function loadBA(){
 
   var all=[...biAll,...boAll].sort(function(a,b){return b.date.localeCompare(a.date);});
 
-  // Running balance per account
+  // Running balance per account — start from the true current balance, then reverse the
+  // effect of any transactions dated AFTER the viewed month, so the balance shown for the
+  // most recent row in THIS filtered view is correct even when viewing a past month.
   var runBal={};
-  getBankAccounts().forEach(function(a){runBal[a.id]=getAccBalance(a.id);});
+  getBankAccounts().forEach(function(a){
+    var curBal=getAccBalance(a.id);
+    var afterIn=S.data.bankIn.filter(function(b){return b.accId===a.id&&b.date.slice(0,7)>monthF;}).reduce(function(s,b){return s+b.amount;},0);
+    var afterOut=S.data.bankOut.filter(function(b){return b.accId===a.id&&b.date.slice(0,7)>monthF;}).reduce(function(s,b){return s+b.amount;},0);
+    runBal[a.id]=curBal-afterIn+afterOut;
+  });
 
   G('baTbd').innerHTML=all.length?all.map(function(t){
     var isIn=t.type==='وارد';
     var acc=getBankAccounts().find(function(a){return a.id===t.accId;});
     var accColor=acc?acc.color:'var(--gr)';
+    // Rows are sorted newest-first. runBal[accId] currently holds the balance AS OF this
+    // row (i.e., right after this transaction happened) — show that, then roll it back by
+    // reversing this transaction's effect so the NEXT (older) row gets its correct balance.
+    var dispBal=(runBal[t.accId]!==undefined)?runBal[t.accId]:getAccBalance(t.accId);
+    if(runBal[t.accId]!==undefined)runBal[t.accId]=dispBal-(isIn?t.amount:-t.amount);
     return '<tr>'+
       '<td style="font-family:monospace;font-weight:700;color:'+(t.num?'var(--ry)':'var(--dn)')+'">'+(t.num||'⚠️ بدون سريال')+'</td>'+
       '<td style="font-family:monospace;white-space:nowrap">'+t.date+'</td>'+
       '<td><span style="background:'+accColor+'22;color:'+accColor+';border:1px solid '+accColor+'44;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">'+(t.accName||'—')+'</span></td>'+
-      '<td><span class="bdg '+(isIn?'bn':'br')+'">'+t.type+'</span></td>'+
-      '<td style="font-weight:700;font-family:monospace;color:'+(isIn?'var(--sc)':'var(--dn)')+'">'+(isIn?'+':'-')+fR(t.amount)+'</td>'+
-      '<td style="font-family:monospace;color:var(--ry)">'+fR(getAccBalance(t.accId))+'</td>'+
+      '<td style="font-weight:700;font-family:monospace;color:var(--sc)">'+(isIn?fR(t.amount):'—')+'</td>'+
+      '<td style="font-weight:700;font-family:monospace;color:var(--dn)">'+(!isIn?fR(t.amount):'—')+'</td>'+
+      '<td style="font-family:monospace;color:var(--ry)">'+fR(dispBal)+'</td>'+
       '<td>'+(t.party||'—')+'</td>'+
       '<td style="font-size:12px;font-family:monospace;color:var(--gr)">'+(t.ref||'—')+'</td>'+
       '<td style="font-size:12px;color:var(--gr)">'+(t.desc||'—')+'</td>'+
