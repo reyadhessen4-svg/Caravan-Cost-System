@@ -1110,6 +1110,9 @@ var _firebaseUnconfirmed=false; // true only when the initial Firebase read time
 // we do NOT know the true server data, so writes are blocked and auto-seeding is disabled to
 // prevent silently overwriting real production data with an empty/stale local fallback.
 function sv(){
+  // SAFETY: Never save empty data to Firebase
+  var hasUsers=S.data.users&&S.data.users.length>0;
+  if(!hasUsers){console.warn('sv() blocked: empty data');return;}
   // Always save to localStorage as backup
   try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){}
   // Protect this local change from being clobbered by an incoming realtime snapshot
@@ -1170,7 +1173,7 @@ function ld(){
       _loadLocal();
       _startListener();
       toast('تعذّر الاتصال بالسيرفر — تم التحميل من الذاكرة المحلية (وضع آمن: لن يتم الكتابة على السيرفر حتى يتأكد الاتصال)','w');
-    },8000);
+    },20000);
 
     DB.ref(DB_REF).once('value').then(function(snap){
       clearTimeout(_fbTimeout);
@@ -1251,6 +1254,10 @@ function _startListener(){
   DB.ref(DB_REF).on('value',function(snap){
     var d=snap.val();
     if(!d||!d.users)return;
+    // Safety: ignore empty Firebase data if user is logged in
+    if(S.cu&&(!d.expenses||!d.expenses.length)&&(!d.receipts||!d.receipts.length)){
+      console.warn('Firebase returned empty data - ignoring');return;
+    }
     _firebaseUnconfirmed=false; // genuine data received — connection is confirmed, writes can resume
     if(Date.now()<_localChangeGraceUntil){
       // A local change was just made (or is being saved) — skip this snapshot so it can't be
