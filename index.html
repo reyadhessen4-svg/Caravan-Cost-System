@@ -1259,6 +1259,26 @@ function _showLoginPage(){
 /* ── Realtime listener: sync changes from other users ── */
 var _listenerActive=false;
 function _startListener(){
+  // Monitor Firebase connection state in real-time
+  if(DB){
+    DB.ref('.info/connected').on('value', function(snap){
+      var connected = snap.val();
+      if(connected){
+        // Connected
+        var banner=document.getElementById('fbWarnBanner');
+        if(banner)banner.style.display='none';
+        if(_pendingSave){
+          _pendingSave=false;
+          _firebaseUnconfirmed=false;
+          setTimeout(sv,500);
+          toast('✅ عاد الاتصال بالسيرفر — جاري حفظ البيانات','i');
+        }
+      } else {
+        // Disconnected
+        showFirebaseWarning();
+      }
+    });
+  }
   if(_listenerActive||!DB)return;
   _listenerActive=true;
   DB.ref(DB_REF).on('value',function(snap){
@@ -1501,6 +1521,22 @@ function initApp(){
   }
   if(window.innerWidth<=768)G('menuBtn').style.display='';
   setTimeout(function(){assignMissingSerials();},2000);
+  // Check Firebase connection status after 3 seconds
+  setTimeout(function(){
+    if(_firebaseUnconfirmed){
+      showFirebaseWarning();
+    }
+  },3000);
+  // Keep checking every 10 seconds
+  setInterval(function(){
+    var banner=document.getElementById('fbWarnBanner');
+    if(!banner)return;
+    if(_firebaseUnconfirmed){
+      banner.style.display='flex';
+    } else {
+      banner.style.display='none';
+    }
+  },5000);
 }
 function fillDrops(){['op-c','pr-c'].forEach(id=>{var s=G(id);if(!s)return;s.innerHTML='<option value="">اختر العميل</option>';S.data.clients.forEach(c=>{var o=document.createElement('option');o.value=c.id;o.textContent=c.name;s.appendChild(o);});});var cf=G('opClF');if(cf){cf.innerHTML='<option value="">كل العملاء</option>';S.data.clients.forEach(c=>{var o=document.createElement('option');o.value=c.id;o.textContent=c.name;cf.appendChild(o);});}var cs=G('ce-c');if(cs){cs.innerHTML='<option value="">اختر الموظف</option>';S.data.custodies.filter(c=>c.status==='open').forEach(c=>{var o=document.createElement('option');o.value=c.id;o.textContent=c.name;cs.appendChild(o);});}
 var ci=G('clInsF');if(ci){var ins=[...new Set(S.data.claims.map(c=>c.insC).filter(Boolean))];ins.forEach(ic=>{var o=document.createElement('option');o.value=ic;o.textContent=ic;ci.appendChild(o);});}
@@ -6029,6 +6065,36 @@ function loadStm(){var f=V('stF'),t=V('stT');if(!f||!t){toast('يرجى تحدي
 function loadBkStm(){var f=V('bkStF'),t=V('bkStT');if(!f||!t){toast('يرجى تحديد الفترة','w');return;}var accId=G('bkStmAcc')?G('bkStmAcc').value:'';var accName=accId?(S.data.bankAccounts||[]).find(function(a){return a.id===accId;}):'';accName=accName?accName.name:'كل الحسابات';var allBi=(S.data.bankIn||[]).filter(function(b){return !accId||b.accId===accId;});var allBo=(S.data.bankOut||[]).filter(function(b){return(!accId||b.accId===accId)&&b.status==='approved';});var oI=allBi.filter(function(b){return b.date<f;}).reduce(function(s,b){return s+b.amount;},0);var oO=allBo.filter(function(b){return b.date<f;}).reduce(function(s,b){return s+b.amount;},0);var accBal=accId?((S.data.bankAccounts||[]).find(function(a){return a.id===accId;})||{}).balance||0:0;var openBal=accBal+oI-oO;var bI=allBi.filter(function(b){return b.date>=f&&b.date<=t;});var bO=allBo.filter(function(b){return b.date>=f&&b.date<=t;});var tI=bI.reduce(function(s,b){return s+b.amount;},0);var tO=bO.reduce(function(s,b){return s+b.amount;},0);var closeBal=openBal+tI-tO;var rows=bI.map(function(b){return{d:b.date,num:b.num||'',desc:b.desc||b.from||'',acc:b.accName||'',type:'وارد',in:b.amount,out:0};}).concat(bO.map(function(b){return{d:b.date,num:b.num||'',desc:b.desc||b.to||'',acc:b.accName||'',type:'صادر',in:0,out:b.amount};})).sort(function(a,b){return a.d.localeCompare(b.d);});var run=openBal;var rHtml=rows.map(function(r){run+=r.in-r.out;return'<tr><td style="font-family:monospace">'+r.d+'</td><td style="font-size:11px;color:var(--gr)">'+r.num+'</td><td>'+r.desc+'</td>'+(!accId?'<td style="font-size:11px">'+r.acc+'</td>':'')+'<td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td><td style="color:var(--sc);font-family:monospace">'+(r.in?fR(r.in):'')+'</td><td style="color:var(--dn);font-family:monospace">'+(r.out?fR(r.out):'')+'</td><td style="font-weight:700;font-family:monospace;color:'+(run>=0?'var(--sc)':'var(--dn)')+'">'+fR(run)+'</td></tr>';}).join('');G('bkStmC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">رصيد افتتاحي</div><div class="mv2" style="color:var(--ry)">'+fR(openBal)+'</div><div class="ms2">قبل '+f+'</div></div><div class="met mg"><div class="ml2">وارد</div><div class="mv2">'+fR(tI)+'</div></div><div class="met mr"><div class="ml2">صادر</div><div class="mv2">'+fR(tO)+'</div></div><div class="met '+(closeBal>=0?'mg':'mr')+'"><div class="ml2">رصيد ختامي</div><div class="mv2">'+fR(closeBal)+'</div></div></div><div style="margin-bottom:8px;text-align:left"><button class="btn bsm" onclick="exportBkStmExcel()">Excel</button></div><div class="tw"><table id="bkStmTbl"><thead><tr><th>التاريخ</th><th>السند</th><th>البيان</th>'+(!accId?'<th>الحساب</th>':'')+'<th>النوع</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody>'+rHtml+'</tbody></table></div>';window._bkStmData={f:f,t:t,accName:accName,openingBal:openBal,tI:tI,tO:tO,closingBal:closeBal,rows:rows,accId:accId};}
 function exportBkStmExcel(){var d=window._bkStmData;if(!d){toast('يرجى عرض الكشف اولا','w');return;}var rows2=[['التاريخ','السند','البيان',(d.accId?'':'الحساب,')+'النوع','وارد','صادر','الرصيد']];var run=d.openingBal;d.rows.forEach(function(r){run+=r.in-r.out;rows2.push([r.d,r.num,r.desc,(d.accId?'':r.acc+','),r.type,r.in||'',r.out||'',run]);});var csv='\uFEFF'+'كشف بنك — '+d.accName+'\n'+'من '+d.f+' الى '+d.t+'\n\n'+'رصيد افتتاحي,'+d.openingBal+'\n\n'+rows2.map(function(r){return r.map(function(c){return '"'+c+'"';}).join(',');}).join('\n')+'\n\nاجمالي الوارد,'+d.tI+'\nاجمالي الصادر,'+d.tO+'\nالرصيد الختامي,'+d.closingBal;var b=new Blob([csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='bank_'+d.f+'_'+d.t+'.csv';a.click();toast('تم التصدير');}
 function printCuReport(cuid,dateFrom,dateTo){var cu=S.data.custodies.find(function(c){return c.id===cuid;});if(!cu)return;if(!dateFrom){var f=prompt('من تاريخ (YYYY-MM-DD):\naتركه فارغا لكل التاريخ');if(f===null)return;var t=prompt('الى تاريخ (YYYY-MM-DD):\naتركه فارغا لليوم');if(t===null)return;dateFrom=f.trim()||'';dateTo=t.trim()||td2();}var allEn=(S.data.custodyEnts||[]).filter(function(e){return e.cid===cuid;});allEn.sort(function(a,b){return(a.date||'').localeCompare(b.date||'');});var prevEn=dateFrom?allEn.filter(function(e){return e.date<dateFrom;}):[];var pTop=prevEn.filter(function(e){return e.isTopup&&!e.isReturn&&e.addedToOpening>0;}).reduce(function(s,e){return s+e.addedToOpening;},0);var pSp=prevEn.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);var pRO=prevEn.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);var pRN=prevEn.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);var openBal=dateFrom?(cu.opening+pTop-pSp-pRO-pRN):cu.opening;var en=allEn.filter(function(e){if(dateFrom&&e.date<dateFrom)return false;if(dateTo&&e.date>dateTo)return false;return true;});var rows=[];var run=openBal;rows.push({date:dateFrom||cu.date,num:'',type:'رصيد مرحل',item:dateFrom?'رصيد اول الفترة':'فتح العهدة',in:openBal,out:0,bal:openBal,by:'',c:'#D97706'});en.forEach(function(e){var isRet=e.amount<0||(e.isReturn&&e.amount===0);var isTop=e.isTopup||(!e.isReturn&&e.addedToOpening>0);var amt=e.amount!==0?Math.abs(e.amount):Math.abs(e.addedToOpening||0);if(isTop&&!e.isReturn){run+=amt;rows.push({date:e.date,num:e.receiptNum||e.num||'',type:'اضافة',item:e.item||e.desc||'اضافة رصيد',in:amt,out:0,bal:run,by:e.by||'',c:'#059669'});}else if(isRet){run-=amt;rows.push({date:e.date,num:e.receiptNum||e.num||'',type:'ارجاع',item:e.item||'ارجاع للخزينة',in:0,out:amt,bal:run,by:e.by||'',c:'#F59E0B'});}else if(e.amount>0){run-=e.amount;rows.push({date:e.date,num:e.receiptNum||e.num||'',type:'مصروف',item:e.item||e.desc||'مصروف',in:0,out:e.amount,bal:run,by:e.by||'',c:'#DC2626'});}});var perSp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);var pRO2=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);var pRN2=en.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);var perRet=pRO2+pRN2;var closeBal=openBal-perSp-perRet;var period=(dateFrom&&dateTo)?'من '+dateFrom+' الى '+dateTo:(dateFrom?'من '+dateFrom:dateTo?'حتى '+dateTo:'كامل الفترة');var rHtml=rows.map(function(r){return'<tr><td style="font-family:monospace;font-size:11px">'+r.date+'</td><td style="font-size:11px;color:#666">'+r.num+'</td><td><span style="background:'+r.c+'22;color:'+r.c+';border-radius:4px;padding:2px 6px;font-size:11px">'+r.type+'</span></td><td>'+r.item+'</td><td style="color:#059669;font-family:monospace;text-align:left">'+(r.in?r.in.toLocaleString('en-US'):'')+'</td><td style="color:#DC2626;font-family:monospace;text-align:left">'+(r.out?r.out.toLocaleString('en-US'):'')+'</td><td style="font-weight:700;font-family:monospace;text-align:left;color:'+(r.bal>=0?'#059669':'#DC2626')+'">'+r.bal.toLocaleString('en-US')+'</td><td style="font-size:11px;color:#666">'+r.by+'</td></tr>';}).join('');var html='<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير عهدة</title><style>body{font-family:Arial;padding:20px;font-size:13px}table{width:100%;border-collapse:collapse}th{background:#1A56DB;color:#fff;padding:8px;text-align:right}td{padding:6px 8px;border:1px solid #ddd;text-align:right}tr:nth-child(even){background:#f9f9f9}@media print{@page{margin:10mm}}</style></head><body><div style="text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px"><div style="font-size:18px;font-weight:900">القوافل الخمسة للخدمات اللوجستية</div><div style="font-size:14px;font-weight:700;margin-top:4px">تقرير العهدة الشخصية</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;border:1px solid #ddd;border-radius:6px;padding:10px"><div><b>الموظف:</b> '+cu.name+'</div><div><b>الرقم:</b> '+(cu.num||'')+'</div><div><b>تاريخ الانشاء:</b> '+cu.date+'</div><div><b>الحالة:</b> '+(cu.status==='open'?'مفتوحة':'مغلقة')+'</div></div><div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:8px;text-align:center;margin-bottom:12px;font-weight:700;color:#1D4ED8">الفترة: '+period+'</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px"><div style="border:1px solid #ddd;border-radius:6px;padding:8px;text-align:center"><div style="font-size:11px;color:#666">رصيد اول الفترة</div><div style="font-size:15px;font-weight:700;color:#D97706;font-family:monospace">'+openBal.toLocaleString('en-US')+'</div></div><div style="border:1px solid #ddd;border-radius:6px;padding:8px;text-align:center"><div style="font-size:11px;color:#666">المصروف</div><div style="font-size:15px;font-weight:700;color:#DC2626;font-family:monospace">'+perSp.toLocaleString('en-US')+'</div></div><div style="border:1px solid #ddd;border-radius:6px;padding:8px;text-align:center"><div style="font-size:11px;color:#666">المرجع</div><div style="font-size:15px;font-weight:700;color:#F59E0B;font-family:monospace">'+perRet.toLocaleString('en-US')+'</div></div><div style="border:1px solid '+(closeBal>=0?'#059669':'#DC2626')+';border-radius:6px;padding:8px;text-align:center"><div style="font-size:11px;color:#666">رصيد اخر الفترة</div><div style="font-size:15px;font-weight:700;color:'+(closeBal>=0?'#059669':'#DC2626')+';font-family:monospace">'+closeBal.toLocaleString('en-US')+'</div></div></div><table><thead><tr><th>التاريخ</th><th>المستند</th><th>النوع</th><th>البند</th><th>وارد</th><th>صادر</th><th>الرصيد</th><th>بواسطة</th></tr></thead><tbody>'+rHtml+'</tbody></table></body></html>';var w=window.open('','_blank','width=1100,height=850');w.document.write(html);w.document.close();setTimeout(function(){w.print();},500);}
+
+
+function showFirebaseWarning(){
+  var banner=document.getElementById('fbWarnBanner');
+  if(banner){banner.style.display='flex';return;}
+  // Create warning banner
+  var b=document.createElement('div');
+  b.id='fbWarnBanner';
+  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#DC2626;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--fn);font-size:13px;font-weight:600;direction:rtl;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+  b.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">⚠️</span><span>تحذير: النظام غير متصل بالسيرفر — البيانات المسجّلة لن تُحفظ حتى يعود الاتصال</span></div>'+
+    '<button onclick="checkFirebaseNow()" style="background:#fff;color:#DC2626;border:none;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer;font-family:var(--fn);white-space:nowrap">إعادة الاتصال</button>';
+  document.body.prepend(b);
+}
+
+function checkFirebaseNow(){
+  toast('جاري إعادة الاتصال...','i');
+  DB.ref('/qawafil/users').once('value').then(function(snap){
+    if(snap.val()){
+      _firebaseUnconfirmed=false;
+      var banner=document.getElementById('fbWarnBanner');
+      if(banner)banner.style.display='none';
+      toast('✅ تم الاتصال بالسيرفر','i');
+      if(_pendingSave){_pendingSave=false;setTimeout(sv,500);}
+    } else {
+      toast('لا تزال هناك مشكلة في الاتصال','e');
+    }
+  }).catch(function(){
+    toast('تعذّر الاتصال — تحقق من الإنترنت','e');
+  });
+}
 
 /* ─── KEYBOARD & EVENTS ─── */
 // Warn user before closing if Firebase save is pending
