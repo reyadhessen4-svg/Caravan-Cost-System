@@ -1106,7 +1106,8 @@ var _modalZCounter=300; // each OM() call increments this, so newly-opened modal
 var _localChangeGraceUntil=0; // while Date.now() is before this, incoming realtime snapshots are ignored
 // so a just-made local change (e.g. a deletion) can't be silently overwritten by a stale/echoed
 // snapshot before its own save has had time to complete.
-var _firebaseUnconfirmed=false; // true only when the initial Firebase read timed out — in this state
+var _firebaseUnconfirmed=false;
+var _pendingSave=false; // true when a save was attempted while Firebase was unconfirmed // true only when the initial Firebase read timed out — in this state
 // we do NOT know the true server data, so writes are blocked and auto-seeding is disabled to
 // prevent silently overwriting real production data with an empty/stale local fallback.
 function sv(){
@@ -1127,12 +1128,10 @@ function sv(){
       // could silently overwrite real production data with a stale/empty local snapshot.
       // Refuse and make it visible instead of saving.
       setSyncIcon('error');
-      console.warn('Firebase unconfirmed - will retry in 3s');
-      // Retry after 3 seconds instead of blocking
-      setTimeout(function(){
-        if(!_firebaseUnconfirmed){sv();}
-        else{toast('⚠️ تعذّر الاتصال بالسيرفر — تحقق من الإنترنت','w');}
-      },3000);
+      console.warn('Firebase unconfirmed - queuing save for when connection is confirmed');
+      // Queue the save - will be flushed when Firebase confirms
+      _pendingSave=true;
+      toast('⏳ سيتم الحفظ تلقائياً عند تأكيد الاتصال','i');
       return;
     }
     setSyncIcon('saving');
@@ -1263,6 +1262,13 @@ function _startListener(){
       console.warn('Firebase returned empty data - ignoring');return;
     }
     _firebaseUnconfirmed=false; // genuine data received — connection is confirmed, writes can resume
+    // Flush any pending save that was blocked
+    if(_pendingSave){
+      _pendingSave=false;
+      console.log('Flushing pending save after Firebase confirmation');
+      toast('✅ تم استعادة الاتصال — جاري حفظ البيانات','i');
+      setTimeout(sv,500);
+    }
     if(Date.now()<_localChangeGraceUntil){
       // A local change was just made (or is being saved) — skip this snapshot so it can't be
       // silently overwritten. The pending save (or its echo) will reconcile state shortly.
