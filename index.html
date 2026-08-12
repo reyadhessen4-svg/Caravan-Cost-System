@@ -1257,18 +1257,16 @@ function _startListener(){
   DB.ref(DB_REF).on('value',function(snap){
     var d=snap.val();
     if(!d||!d.users)return;
-    // Safety: ignore empty Firebase data if user is logged in
-    if(S.cu&&(!d.expenses||!d.expenses.length)&&(!d.receipts||!d.receipts.length)){
+    // Firebase confirmed - clear the unconfirmed flag regardless
+    if(_firebaseUnconfirmed){
+      _firebaseUnconfirmed=false;
+      if(_pendingSave){_pendingSave=false;setTimeout(sv,500);toast('✅ تم استعادة الاتصال — جاري الحفظ','i');}
+    }
+    // Safety: ignore empty Firebase data if user is logged in with data
+    if(S.cu&&S.data.users&&S.data.users.length>0&&(!d.expenses||!d.expenses.length)&&(!d.receipts||!d.receipts.length)){
       console.warn('Firebase returned empty data - ignoring');return;
     }
-    _firebaseUnconfirmed=false; // genuine data received — connection is confirmed, writes can resume
-    // Flush any pending save that was blocked
-    if(_pendingSave){
-      _pendingSave=false;
-      console.log('Flushing pending save after Firebase confirmation');
-      toast('✅ تم استعادة الاتصال — جاري حفظ البيانات','i');
-      setTimeout(sv,500);
-    }
+    // _firebaseUnconfirmed already cleared above
     if(Date.now()<_localChangeGraceUntil){
       // A local change was just made (or is being saved) — skip this snapshot so it can't be
       // silently overwritten. The pending save (or its echo) will reconcile state shortly.
