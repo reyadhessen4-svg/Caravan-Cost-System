@@ -1194,7 +1194,7 @@ function ld(){
         _firebaseUnconfirmed=true;
         setSyncIcon('error');
         _loadLocal();
-        toast('⚠️ تعذّر تأكيد بيانات السيرفر عند التحميل — تم الدخول في وضع آمن (لن يتم الكتابة حتى يتأكد الاتصال بالبيانات الحقيقية)','w');
+        toast('جاري الاتصال بالسيرفر...','i');
       }
       _showLoginPage();
       _tryAutoLogin();
