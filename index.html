@@ -1075,7 +1075,7 @@ tbody tr:hover td{background:var(--ltr)}
 <script>
 "use strict";
 var S={cu:null,data:{users:[],employees:[],deletedEmployees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],clients:[],costCenters:[],customRoles:[],systemStartDate:'',prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
-var BK_KEY='qawafil_v14'; // localStorage fallback key
+var BK_KEY='qawafil_v13'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
 var AUDIT_REF=DB_REF+'/auditLog'; // Durable, append-only child of the SAME already-permitted path.
@@ -1111,9 +1111,15 @@ var _pendingSave=false; // true when a save was attempted while Firebase was unc
 // we do NOT know the true server data, so writes are blocked and auto-seeding is disabled to
 // prevent silently overwriting real production data with an empty/stale local fallback.
 function sv(){
-  // SAFETY: Never save empty data to Firebase
+  // SAFETY: Never save empty/incomplete data to Firebase
   var hasUsers=S.data.users&&S.data.users.length>0;
-  if(!hasUsers){console.warn('sv() blocked: empty data');return;}
+  var hasData=S.data.expenses&&S.data.expenses.length>0||
+              S.data.receipts&&S.data.receipts.length>0||
+              S.data.employees&&S.data.employees.length>0||
+              S.data.custodies&&S.data.custodies.length>0;
+  // Block if no users OR if this looks like a fresh/empty dataset being saved over real data
+  if(!hasUsers){console.warn('sv() blocked: no users');return;}
+  if(!hasData&&_firebaseUnconfirmed){console.warn('sv() blocked: empty data while Firebase unconfirmed');return;}
   // Always save to localStorage as backup
   try{localStorage.setItem(BK_KEY,JSON.stringify(S.data));}catch(e){}
   // Protect this local change from being clobbered by an incoming realtime snapshot
@@ -1620,7 +1626,9 @@ function backupData(){
   var b=new Blob([JSON.stringify(S.data,null,2)],{type:'application/json'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(b);
-  a.download='qawafil_backup_'+td2()+'.json';
+  var now=new Date();
+  var timeStr=String(now.getHours()).padStart(2,'0')+'-'+String(now.getMinutes()).padStart(2,'0');
+  a.download='qawafil_backup_'+td2()+'_'+timeStr+'.json';
   a.click();
   try{localStorage.setItem('qawafil_lastBackup',td2());}catch(e){}
   var banner=G('backupReminderBanner');
