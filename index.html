@@ -1127,8 +1127,12 @@ function sv(){
       // could silently overwrite real production data with a stale/empty local snapshot.
       // Refuse and make it visible instead of saving.
       setSyncIcon('error');
-      console.warn('Skipped Firebase write: connection was never confirmed this session.');
-      toast('⚠️ لم يتم الحفظ في السيرفر — تعذّر تأكيد الاتصال. أعد تحميل الصفحة بعد التأكد من الإنترنت','e');
+      console.warn('Firebase unconfirmed - will retry in 3s');
+      // Retry after 3 seconds instead of blocking
+      setTimeout(function(){
+        if(!_firebaseUnconfirmed){sv();}
+        else{toast('⚠️ تعذّر الاتصال بالسيرفر — تحقق من الإنترنت','w');}
+      },3000);
       return;
     }
     setSyncIcon('saving');
