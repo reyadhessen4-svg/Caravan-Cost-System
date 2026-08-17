@@ -6346,11 +6346,9 @@ function printVehItemReport(){
   var printDate=new Date().toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
 
   // Build header row
-  var thCols='<th style="padding:6px 8px;background:#1A56DB;color:#fff;border:1px solid #1A56DB;text-align:right">السيارة</th>'+
-    items.map(function(item){
-      return '<th style="padding:6px 8px;background:#1A56DB;color:#fff;border:1px solid #1A56DB;text-align:center;font-size:10px;white-space:nowrap">'+item+'</th>';
-    }).join('')+
-    '<th style="padding:6px 8px;background:#0B1F4B;color:#fff;border:1px solid #0B1F4B;text-align:center">الإجمالي</th>';
+  var thCols='<th style="text-align:right;background:#1A56DB;color:#fff">السيارة</th>'+
+    items.map(function(item){return '<th>'+item+'</th>';}).join('')+
+    '<th style="background:#0B1F4B;color:#fff">الإجمالي</th>';
 
   // Build data rows
   var dataRows=sortedVehs.map(function(v){
@@ -6358,27 +6356,24 @@ function printVehItemReport(){
     var pct=grandTotal?Math.round(v.total/grandTotal*100):0;
     var cols=items.map(function(item){
       var val=v.items[item]||0;
-      return '<td style="padding:6px 8px;border:1px solid #E5E7EB;text-align:center;font-family:monospace;font-size:10px;color:'+(val>0?'#111':'#ccc')+'">'+
+      return '<td style="color:'+(val>0?'#111':'#ccc')+';font-family:monospace">'+
         (val>0?val.toLocaleString('en-US'):'—')+'</td>';
     }).join('');
     return '<tr>'+
-      '<td style="padding:6px 8px;border:1px solid #E5E7EB;white-space:nowrap">'+
-        '<div style="font-weight:700;font-family:monospace;font-size:12px">'+v.vehNum+' '+v.vehLetters+'</div>'+
-        (vehInfo?'<div style="font-size:9px;color:#666">'+vehInfo.make+'</div>':'')+
-        '<div style="font-size:9px;color:#1D4ED8;font-weight:600">'+pct+'%</div>'+
+      '<td style="text-align:right">'+
+        '<b style="font-family:monospace">'+v.vehNum+' '+v.vehLetters+'</b>'+
+        (vehInfo?' <span style="color:#666;font-size:8px">'+vehInfo.make+'</span>':'')+
+        ' <span style="color:#1D4ED8;font-size:8px">('+pct+'%)</span>'+
       '</td>'+cols+
-      '<td style="padding:6px 8px;border:1px solid #E5E7EB;text-align:center;font-weight:700;font-family:monospace;background:#FEF9C3">'+v.total.toLocaleString('en-US')+'</td>'+
+      '<td style="font-weight:700;font-family:monospace;background:#FEF9C3">'+v.total.toLocaleString('en-US')+'</td>'+
     '</tr>';
   }).join('');
 
   // Totals row
-  var totalsRow='<tr style="background:#1A56DB11;border-top:2px solid #1A56DB">'+
-    '<td style="padding:6px 8px;border:1px solid #E5E7EB;font-weight:700">الإجمالي</td>'+
-    items.map(function(item){
-      return '<td style="padding:6px 8px;border:1px solid #E5E7EB;text-align:center;font-weight:700;font-family:monospace;font-size:10px">'+
-        itemTotals[item].toLocaleString('en-US')+'</td>';
-    }).join('')+
-    '<td style="padding:6px 8px;border:1px solid #E5E7EB;text-align:center;font-weight:900;font-family:monospace;background:#FEF08A">'+grandTotal.toLocaleString('en-US')+'</td>'+
+  var totalsRow='<tr style="background:#1A56DB22;border-top:2px solid #1A56DB;font-weight:700">'+
+    '<td style="text-align:right;font-weight:700">الإجمالي</td>'+
+    items.map(function(item){return '<td style="font-family:monospace;font-weight:700">'+itemTotals[item].toLocaleString('en-US')+'</td>';}).join('')+
+    '<td style="font-weight:900;font-family:monospace;background:#FEF08A">'+grandTotal.toLocaleString('en-US')+'</td>'+
   '</tr>';
 
   // Item summary
@@ -6404,18 +6399,17 @@ function printVehItemReport(){
   '<style>'+
     '*{box-sizing:border-box;margin:0;padding:0}'+
     'body{font-family:Arial,sans-serif;color:#111;font-size:9px;direction:rtl}'+
-    'h2{font-size:13px}'+
+    'h2{font-size:13px;margin-bottom:4px}'+
     '.co{font-size:12px;color:#1A56DB;font-weight:900}'+
     '.period{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:4px;padding:4px 8px;text-align:center;margin:8px 0;font-weight:700;color:#1D4ED8;font-size:9px}'+
     '.sec{font-size:11px;font-weight:700;color:#1A56DB;border-bottom:2px solid #BFDBFE;padding-bottom:3px;margin:10px 0 6px}'+
-    'table{width:100%;border-collapse:collapse;table-layout:fixed}'+
-    'th,td{word-wrap:break-word;overflow:hidden}'+
+    'table{border-collapse:collapse;font-size:9px}'+
+    'th{padding:5px 6px;background:#1A56DB;color:#fff;border:1px solid #1A56DB;white-space:nowrap;text-align:center}'+
+    'td{padding:4px 6px;border:1px solid #ddd;white-space:nowrap;text-align:center}'+
+    'td:first-child{text-align:right}'+
+    'tr:nth-child(even) td{background:#F9FAFB}'+
     '@page{margin:5mm;size:A4 landscape}'+
-    '@media print{'+
-      'html,body{width:277mm}'+
-      'body{transform-origin:top right;zoom:0.75}'+
-      '-webkit-print-color-adjust:exact;print-color-adjust:exact'+
-    '}'+
+    '@media print{-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
   '</style></head><body>'+
 
   '<div style="text-align:center;border-bottom:2px solid #1A56DB;padding-bottom:8px;margin-bottom:10px">'+
