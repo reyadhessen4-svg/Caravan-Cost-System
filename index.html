@@ -774,6 +774,7 @@ tbody tr:hover td{background:var(--ltr)}
             <select id="rpVehSel" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل السيارات</option></select>
             <button class="btn bsm bp" onclick="loadRpVeh()">&#x1F50E; عرض</button>
             <button class="btn bsm" onclick="printVehReport()">&#x1F4C4; PDF</button>
+            <button class="btn bsm" onclick="printVehItemReport()">&#x1F4CA; حسب البند</button>
             <button class="btn bsm" onclick="window.print()">&#x1F5A8;&#xFE0F;</button>
             <button class="btn bsm" onclick="ET('rpVehTbl')">&#x1F4E5; Excel</button>
           </div>
@@ -6277,6 +6278,168 @@ function printVehReport(){
   w.document.close();
   w.onload=function(){w.focus();w.print();};
   // Fallback if onload doesn't fire
+  setTimeout(function(){if(w&&!w.closed){w.focus();w.print();}},1000);
+}
+
+
+/* ─── Vehicle Expense by Item Report ─── */
+function printVehItemReport(){
+  var vehs=S.data.vehicles||[];
+  var dateF=V('rpVehF'),dateT=V('rpVehT'),vehF=V('rpVehSel');
+
+  // Collect all expenses with vehicle + item
+  var allEnts=[];
+
+  (S.data.custodyEnts||[]).forEach(function(e){
+    if(!e.car||e.amount<=0||e.isTopup)return;
+    if(dateF&&e.date<dateF)return;
+    if(dateT&&e.date>dateT)return;
+    var veh=vehs.find(function(v){return v.num===e.car;});
+    allEnts.push({vehId:veh?veh.id:'',vehNum:e.car,vehLetters:e.plate||'',
+      item:e.item||'أخرى',date:e.date,amount:e.amount,source:'عهدة'});
+  });
+
+  (S.data.expenses||[]).filter(function(e){return e.vehId&&e.status==='approved';}).forEach(function(e){
+    if(dateF&&e.date<dateF)return;
+    if(dateT&&e.date>dateT)return;
+    allEnts.push({vehId:e.vehId,vehNum:e.vehNum||'',vehLetters:e.vehLetters||'',
+      item:e.item||e.cc||'أخرى',date:e.date,amount:e.amount,source:'خزينة'});
+  });
+
+  (S.data.bankOut||[]).filter(function(b){return b.vehId;}).forEach(function(b){
+    if(dateF&&b.date<dateF)return;
+    if(dateT&&b.date>dateT)return;
+    allEnts.push({vehId:b.vehId,vehNum:b.vehNum||'',vehLetters:b.vehLetters||'',
+      item:b.desc||'أخرى',date:b.date,amount:b.amount,source:'بنك'});
+  });
+
+  if(vehF)allEnts=allEnts.filter(function(e){return e.vehId===vehF;});
+  if(!allEnts.length){toast('لا توجد بيانات للطباعة','w');return;}
+
+  // Get all unique items
+  var items=[];
+  allEnts.forEach(function(e){if(items.indexOf(e.item)<0)items.push(e.item);});
+  items.sort();
+
+  // Get all unique vehicles
+  var byVeh={};
+  allEnts.forEach(function(e){
+    var key=e.vehId||e.vehNum;
+    if(!byVeh[key])byVeh[key]={vehNum:e.vehNum,vehLetters:e.vehLetters,vehId:e.vehId,total:0,items:{}};
+    if(!byVeh[key].items[e.item])byVeh[key].items[e.item]=0;
+    byVeh[key].items[e.item]+=e.amount;
+    byVeh[key].total+=e.amount;
+  });
+
+  var sortedVehs=Object.values(byVeh).sort(function(a,b){return b.total-a.total;});
+  var grandTotal=allEnts.reduce(function(s,e){return s+e.amount;},0);
+
+  // Item totals
+  var itemTotals={};
+  items.forEach(function(item){
+    itemTotals[item]=allEnts.filter(function(e){return e.item===item;}).reduce(function(s,e){return s+e.amount;},0);
+  });
+  // Sort items by total desc
+  items.sort(function(a,b){return itemTotals[b]-itemTotals[a];});
+
+  var period=(dateF&&dateT)?'من '+dateF+' إلى '+dateT:(dateF?'من '+dateF:dateT?'حتى '+dateT:'كامل الفترة');
+  var printDate=new Date().toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
+
+  // Build header row
+  var thCols='<th style="padding:6px 8px;background:#1A56DB;color:#fff;border:1px solid #1A56DB;text-align:right">السيارة</th>'+
+    items.map(function(item){
+      return '<th style="padding:6px 8px;background:#1A56DB;color:#fff;border:1px solid #1A56DB;text-align:center;font-size:10px;white-space:nowrap">'+item+'</th>';
+    }).join('')+
+    '<th style="padding:6px 8px;background:#0B1F4B;color:#fff;border:1px solid #0B1F4B;text-align:center">الإجمالي</th>';
+
+  // Build data rows
+  var dataRows=sortedVehs.map(function(v){
+    var vehInfo=vehs.find(function(x){return x.id===v.vehId;});
+    var pct=grandTotal?Math.round(v.total/grandTotal*100):0;
+    var cols=items.map(function(item){
+      var val=v.items[item]||0;
+      return '<td style="padding:6px 8px;border:1px solid #E5E7EB;text-align:center;font-family:monospace;font-size:10px;color:'+(val>0?'#111':'#ccc')+'">'+
+        (val>0?val.toLocaleString('en-US'):'—')+'</td>';
+    }).join('');
+    return '<tr>'+
+      '<td style="padding:6px 8px;border:1px solid #E5E7EB;white-space:nowrap">'+
+        '<div style="font-weight:700;font-family:monospace;font-size:12px">'+v.vehNum+' '+v.vehLetters+'</div>'+
+        (vehInfo?'<div style="font-size:9px;color:#666">'+vehInfo.make+'</div>':'')+
+        '<div style="font-size:9px;color:#1D4ED8;font-weight:600">'+pct+'%</div>'+
+      '</td>'+cols+
+      '<td style="padding:6px 8px;border:1px solid #E5E7EB;text-align:center;font-weight:700;font-family:monospace;background:#FEF9C3">'+v.total.toLocaleString('en-US')+'</td>'+
+    '</tr>';
+  }).join('');
+
+  // Totals row
+  var totalsRow='<tr style="background:#1A56DB11;border-top:2px solid #1A56DB">'+
+    '<td style="padding:6px 8px;border:1px solid #E5E7EB;font-weight:700">الإجمالي</td>'+
+    items.map(function(item){
+      return '<td style="padding:6px 8px;border:1px solid #E5E7EB;text-align:center;font-weight:700;font-family:monospace;font-size:10px">'+
+        itemTotals[item].toLocaleString('en-US')+'</td>';
+    }).join('')+
+    '<td style="padding:6px 8px;border:1px solid #E5E7EB;text-align:center;font-weight:900;font-family:monospace;background:#FEF08A">'+grandTotal.toLocaleString('en-US')+'</td>'+
+  '</tr>';
+
+  // Item summary
+  var itemSummary=items.map(function(item,i){
+    var pct=grandTotal?Math.round(itemTotals[item]/grandTotal*100):0;
+    var barW=Math.round(pct*1.5);
+    return '<tr>'+
+      '<td style="padding:6px 8px;border:1px solid #E5E7EB;text-align:center;color:#1A56DB;font-weight:700">'+(i+1)+'</td>'+
+      '<td style="padding:6px 8px;border:1px solid #E5E7EB;font-weight:600">'+item+'</td>'+
+      '<td style="padding:6px 8px;border:1px solid #E5E7EB;font-family:monospace;text-align:left">'+itemTotals[item].toLocaleString('en-US')+' ريال</td>'+
+      '<td style="padding:6px 8px;border:1px solid #E5E7EB">'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<div style="height:8px;background:#E5E7EB;border-radius:4px;width:150px">'+
+            '<div style="height:100%;width:'+barW+'px;background:#1A56DB;border-radius:4px"></div></div>'+
+          '<span style="font-weight:700;color:#1A56DB;font-size:11px">'+pct+'%</span>'+
+        '</div>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+
+  var html='<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">'+
+  '<title>تقرير مصروفات السيارات حسب البند</title>'+
+  '<style>'+
+    '*{box-sizing:border-box}body{font-family:Arial,sans-serif;padding:10mm;color:#111;font-size:11px;direction:rtl}'+
+    'h2{font-size:16px;margin:0}.co{font-size:14px;color:#1A56DB;font-weight:900}'+
+    '.period{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:5px;padding:5px 10px;text-align:center;margin:10px 0;font-weight:700;color:#1D4ED8;font-size:10px}'+
+    '.sec{font-size:12px;font-weight:700;color:#1A56DB;border-bottom:2px solid #BFDBFE;padding-bottom:4px;margin:14px 0 8px;page-break-after:avoid}'+
+    'table{width:100%;border-collapse:collapse}'+
+    '.overflow-table{overflow-x:auto;width:100%}'+
+    '@page{margin:8mm;size:A4 landscape}'+
+    '@media print{-webkit-print-color-adjust:exact;print-color-adjust:exact;page-break-inside:avoid}'+
+  '</style></head><body>'+
+
+  '<div style="text-align:center;border-bottom:2px solid #1A56DB;padding-bottom:8px;margin-bottom:10px">'+
+    '<div class="co">القوافل الخمسة للخدمات اللوجستية</div>'+
+    '<h2>تقرير مصروفات السيارات حسب نوع البند</h2>'+
+  '</div>'+
+
+  '<div class="period">📅 الفترة: '+period+' &nbsp;|&nbsp; إجمالي المصروفات: '+grandTotal.toLocaleString('en-US')+' ريال &nbsp;|&nbsp; عدد السيارات: '+sortedVehs.length+'</div>'+
+
+  '<div class="sec">📊 مصفوفة السيارات × البنود</div>'+
+  '<div class="overflow-table">'+
+  '<table><thead><tr>'+thCols+'</tr></thead><tbody>'+dataRows+totalsRow+'</tbody></table>'+
+  '</div>'+
+
+  '<div class="sec" style="margin-top:16px">📋 ترتيب البنود حسب الإجمالي</div>'+
+  '<table style="width:60%"><thead><tr>'+
+    '<th style="padding:6px 8px;background:#1A56DB;color:#fff;border:1px solid #1A56DB;width:40px">#</th>'+
+    '<th style="padding:6px 8px;background:#1A56DB;color:#fff;border:1px solid #1A56DB">نوع البند</th>'+
+    '<th style="padding:6px 8px;background:#1A56DB;color:#fff;border:1px solid #1A56DB">الإجمالي</th>'+
+    '<th style="padding:6px 8px;background:#1A56DB;color:#fff;border:1px solid #1A56DB">النسبة</th>'+
+  '</tr></thead><tbody>'+itemSummary+'</tbody></table>'+
+
+  '<div style="text-align:center;font-size:9px;color:#9CA3AF;margin-top:12px;border-top:1px solid #E5E7EB;padding-top:8px">طُبع بتاريخ: '+printDate+'</div>'+
+  '</body></html>';
+
+  var w=window.open('','_blank');
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.onload=function(){w.focus();w.print();};
   setTimeout(function(){if(w&&!w.closed){w.focus();w.print();}},1000);
 }
 
