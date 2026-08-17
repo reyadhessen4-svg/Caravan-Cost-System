@@ -774,7 +774,7 @@ tbody tr:hover td{background:var(--ltr)}
             <select id="rpVehSel" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل السيارات</option></select>
             <button class="btn bsm bp" onclick="loadRpVeh()">&#x1F50E; عرض</button>
             <button class="btn bsm" onclick="printVehReport()">&#x1F4C4; PDF</button>
-            <button class="btn bsm" onclick="printVehItemReport()">&#x1F4CA; حسب البند</button>
+            <button class="btn bsm" onclick="printVehItemReport()">&#x1F4CA; Excel حسب البند</button>
             <button class="btn bsm" onclick="window.print()">&#x1F5A8;&#xFE0F;</button>
             <button class="btn bsm" onclick="ET('rpVehTbl')">&#x1F4E5; Excel</button>
           </div>
@@ -6435,12 +6435,124 @@ function printVehItemReport(){
   '<div style="text-align:center;font-size:9px;color:#9CA3AF;margin-top:12px;border-top:1px solid #E5E7EB;padding-top:8px">طُبع بتاريخ: '+printDate+'</div>'+
   '</body></html>';
 
-  var w=window.open('','_blank');
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  w.onload=function(){w.focus();w.print();};
-  setTimeout(function(){if(w&&!w.closed){w.focus();w.print();}},1000);
+  // Export as formatted Excel using SheetJS
+  var script=document.createElement('script');
+  script.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  script.onload=function(){
+    var wb=XLSX.utils.book_new();
+    
+    // ── Sheet 1: Main Matrix ──
+    var ws1Data=[];
+    
+    // Title rows
+    ws1Data.push(['القوافل الخمسة للخدمات اللوجستية']);
+    ws1Data.push(['تقرير مصروفات السيارات حسب نوع البند']);
+    ws1Data.push(['الفترة: '+period]);
+    ws1Data.push(['الإجمالي الكلي: '+grandTotal.toLocaleString('en-US')+' ريال']);
+    ws1Data.push([]);
+    
+    // Header row
+    var headerRow=['السيارة','الماركة/الموديل'];
+    items.forEach(function(i){headerRow.push(i);});
+    headerRow.push('الإجمالي');
+    headerRow.push('النسبة %');
+    ws1Data.push(headerRow);
+    
+    // Data rows
+    sortedVehs.forEach(function(v){
+      var vi=vehs.find(function(x){return x.id===v.vehId;});
+      var pct=grandTotal?Math.round(v.total/grandTotal*100):0;
+      var row=[v.vehNum+' '+v.vehLetters,(vi?vi.make+' '+vi.model:'')];
+      items.forEach(function(i){row.push(v.items[i]||0);});
+      row.push(v.total);
+      row.push(pct/100);
+      ws1Data.push(row);
+    });
+    
+    // Totals row
+    var totRow=['الإجمالي الكلي',''];
+    items.forEach(function(i){totRow.push(itemTotals[i]);});
+    totRow.push(grandTotal);
+    totRow.push(1);
+    ws1Data.push(totRow);
+    
+    var ws1=XLSX.utils.aoa_to_sheet(ws1Data);
+    
+    // Column widths
+    var wscols=[{wch:20},{wch:18}];
+    items.forEach(function(){wscols.push({wch:12});});
+    wscols.push({wch:14},{wch:10});
+    ws1['!cols']=wscols;
+    
+    // Styles via cell formatting
+    var titleStyle={font:{bold:true,sz:14,color:{rgb:'1A56DB'}},alignment:{horizontal:'center'}};
+    var headerStyle={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1A56DB'}},alignment:{horizontal:'center'}};
+    var totalStyle={font:{bold:true},fill:{fgColor:{rgb:'FEF08A'}}};
+    
+    // Merge title cells
+    var colCount=2+items.length+2;
+    ws1['!merges']=[
+      {s:{r:0,c:0},e:{r:0,c:colCount-1}},
+      {s:{r:1,c:0},e:{r:1,c:colCount-1}},
+      {s:{r:2,c:0},e:{r:2,c:colCount-1}},
+      {s:{r:3,c:0},e:{r:3,c:colCount-1}},
+    ];
+    
+    XLSX.utils.book_append_sheet(wb,ws1,'مصفوفة السيارات');
+    
+    // ── Sheet 2: Item Summary ──
+    var ws2Data=[];
+    ws2Data.push(['القوافل الخمسة للخدمات اللوجستية']);
+    ws2Data.push(['ترتيب البنود حسب الإجمالي — '+period]);
+    ws2Data.push([]);
+    ws2Data.push(['#','نوع البند','الإجمالي (ريال)','النسبة %','عدد السيارات']);
+    items.forEach(function(item,i){
+      var pct=grandTotal?Math.round(itemTotals[item]/grandTotal*100):0;
+      var vehCount=sortedVehs.filter(function(v){return v.items[item]>0;}).length;
+      ws2Data.push([i+1,item,itemTotals[item],pct/100,vehCount]);
+    });
+    ws2Data.push([]);
+    ws2Data.push(['','الإجمالي',grandTotal,1,sortedVehs.length]);
+    
+    var ws2=XLSX.utils.aoa_to_sheet(ws2Data);
+    ws2['!cols']=[{wch:5},{wch:20},{wch:18},{wch:12},{wch:15}];
+    ws2['!merges']=[
+      {s:{r:0,c:0},e:{r:0,c:4}},
+      {s:{r:1,c:0},e:{r:1,c:4}},
+    ];
+    XLSX.utils.book_append_sheet(wb,ws2,'ترتيب البنود');
+    
+    // ── Sheet 3: Vehicle Summary ──
+    var ws3Data=[];
+    ws3Data.push(['القوافل الخمسة للخدمات اللوجستية']);
+    ws3Data.push(['ترتيب السيارات حسب الإجمالي — '+period]);
+    ws3Data.push([]);
+    ws3Data.push(['#','السيارة','الماركة/الموديل','من عهدة','من خزينة','من بنك','الإجمالي','النسبة %']);
+    sortedVehs.forEach(function(v,i){
+      var vi=vehs.find(function(x){return x.id===v.vehId;});
+      var pct=grandTotal?Math.round(v.total/grandTotal*100):0;
+      ws3Data.push([i+1,v.vehNum+' '+v.vehLetters,(vi?vi.make+' '+vi.model:''),
+        v.fromCu||0,v.fromEx||0,v.fromBo||0,v.total,pct/100]);
+    });
+    ws3Data.push([]);
+    var t3=[,'الإجمالي','',
+      sortedVehs.reduce(function(s,v){return s+(v.fromCu||0);},0),
+      sortedVehs.reduce(function(s,v){return s+(v.fromEx||0);},0),
+      sortedVehs.reduce(function(s,v){return s+(v.fromBo||0);},0),
+      grandTotal,1];
+    ws3Data.push(t3);
+    
+    var ws3=XLSX.utils.aoa_to_sheet(ws3Data);
+    ws3['!cols']=[{wch:5},{wch:18},{wch:20},{wch:14},{wch:14},{wch:14},{wch:14},{wch:10}];
+    ws3['!merges']=[{s:{r:0,c:0},e:{r:0,c:7}},{s:{r:1,c:0},e:{r:1,c:7}}];
+    XLSX.utils.book_append_sheet(wb,ws3,'ترتيب السيارات');
+    
+    // Save
+    XLSX.writeFile(wb,'مصروفات_السيارات_'+td2()+'.xlsx');
+    toast('تم تصدير ملف Excel ✅');
+  };
+  script.onerror=function(){toast('تعذّر تحميل مكتبة Excel','e');};
+  document.head.appendChild(script);
 }
 
 /* ─── KEYBOARD & EVENTS ─── */
