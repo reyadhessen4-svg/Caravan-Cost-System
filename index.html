@@ -6188,8 +6188,8 @@ function printVehReport(){
         '<td style="padding:6px 10px;border:1px solid #eee;font-weight:700;font-family:monospace;text-align:left">'+e.amount.toLocaleString('en-US')+'</td>'+
       '</tr>';
     }).join('');
-    return '<div style="margin-bottom:20px;break-inside:avoid">'+
-      '<div style="background:#1A56DB;color:#fff;padding:10px 14px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">'+
+    return '<div class="veh-block">'+
+      '<div class="veh-header">'+
         '<div><span style="font-size:16px;font-weight:900;font-family:monospace">'+v.vehNum+' '+v.vehLetters+'</span>'+
           (vehInfo?'<span style="opacity:.7;font-size:12px;margin-right:8px"> '+vehInfo.make+' '+vehInfo.model+'</span>':'')+
         '</div>'+
@@ -6211,21 +6211,29 @@ function printVehReport(){
   var html='<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">'+
   '<title>تقرير مصروفات السيارات</title>'+
   '<style>'+
-    'body{font-family:Arial,sans-serif;padding:20px;color:#111;font-size:13px;direction:rtl}'+
-    '.header{text-align:center;border-bottom:3px double #1A56DB;padding-bottom:14px;margin-bottom:20px}'+
-    '.co{font-size:20px;font-weight:900;color:#1A56DB}.title{font-size:15px;font-weight:700;margin-top:6px}'+
-    '.period{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 16px;text-align:center;margin-bottom:16px;font-weight:700;color:#1D4ED8}'+
-    '.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}'+
-    '.sbox{border:1px solid #E5E7EB;border-radius:8px;padding:12px;text-align:center}'+
-    '.slbl{font-size:11px;color:#6B7280;margin-bottom:4px}.sval{font-size:18px;font-weight:700;font-family:monospace}'+
-    'table{width:100%;border-collapse:collapse}'+
-    'th{background:#1A56DB;color:#fff;padding:9px 12px;text-align:right;font-size:12px}'+
-    'td{padding:8px 12px;border:1px solid #E5E7EB;text-align:right}'+
+    '*{box-sizing:border-box;margin:0;padding:0}'+
+    'body{font-family:Arial,sans-serif;padding:12mm;color:#111;font-size:11px;direction:rtl;width:210mm;max-width:210mm}'+
+    '.header{text-align:center;border-bottom:3px double #1A56DB;padding-bottom:10px;margin-bottom:14px}'+
+    '.co{font-size:17px;font-weight:900;color:#1A56DB}.title{font-size:13px;font-weight:700;margin-top:4px}'+
+    '.period{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:6px 12px;text-align:center;margin-bottom:12px;font-weight:700;color:#1D4ED8;font-size:11px}'+
+    '.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}'+
+    '.sbox{border:1px solid #E5E7EB;border-radius:6px;padding:8px;text-align:center}'+
+    '.slbl{font-size:10px;color:#6B7280;margin-bottom:3px}.sval{font-size:15px;font-weight:700;font-family:monospace}'+
+    'table{width:100%;border-collapse:collapse;font-size:10px}'+
+    'th{background:#1A56DB;color:#fff;padding:6px 8px;text-align:right;font-size:10px}'+
+    'td{padding:5px 8px;border:1px solid #E5E7EB;text-align:right;font-size:10px}'+
     'tr:nth-child(even) td{background:#F9FAFB}'+
-    '.section-title{font-size:15px;font-weight:700;margin:24px 0 12px;color:#1A56DB;border-bottom:2px solid #BFDBFE;padding-bottom:6px}'+
-    '.footer{text-align:center;font-size:10px;color:#9CA3AF;margin-top:20px;border-top:1px solid #E5E7EB;padding-top:10px}'+
-    '@media print{body{padding:10mm}@page{margin:10mm;size:A4 portrait}'+
-    '.section-title{break-before:auto}.header{break-after:avoid}}'+
+    '.section-title{font-size:12px;font-weight:700;margin:14px 0 8px;color:#1A56DB;border-bottom:2px solid #BFDBFE;padding-bottom:4px;page-break-after:avoid}'+
+    '.veh-block{margin-bottom:14px;page-break-inside:avoid}'+
+    '.veh-header{background:#1A56DB;color:#fff;padding:7px 10px;border-radius:5px 5px 0 0;display:flex;justify-content:space-between;align-items:center;font-size:11px}'+
+    '.footer{text-align:center;font-size:9px;color:#9CA3AF;margin-top:14px;border-top:1px solid #E5E7EB;padding-top:8px}'+
+    '@page{margin:8mm;size:A4 portrait}'+
+    '@media print{'+
+      'body{padding:0;width:100%}'+
+      '.veh-block{page-break-inside:avoid}'+
+      '.section-title{page-break-after:avoid}'+
+      '-webkit-print-color-adjust:exact;print-color-adjust:exact'+
+    '}'+
   '</style></head><body>'+
 
   '<div class="header">'+
