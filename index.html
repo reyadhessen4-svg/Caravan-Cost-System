@@ -6271,10 +6271,13 @@ function printVehReport(){
   '<div class="footer">طُبع بتاريخ: '+printDate+' — القوافل الخمسة للخدمات اللوجستية</div>'+
   '</body></html>';
 
-  var w=window.open('','_blank','width=1000,height=900');
+  var w=window.open('','_blank');
+  w.document.open();
   w.document.write(html);
   w.document.close();
-  setTimeout(function(){w.print();},600);
+  w.onload=function(){w.focus();w.print();};
+  // Fallback if onload doesn't fire
+  setTimeout(function(){if(w&&!w.closed){w.focus();w.print();}},1000);
 }
 
 /* ─── KEYBOARD & EVENTS ─── */
