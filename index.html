@@ -4171,6 +4171,7 @@ function loadCuReport(){
     if(!en.length&&(dateF||dateT)&&carryBal===0)return; // nothing to show at all
 
     var sp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
+    var periodTopup=en.filter(function(e){return e.isTopup&&!e.isReturn&&e.addedToOpening>0;}).reduce(function(s,e){return s+e.addedToOpening;},0);
     var ret=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
     var closingBal=carryBal-sp-ret+en.filter(function(e){return e.isTopup&&!e.isReturn;}).reduce(function(s,e){return s+(e.addedToOpening||0);},0);
 
@@ -4196,7 +4197,7 @@ function loadCuReport(){
     html+='</div>';
     // Entries table (ledger style: carried-forward row → transactions → closing row)
     html+='<div class="tw" style="border-radius:0 0 10px 10px;border-top:none">';
-    html+='<table><thead><tr><th>التاريخ</th><th>البند</th><th>مدين (مصروف/إرجاع)</th><th>دائن (إضافة رصيد)</th><th>الرصيد</th><th>السيارة</th><th>البيان</th></tr></thead><tbody>';
+    html+='<table><thead><tr><th>التاريخ</th><th>البند</th><th>دائن (مصروف/إرجاع)</th><th>مدين (إضافة رصيد)</th><th>الرصيد</th><th>السيارة</th><th>البيان</th></tr></thead><tbody>';
     html+='<tr style="background:var(--ltr)"><td colspan="4" style="font-weight:700;font-size:12px">'+(hasFrom?'رصيد مرحل من فترة سابقة':'رصيد افتتاحي')+'</td><td style="font-weight:700;font-family:monospace;color:var(--wn)">'+fR(carryBal)+'</td><td></td><td></td></tr>';
     var runBal=carryBal;
     en.sort(function(a,b){return a.date.localeCompare(b.date);}).forEach(function(e){
