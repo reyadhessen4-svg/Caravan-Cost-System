@@ -1062,7 +1062,7 @@ tbody tr:hover td{background:var(--ltr)}
 
 <div class="mo2" id="cuDM"><div class="mb2"><div class="mhd"><div class="mtt" id="cuDT">تفاصيل العهدة</div><button class="mcl" onclick="CM('cuDM')">×</button></div>
 <div id="cuDC"></div>
-<div class="mft"><button class="btn" onclick="CM('cuDM')">إغلاق</button><button class="btn bo" id="cuDReopenBtn" onclick="reopenCustody(curCuId)" style="display:none">&#x1F513; إعادة فتح العهدة</button><button class="btn bg3" id="cuDSetBtn" onclick="openCuSettle()">&#x1F4CB; تقفيل العهدة</button></div></div></div>
+<div class="mft"><button class="btn" onclick="CM('cuDM')">إغلاق</button><button class="btn bo" id="cuDReopenBtn" onclick="reopenCustody(curCuId)" style="display:none">&#x1F513; إعادة فتح العهدة</button><button class="btn bsm" onclick="editCuOpening(curCuId)">✏️ تعديل الرصيد</button><button class="btn bg3" id="cuDSetBtn" onclick="openCuSettle()">&#x1F4CB; تقفيل العهدة</button></div></div></div>
 
 <div class="mo2" id="usM"><div class="mb2 sm"><div class="mhd"><div class="mtt">&#x1F464; إضافة مستخدم جديد</div><button class="mcl" onclick="CM('usM')">×</button></div>
 <div class="fg">
@@ -6553,6 +6553,26 @@ function printVehItemReport(){
   };
   script.onerror=function(){toast('تعذّر تحميل مكتبة Excel','e');};
   document.head.appendChild(script);
+}
+
+
+function editCuOpening(cuid){
+  if(!can('all')){toast('تعديل الرصيد مخصص للمدير فقط','e');return;}
+  var cu=S.data.custodies.find(function(c){return c.id===cuid;});
+  if(!cu)return;
+  var current=cu.opening||0;
+  var newVal=prompt('تعديل الرصيد الابتدائي للعهدة\n'+cu.name+'\n\nالرصيد الحالي: '+fR(current)+'\n\nأدخل الرصيد الجديد:',current);
+  if(newVal===null)return;
+  var num=parseFloat(newVal);
+  if(isNaN(num)||num<0){toast('قيمة غير صحيحة','e');return;}
+  var reason=prompt('سبب التعديل (إجباري):');
+  if(!reason||!reason.trim()){toast('سبب التعديل إجباري','e');return;}
+  var old=cu.opening;
+  cu.opening=num;
+  alog('تعديل رصيد عهدة',cu.name+' — من '+fR(old)+' إلى '+fR(num)+' — السبب: '+reason.trim());
+  sv();
+  vwCu(cuid);
+  toast('✅ تم تعديل الرصيد الابتدائي إلى '+fR(num));
 }
 
 /* ─── KEYBOARD & EVENTS ─── */
