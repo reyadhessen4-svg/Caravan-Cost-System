@@ -6040,19 +6040,40 @@ function printCuReport(cuid,dateFrom,dateTo){var cu=S.data.custodies.find(functi
 
 /* ─── KEYBOARD & EVENTS ─── */
 
-function editCuOpening(cuid){
-  if(!can('all')){toast('تعديل الرصيد مخصص للمدير فقط','e');return;}
+
+function repairCuOpening(cuid){
+  // Emergency repair: recalculate cu.opening from scratch
   var cu=S.data.custodies.find(function(c){return c.id===cuid;});
   if(!cu)return;
   var topups=(S.data.custodyEnts||[]).filter(function(e){
     return e.cid===cuid&&e.isTopup&&!e.isReturn&&e.addedToOpening>0;
   }).reduce(function(s,e){return s+e.addedToOpening;},0);
-  // الرصيد الابتدائي الأصلي = الإجمالي - التحويلات اللاحقة
+  var correctOpening=(cu.initialOpening||0)+topups;
+  var msg='إصلاح الرصيد\n\nالإجمالي الحالي: '+fR(cu.opening)+
+    '\nالرصيد الابتدائي المحفوظ: '+fR(cu.initialOpening||0)+
+    '\nإجمالي التحويلات: '+fR(topups)+
+    '\nالإجمالي الصحيح: '+fR(correctOpening)+
+    '\n\nهل تريد إصلاح الرصيد؟';
+  if(!confirm(msg))return;
+  cu.opening=correctOpening;
+  sv();vwCu(cuid);loadCu();
+  toast('تم إصلاح الرصيد إلى '+fR(correctOpening));
+}
+
+function editCuOpening(cuid){
+  if(!can('all')){toast('تعديل الرصيد مخصص للمدير فقط','e');return;}
+  var cu=S.data.custodies.find(function(c){return c.id===cuid;});
+  if(!cu)return;
+  // التحويلات اللاحقة (مبالغ أُضيفت للعهدة بعد الإنشاء)
+  var topups=(S.data.custodyEnts||[]).filter(function(e){
+    return e.cid===cuid&&e.isTopup&&!e.isReturn&&e.addedToOpening>0;
+  }).reduce(function(s,e){return s+e.addedToOpening;},0);
+  // الرصيد الابتدائي = cu.opening - التحويلات اللاحقة
   var initialBal=cu.initialOpening!==undefined?cu.initialOpening:(cu.opening-topups);
   var msg='تعديل الرصيد الابتدائي للعهدة\n'+cu.name+
     '\n\nأول مبلغ تم إنشاء العهدة به: '+fR(initialBal)+
     '\nإجمالي ما تم تحويله لاحقاً: '+fR(topups)+
-    '\nالإجمالي الكلي: '+fR(cu.opening)+
+    '\nالإجمالي الكلي (opening): '+fR(cu.opening)+
     '\n\nأدخل القيمة الصحيحة لأول مبلغ فقط:';
   var newVal=prompt(msg,initialBal);
   if(newVal===null)return;
@@ -6060,13 +6081,15 @@ function editCuOpening(cuid){
   if(isNaN(num)){toast('قيمة غير صحيحة','e');return;}
   var reason=prompt('سبب التعديل (إجباري):');
   if(!reason||!reason.trim()){toast('سبب التعديل إجباري','e');return;}
+  // فقط نحفظ initialOpening + نعدّل cu.opening بالفرق
   var diff=num-initialBal;
   cu.initialOpening=num;
-  cu.opening=cu.opening+diff;
+  cu.opening=cu.opening+diff; // نضبط الإجمالي بالفرق
   alog('تعديل رصيد ابتدائي',cu.name+' — من '+fR(initialBal)+' إلى '+fR(num)+' — '+reason.trim());
   sv();vwCu(cuid);loadCu();
   toast('تم تعديل الرصيد الابتدائي إلى '+fR(num));
 }
+
 
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo2.on').forEach(m=>m.classList.remove('on'));});
