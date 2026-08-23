@@ -4188,10 +4188,11 @@ function loadCuReport(){
     html+='<div style="text-align:left"><span class="bdg '+(cu.status==='open'?'bn':'bg2')+'" style="font-size:11px">'+(cu.status==='open'?'مفتوحة':'مُغلقة')+'</span></div>';
     html+='</div>';
     // Summary bar
-    html+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--bd);border-top:none">';
+    html+='<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid var(--bd);border-top:none">';
     html+='<div style="padding:10px;border-left:1px solid var(--bd);text-align:center"><div style="font-size:11px;color:var(--gr)">'+(hasFrom?'الرصيد المرحل':'الرصيد الابتدائي')+'</div><div style="font-weight:700;color:var(--wn)">'+fR(carryBal)+'</div></div>';
-    html+='<div style="padding:10px;border-left:1px solid var(--bd);text-align:center"><div style="font-size:11px;color:var(--gr)">مصروف الفترة</div><div style="font-weight:700;color:var(--dn)">'+fR(sp)+'</div></div>';
-    html+='<div style="padding:10px;border-left:1px solid var(--bd);text-align:center"><div style="font-size:11px;color:var(--gr)">المُرجَع للخزينة (الفترة)</div><div style="font-weight:700;color:var(--sc)">'+fR(ret)+'</div></div>';
+    html+='<div style="padding:10px;border-left:1px solid var(--bd);text-align:center"><div style="font-size:11px;color:var(--gr)">مدين — تحويلات مضافة</div><div style="font-weight:700;color:var(--nv)">'+fR(periodTopup)+'</div></div>';
+    html+='<div style="padding:10px;border-left:1px solid var(--bd);text-align:center"><div style="font-size:11px;color:var(--gr)">دائن — مصروف الفترة</div><div style="font-weight:700;color:var(--dn)">'+fR(sp)+'</div></div>';
+    html+='<div style="padding:10px;border-left:1px solid var(--bd);text-align:center"><div style="font-size:11px;color:var(--gr)">دائن — إرجاع للخزينة</div><div style="font-weight:700;color:var(--sc)">'+fR(ret)+'</div></div>';
     html+='<div style="padding:10px;border-left:1px solid var(--bd);text-align:center"><div style="font-size:11px;color:var(--gr)">'+((hasFrom||dateT)?'رصيد نهاية الفترة':'الرصيد الحالي')+'</div><div style="font-weight:700;color:'+(closingBal<0?'var(--dn)':'var(--sc)')+'">'+fR(closingBal)+'</div></div>';
     html+='<div style="padding:10px;text-align:center"><div style="font-size:11px;color:var(--gr)">الرصيد الحالي (اليوم)</div><div style="font-weight:700;color:'+(currentRem<0?'var(--dn)':'var(--sc)')+'">'+fR(currentRem)+'</div></div>';
     html+='</div>';
