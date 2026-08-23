@@ -6021,7 +6021,123 @@ function saveSysStartDate(){
   loadBk();
   toast(d?'✅ تم تحديد تاريخ بداية النظام: '+d:'تم إلغاء تحديد تاريخ البداية');
 }
-function exportStmExcel(){var d=window._stmData;if(!d){toast('يرجى عرض الكشف اولا','w');return;}var rows2=[['التاريخ','السند','البيان','النوع','وارد','صادر','الرصيد']];var running=d.openingBal;d.rows.forEach(function(r){running+=r.in-r.out;rows2.push([r.d,r.num,r.desc,r.type,r.in||'',r.out||'',running]);});var csv='\uFEFF'+'كشف الخزينة\n'+'من '+d.f+' الى '+d.t+'\n\n'+'رصيد افتتاحي,'+d.openingBal+'\n\n'+rows2.map(function(r){return r.map(function(c){return '"'+c+'"';}).join(',');}).join('\n')+'\n\nاجمالي الوارد,'+d.tI+'\naجمالي الصادر,'+d.tO+'\nالرصيد الختامي,'+d.closingBal;var b=new Blob([csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='treasury_'+d.f+'_'+d.t+'.csv';a.click();toast('تم التصدير');}
+function exportStmExcel(){
+  var d=window._stmData;
+  if(!d){toast('يرجى عرض الكشف أولاً','w');return;}
+  var printDate=new Date().toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
+  var running=d.openingBal;
+  var rowsHtml=d.rows.map(function(r){
+    running+=r.in-r.out;
+    return '<tr>'+
+      '<td style="font-family:monospace;white-space:nowrap;font-size:11px;text-align:center">'+r.d+'</td>'+
+      '<td style="font-family:monospace;font-size:11px;text-align:center;color:#666">'+r.num+'</td>'+
+      '<td style="font-size:12px">'+r.desc+'</td>'+
+      '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:'+(r.type==='وارد'?'#D1FAE5':'#FEE2E2')+';color:'+(r.type==='وارد'?'#059669':'#DC2626')+'">'+r.type+'</span></td>'+
+      '<td style="color:#059669;font-family:monospace;text-align:left;font-size:12px">'+(r.in?r.in.toLocaleString('en-US',{minimumFractionDigits:2}):'')+'</td>'+
+      '<td style="color:#DC2626;font-family:monospace;text-align:left;font-size:12px">'+(r.out?r.out.toLocaleString('en-US',{minimumFractionDigits:2}):'')+'</td>'+
+      '<td style="font-weight:700;font-family:monospace;text-align:left;font-size:12px;color:'+(running>=0?'#059669':'#DC2626')+'">'+running.toLocaleString('en-US',{minimumFractionDigits:2})+'</td>'+
+    '</tr>';
+  }).join('');
+
+  var html='<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">'+
+  '<title>كشف حساب الخزينة</title>'+
+  '<style>'+
+    '*{box-sizing:border-box;margin:0;padding:0}'+
+    'body{font-family:Arial,sans-serif;color:#111;font-size:12px;direction:rtl;padding:15mm}'+
+    '.header{text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:3px solid #1A56DB}'+
+    '.co{font-size:20px;font-weight:900;color:#1A56DB;letter-spacing:1px}'+
+    '.title{font-size:15px;font-weight:700;margin-top:6px;color:#333}'+
+    '.info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-bottom:16px}'+
+    '.info-cell{padding:10px 14px;border-left:1px solid #ddd}'+
+    '.info-cell:last-child{border-left:none}'+
+    '.info-lbl{font-size:10px;color:#888;margin-bottom:3px}'+
+    '.info-val{font-size:14px;font-weight:700;font-family:monospace}'+
+    '.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}'+
+    '.sbox{border-radius:8px;padding:12px;text-align:center;border:1px solid}'+
+    '.slbl{font-size:10px;color:#666;margin-bottom:4px}'+
+    '.sval{font-size:16px;font-weight:700;font-family:monospace}'+
+    'table{width:100%;border-collapse:collapse;font-size:11px}'+
+    'thead tr{background:#1A56DB;color:#fff}'+
+    'th{padding:8px 10px;text-align:right;font-size:11px;font-weight:700;border:1px solid #1A56DB}'+
+    'td{padding:6px 10px;border:1px solid #E5E7EB;text-align:right}'+
+    'tr:nth-child(even) td{background:#F9FAFB}'+
+    '.total-row td{background:#EFF6FF!important;font-weight:700;border-top:2px solid #1A56DB}'+
+    '.footer{text-align:center;font-size:10px;color:#999;margin-top:16px;padding-top:8px;border-top:1px solid #ddd}'+
+    '@page{margin:10mm;size:A4 portrait}'+
+    '@media print{body{padding:0}-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+  '</style></head><body>'+
+
+  '<div class="header">'+
+    '<div class="co">القوافل الخمسة للخدمات اللوجستية</div>'+
+    '<div class="title">كشف حساب الخزينة</div>'+
+  '</div>'+
+
+  '<div class="info-grid">'+
+    '<div class="info-cell"><div class="info-lbl">من تاريخ</div><div class="info-val">'+d.f+'</div></div>'+
+    '<div class="info-cell"><div class="info-lbl">إلى تاريخ</div><div class="info-val">'+d.t+'</div></div>'+
+    '<div class="info-cell"><div class="info-lbl">تاريخ الإصدار</div><div class="info-val">'+printDate+'</div></div>'+
+  '</div>'+
+
+  '<div class="summary">'+
+    '<div class="sbox" style="border-color:#D97706;background:#FFFBEB">'+
+      '<div class="slbl">رصيد افتتاحي</div>'+
+      '<div class="sval" style="color:#D97706">'+d.openingBal.toLocaleString('en-US',{minimumFractionDigits:2})+'</div>'+
+      '<div style="font-size:10px;color:#999;margin-top:2px">ريال</div>'+
+    '</div>'+
+    '<div class="sbox" style="border-color:#059669;background:#F0FDF4">'+
+      '<div class="slbl">إجمالي الوارد</div>'+
+      '<div class="sval" style="color:#059669">'+d.tI.toLocaleString('en-US',{minimumFractionDigits:2})+'</div>'+
+      '<div style="font-size:10px;color:#999;margin-top:2px">ريال</div>'+
+    '</div>'+
+    '<div class="sbox" style="border-color:#DC2626;background:#FFF5F5">'+
+      '<div class="slbl">إجمالي الصادر</div>'+
+      '<div class="sval" style="color:#DC2626">'+d.tO.toLocaleString('en-US',{minimumFractionDigits:2})+'</div>'+
+      '<div style="font-size:10px;color:#999;margin-top:2px">ريال</div>'+
+    '</div>'+
+    '<div class="sbox" style="border-color:'+(d.closingBal>=0?'#059669':'#DC2626')+';background:'+(d.closingBal>=0?'#F0FDF4':'#FFF5F5')+'">'+
+      '<div class="slbl">الرصيد الختامي</div>'+
+      '<div class="sval" style="color:'+(d.closingBal>=0?'#059669':'#DC2626')+'">'+d.closingBal.toLocaleString('en-US',{minimumFractionDigits:2})+'</div>'+
+      '<div style="font-size:10px;color:#999;margin-top:2px">ريال</div>'+
+    '</div>'+
+  '</div>'+
+
+  '<table><thead><tr>'+
+    '<th style="text-align:center;width:90px">التاريخ</th>'+
+    '<th style="text-align:center;width:60px">السند</th>'+
+    '<th>البيان</th>'+
+    '<th style="text-align:center;width:60px">النوع</th>'+
+    '<th style="text-align:left;width:100px">وارد (ريال)</th>'+
+    '<th style="text-align:left;width:100px">صادر (ريال)</th>'+
+    '<th style="text-align:left;width:110px">الرصيد (ريال)</th>'+
+  '</tr></thead><tbody>'+
+  '<tr><td style="text-align:center;font-weight:700" colspan="4">رصيد افتتاحي</td>'+
+    '<td></td><td></td>'+
+    '<td style="font-weight:700;font-family:monospace;text-align:left;color:#D97706">'+d.openingBal.toLocaleString('en-US',{minimumFractionDigits:2})+'</td>'+
+  '</tr>'+
+  rowsHtml+
+  '<tr class="total-row">'+
+    '<td colspan="4" style="text-align:right;padding:8px 10px">الإجمالي</td>'+
+    '<td style="color:#059669;font-family:monospace;text-align:left">'+d.tI.toLocaleString('en-US',{minimumFractionDigits:2})+'</td>'+
+    '<td style="color:#DC2626;font-family:monospace;text-align:left">'+d.tO.toLocaleString('en-US',{minimumFractionDigits:2})+'</td>'+
+    '<td style="font-family:monospace;text-align:left;color:'+(d.closingBal>=0?'#059669':'#DC2626')+'">'+d.closingBal.toLocaleString('en-US',{minimumFractionDigits:2})+'</td>'+
+  '</tr>'+
+  '</tbody></table>'+
+
+  '<div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:30px">'+
+    '<div style="border-top:1px solid #000;padding-top:8px;text-align:center;font-size:11px">توقيع أمين الخزينة</div>'+
+    '<div style="border-top:1px solid #000;padding-top:8px;text-align:center;font-size:11px">توقيع المدير المالي</div>'+
+  '</div>'+
+
+  '<div class="footer">القوافل الخمسة للخدمات اللوجستية — كشف حساب الخزينة — '+d.f+' إلى '+d.t+'</div>'+
+  '</body></html>';
+
+  var w=window.open('','_blank');
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.onload=function(){w.focus();w.print();};
+  setTimeout(function(){if(w&&!w.closed){w.focus();w.print();}},800);
+}
 function loadStm(){var f=V('stF'),t=V('stT');if(!f||!t){toast('يرجى تحديد الفترة','w');return;}var allRc=S.data.receipts;var allEx=S.data.expenses.filter(function(e){return e.status==='approved';});var oI=allRc.filter(function(r){return r.date<f;}).reduce(function(s,r){return s+r.amount;},0);var oO=allEx.filter(function(e){return e.date<f;}).reduce(function(s,e){return s+e.amount;},0);var openBal=oI-oO;var rc=allRc.filter(function(r){return r.date>=f&&r.date<=t;});var ex=allEx.filter(function(e){return e.date>=f&&e.date<=t;});var tI=rc.reduce(function(s,r){return s+r.amount;},0);var tO=ex.reduce(function(s,e){return s+e.amount;},0);var closeBal=openBal+tI-tO;var rows=rc.map(function(r){return{d:r.date,num:r.num||'',desc:r.desc||'',type:'وارد',in:r.amount,out:0};}).concat(ex.map(function(e){return{d:e.date,num:e.num||'',desc:e.desc||'',type:'صادر',in:0,out:e.amount};})).sort(function(a,b){return a.d.localeCompare(b.d);});var run=openBal;var rHtml=rows.map(function(r){run+=r.in-r.out;return'<tr><td style="font-family:monospace">'+r.d+'</td><td style="font-size:11px;color:var(--gr)">'+r.num+'</td><td>'+r.desc+'</td><td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td><td style="color:var(--sc);font-family:monospace">'+(r.in?fR(r.in):'')+'</td><td style="color:var(--dn);font-family:monospace">'+(r.out?fR(r.out):'')+'</td><td style="font-weight:700;font-family:monospace;color:'+(run>=0?'var(--sc)':'var(--dn)')+'">'+fR(run)+'</td></tr>';}).join('');G('stmC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">رصيد افتتاحي</div><div class="mv2" style="color:var(--ry)">'+fR(openBal)+'</div><div class="ms2">قبل '+f+'</div></div><div class="met mg"><div class="ml2">وارد</div><div class="mv2">'+fR(tI)+'</div></div><div class="met mr"><div class="ml2">صادر</div><div class="mv2">'+fR(tO)+'</div></div><div class="met '+(closeBal>=0?'mg':'mr')+'"><div class="ml2">رصيد ختامي</div><div class="mv2">'+fR(closeBal)+'</div></div></div><div style="margin-bottom:8px;text-align:left"><button class="btn bsm" onclick="exportStmExcel()">Excel</button></div><div class="tw"><table id="stmTbl"><thead><tr><th>التاريخ</th><th>السند</th><th>البيان</th><th>النوع</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody><tr style="background:var(--ltr)"><td colspan="4" style="font-weight:700">رصيد افتتاحي</td><td></td><td></td><td style="font-weight:700;font-family:monospace">'+fR(openBal)+'</td></tr>'+rHtml+'</tbody></table></div>';window._stmData={f:f,t:t,openingBal:openBal,tI:tI,tO:tO,closingBal:closeBal,rows:rows};}
 function loadBkStm(){var f=V('bkStF'),t=V('bkStT');if(!f||!t){toast('يرجى تحديد الفترة','w');return;}var accId=G('bkStmAcc')?G('bkStmAcc').value:'';var accName=accId?(S.data.bankAccounts||[]).find(function(a){return a.id===accId;}):'';accName=accName?accName.name:'كل الحسابات';var allBi=(S.data.bankIn||[]).filter(function(b){return !accId||b.accId===accId;});var allBo=(S.data.bankOut||[]).filter(function(b){return(!accId||b.accId===accId)&&b.status==='approved';});var oI=allBi.filter(function(b){return b.date<f;}).reduce(function(s,b){return s+b.amount;},0);var oO=allBo.filter(function(b){return b.date<f;}).reduce(function(s,b){return s+b.amount;},0);var accBal=accId?((S.data.bankAccounts||[]).find(function(a){return a.id===accId;})||{}).balance||0:0;var openBal=accBal+oI-oO;var bI=allBi.filter(function(b){return b.date>=f&&b.date<=t;});var bO=allBo.filter(function(b){return b.date>=f&&b.date<=t;});var tI=bI.reduce(function(s,b){return s+b.amount;},0);var tO=bO.reduce(function(s,b){return s+b.amount;},0);var closeBal=openBal+tI-tO;var rows=bI.map(function(b){return{d:b.date,num:b.num||'',desc:b.desc||b.from||'',acc:b.accName||'',type:'وارد',in:b.amount,out:0};}).concat(bO.map(function(b){return{d:b.date,num:b.num||'',desc:b.desc||b.to||'',acc:b.accName||'',type:'صادر',in:0,out:b.amount};})).sort(function(a,b){return a.d.localeCompare(b.d);});var run=openBal;var rHtml=rows.map(function(r){run+=r.in-r.out;return'<tr><td style="font-family:monospace">'+r.d+'</td><td style="font-size:11px;color:var(--gr)">'+r.num+'</td><td>'+r.desc+'</td>'+(!accId?'<td style="font-size:11px">'+r.acc+'</td>':'')+'<td><span class="bdg '+(r.type==='وارد'?'bn':'br')+'">'+r.type+'</span></td><td style="color:var(--sc);font-family:monospace">'+(r.in?fR(r.in):'')+'</td><td style="color:var(--dn);font-family:monospace">'+(r.out?fR(r.out):'')+'</td><td style="font-weight:700;font-family:monospace;color:'+(run>=0?'var(--sc)':'var(--dn)')+'">'+fR(run)+'</td></tr>';}).join('');G('bkStmC').innerHTML='<div class="g3" style="margin-bottom:16px"><div class="met mb"><div class="ml2">رصيد افتتاحي</div><div class="mv2" style="color:var(--ry)">'+fR(openBal)+'</div><div class="ms2">قبل '+f+'</div></div><div class="met mg"><div class="ml2">وارد</div><div class="mv2">'+fR(tI)+'</div></div><div class="met mr"><div class="ml2">صادر</div><div class="mv2">'+fR(tO)+'</div></div><div class="met '+(closeBal>=0?'mg':'mr')+'"><div class="ml2">رصيد ختامي</div><div class="mv2">'+fR(closeBal)+'</div></div></div><div style="margin-bottom:8px;text-align:left"><button class="btn bsm" onclick="exportBkStmExcel()">Excel</button></div><div class="tw"><table id="bkStmTbl"><thead><tr><th>التاريخ</th><th>السند</th><th>البيان</th>'+(!accId?'<th>الحساب</th>':'')+'<th>النوع</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody>'+rHtml+'</tbody></table></div>';window._bkStmData={f:f,t:t,accName:accName,openingBal:openBal,tI:tI,tO:tO,closingBal:closeBal,rows:rows,accId:accId};}
 function exportBkStmExcel(){var d=window._bkStmData;if(!d){toast('يرجى عرض الكشف اولا','w');return;}var rows2=[['التاريخ','السند','البيان',(d.accId?'':'الحساب,')+'النوع','وارد','صادر','الرصيد']];var run=d.openingBal;d.rows.forEach(function(r){run+=r.in-r.out;rows2.push([r.d,r.num,r.desc,(d.accId?'':r.acc+','),r.type,r.in||'',r.out||'',run]);});var csv='\uFEFF'+'كشف بنك — '+d.accName+'\n'+'من '+d.f+' الى '+d.t+'\n\n'+'رصيد افتتاحي,'+d.openingBal+'\n\n'+rows2.map(function(r){return r.map(function(c){return '"'+c+'"';}).join(',');}).join('\n')+'\n\nاجمالي الوارد,'+d.tI+'\nاجمالي الصادر,'+d.tO+'\nالرصيد الختامي,'+d.closingBal;var b=new Blob([csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='bank_'+d.f+'_'+d.t+'.csv';a.click();toast('تم التصدير');}
