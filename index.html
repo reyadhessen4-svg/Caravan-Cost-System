@@ -2049,9 +2049,17 @@ function vwCu(id,fromDate,toDate){
   var allEn=S.data.custodyEnts.filter(e=>e.cid===id);
   // Balance summary always reflects the TRUE overall totals, regardless of any date filter below —
   // filtering only narrows which transaction rows are displayed, never the balance itself.
-  var realExpense=allEn.filter(function(e){return e.amount>0;}).reduce((s,e)=>s+e.amount,0);
-  var returned=allEn.filter(function(e){return e.amount<0;}).reduce((s,e)=>s+Math.abs(e.amount),0);
-  var rm=cu.opening-realExpense-returned;
+  // التحويلات اللاحقة (isTopup) - تُضاف للرصيد ولا تُعدّ مصروفاً
+  var topups=allEn.filter(function(e){return e.isTopup&&!e.isReturn&&e.addedToOpening>0;}).reduce(function(s,e){return s+e.addedToOpening;},0);
+  // الرصيد الكلي = الابتدائي + التحويلات
+  var totalOpening=cu.opening+topups;
+  // المصروف الحقيقي فقط (بدون التحويلات)
+  var realExpense=allEn.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
+  // المُرجَع للخزينة
+  var retOld=allEn.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
+  var retNew=allEn.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
+  var returned=retOld+retNew;
+  var rm=totalOpening-realExpense-returned;
   G('cuDT').textContent='عهدة '+cu.name;
   G('cuDSetBtn').style.display=cu.status==='open'?'':'none';
   G('cuDReopenBtn').style.display=(cu.status==='settled'&&can('all'))?'':'none';
@@ -4150,7 +4158,8 @@ function loadCuReport(){
     var priorTopup=priorEn.filter(function(e){return e.isTopup&&!e.isReturn;}).reduce(function(s,e){return s+(e.addedToOpening||0);},0);
     var priorExpense=priorEn.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
     var priorReturned=priorEn.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
-    var originalOpening=cu.opening-totalTopupAll;
+    // cu.opening الآن = الرصيد الابتدائي الأصلي فقط (بدون التحويلات)
+    var originalOpening=cu.opening;
     var carryBal=originalOpening+priorTopup-priorExpense-priorReturned;
 
     // Entries within the selected period
@@ -4161,7 +4170,7 @@ function loadCuReport(){
     });
     if(!en.length&&(dateF||dateT)&&carryBal===0)return; // nothing to show at all
 
-    var sp=en.filter(function(e){return e.amount>0;}).reduce(function(s,e){return s+e.amount;},0);
+    var sp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
     var ret=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
     var closingBal=carryBal-sp-ret+en.filter(function(e){return e.isTopup&&!e.isReturn;}).reduce(function(s,e){return s+(e.addedToOpening||0);},0);
 
