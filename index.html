@@ -1999,7 +1999,17 @@ function loadCu(){
 
   var byCar={};en.forEach(e=>{if(e.car){if(!byCar[e.car])byCar[e.car]={count:0,total:0};byCar[e.car].count++;byCar[e.car].total+=e.amount;}});var tcr=Object.values(byCar).reduce((s,v)=>s+v.total,0);
   G('cuCarC').innerHTML=Object.keys(byCar).length?'<div class="tw"><table><thead><tr><th>رقم السيارة</th><th>عدد القيود</th><th>إجمالي المصروف</th><th>النسبة</th></tr></thead><tbody>'+Object.entries(byCar).sort((a,b)=>b[1].total-a[1].total).map(([c,v])=>'<tr><td style="font-weight:600">'+c+'</td><td>'+v.count+'</td><td style="color:var(--dn);font-weight:700">'+fR(v.total)+'</td><td>'+(tcr?Math.round(v.total/tcr*100):0)+'%</td></tr>').join('')+'</tbody></table></div>':'<div class="es"><div class="essb">لا توجد مصروفات مرتبطة بسيارات</div></div>';
-  G('cuBalC').innerHTML='<div class="tw"><table><thead><tr><th>الموظف</th><th>الرصيد الابتدائي</th><th>التحويلات المضافة</th><th>إجمالي المصروف</th><th>المرتجع للخزينة</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th></tr></thead><tbody>'+cu.map(c=>{var enC=en.filter(e=>e.cid===c.id),expSum=enC.filter(e=>e.amount>0).reduce((s,e)=>s+e.amount,0),retSum=enC.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0),rm=c.opening-expSum-retSum,pct=c.opening?Math.round(expSum/c.opening*100):0;return'<tr><td style="font-weight:600">'+c.name+'</td><td>'+fR(c.opening)+'</td><td style="color:var(--dn)">'+fR(expSum)+'</td><td style="color:var(--sc)">'+(retSum?fR(retSum):'—')+'</td><td style="font-weight:700;color:'+(pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)')+'">'+fR(rm)+'</td><td>'+pct+'%</td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td></tr>';}).join('')+'</tbody></table></div>';
+  G('cuBalC').innerHTML='<div class="tw"><table><thead><tr><th>الموظف</th><th>الرصيد الابتدائي</th><th>التحويلات المضافة</th><th>إجمالي المصروف</th><th>المرتجع للخزينة</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th></tr></thead><tbody>'+cu.map(c=>{
+    var enC=en.filter(e=>e.cid===c.id);
+    var topupSum=enC.filter(e=>e.isTopup&&!e.isReturn&&e.addedToOpening>0).reduce((s,e)=>s+e.addedToOpening,0);
+    var openBal=c.opening+topupSum;
+    var expSum=enC.filter(e=>e.amount>0&&!e.isTopup).reduce((s,e)=>s+e.amount,0);
+    var retOld=enC.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0);
+    var retNew=enC.filter(e=>e.isReturn&&e.amount===0).reduce((s,e)=>s+Math.abs(e.addedToOpening||0),0);
+    var retSum=retOld+retNew;
+    var rm=openBal-expSum-retSum;
+    var pct=openBal>0?Math.round(expSum/openBal*100):0;
+    return'<tr><td style="font-weight:600">'+c.name+'</td><td style="color:var(--ry);font-family:monospace">'+fR(c.opening)+'</td><td style="color:var(--nv);font-family:monospace">'+(topupSum?fR(topupSum):'—')+'</td><td style="color:var(--dn);font-family:monospace">'+fR(expSum)+'</td><td style="color:var(--sc);font-family:monospace">'+(retSum?fR(retSum):'—')+'</td><td style="font-weight:700;color:'+(pct>90?'var(--dn)':pct>60?'var(--wn)':'var(--sc)')+';font-family:monospace">'+fR(rm)+'</td><td>'+pct+'%</td><td><span class="bdg '+(c.status==='open'?'bn':'bg2')+'">'+(c.status==='open'?'مفتوحة':'مسواة')+'</span></td></tr>';}).join('')+'</tbody></table></div>';
 }
 
 function renderCuEnLog(){
