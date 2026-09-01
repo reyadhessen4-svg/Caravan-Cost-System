@@ -4866,7 +4866,13 @@ function saveEditBO(){
   if(!b)return;
   if(b.status==='approved'){toast('هذه العملية معتمدة — يجب إلغاء الاعتماد أولاً قبل التعديل','e');return;}
   var a=parseFloat(G('boe-a').value)||0;
+  // Get name from employee select OR text input
+  var empSel=G('boe-emp-sel');
   var t=V('boe-t');
+  if(empSel&&empSel.value){
+    var selEmp=(S.data.employees||[]).find(function(e){return e.id===empSel.value;});
+    if(selEmp&&!t)t=selEmp.name;
+  }
   if(!a||!t){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
   var accId=V('boe-acc');
   var acc=getBankAccounts().find(function(x){return x.id===accId;});
