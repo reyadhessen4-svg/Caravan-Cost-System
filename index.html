@@ -4841,6 +4841,17 @@ function editBO(id){
   G('boe-id').value=id;
   G('boe-d').value=b.date;
   G('boe-a').value=b.amount;
+  // Fill employee dropdown
+  var boeEmpSel=G('boe-emp-sel');
+  if(boeEmpSel){
+    boeEmpSel.innerHTML='<option value="">— اختر من سجل الموظفين (اختياري) —</option>'+
+      (S.data.employees||[]).filter(function(e){return e.active;}).map(function(e){
+        return'<option value="'+e.id+'">'+e.name+'</option>';
+      }).join('');
+    // Auto-select if name matches
+    var matchEmp=(S.data.employees||[]).find(function(e){return e.name===b.to;});
+    if(matchEmp)boeEmpSel.value=matchEmp.id;
+  }
   G('boe-t').value=b.to;
   G('boe-phone').value=b.phone||'';
   G('boe-rf').value=b.ref||'';
@@ -6735,7 +6746,12 @@ ld();
     <div class="fld"><label>الحساب البنكي <span class="req">*</span></label><select id="boe-acc" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none"><option value="">— اختر الحساب —</option></select></div>
     <div class="fld"><label>التاريخ <span class="req">*</span></label><input type="date" id="boe-d"></div>
     <div class="fld"><label>المبلغ <span class="req">*</span></label><input type="number" id="boe-a" placeholder="0"></div>
-    <div class="fld"><label>المستفيد <span class="req">*</span></label><input type="text" id="boe-t" placeholder="اسم المستفيد"></div>
+    <div class="fld"><label>المستفيد <span class="req">*</span></label>
+      <select id="boe-emp-sel" onchange="fillBoeFromEmp()" style="font-family:var(--fn);padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;width:100%;outline:none;margin-bottom:6px">
+        <option value="">— اختر من سجل الموظفين (اختياري) —</option>
+      </select>
+      <input type="text" id="boe-t" placeholder="أو أدخل اسم المستفيد يدوياً">
+    </div>
     <div class="fld"><label>رقم الجوال (اختياري)</label><input type="tel" id="boe-phone" placeholder="05xxxxxxxx"></div>
     <div class="fld"><label>رقم العملية</label><input type="text" id="boe-rf" placeholder="رقم المرجع"></div>
     <div class="fld"><label>البيان</label><input type="text" id="boe-ds" placeholder="بيان التحويل"></div>
