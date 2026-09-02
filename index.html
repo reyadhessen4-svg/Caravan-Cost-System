@@ -1255,7 +1255,7 @@ function ld(){
       var d=snap.val();
       if(d&&d.users){
         S.data=Object.assign({},S.data,d);
-        var arrFields=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit'];
+        var arrFields=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit','dailyStmts','commitments','commitArchive'];
         arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
         mergeCustomRoles();
         setSyncIcon('ok');
@@ -1340,7 +1340,7 @@ function _startListener(){
     // Ensure arrays
     var arrF=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles',
       'prices','ops','receipts','expenses','bankIn','bankOut','bankRevs',
-      'custodies','custodyEnts','claims','audit'];
+      'custodies','custodyEnts','claims','audit','dailyStmts','commitments','commitArchive'];
     arrF.forEach(function(f){
       if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);
       if(!S.data[f])S.data[f]=[];
@@ -1353,7 +1353,7 @@ function _startListener(){
         var pgId=pg.id.replace('pg-','');
         var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,
                ap:loadAp,veh:loadVeh,ba:loadBA,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,
-               rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};
+               rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash,daily:loadDaily,commit:loadCommit};
         if(L[pgId])L[pgId]();
       }
       updApCnt();updBkApCnt();checkAlerts();
@@ -1785,6 +1785,173 @@ function loadDash(){
   G('DClms').innerHTML=aCl.length?aCl.map(c=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)"><div><div style="font-size:13px;font-weight:600">'+c.num+'</div><div style="font-size:11px;color:var(--gr)">'+c.car+' — '+c.driver+'</div></div><div style="text-align:left">'+clBadge(c.stage)+'<div style="font-size:10px;color:var(--gr2);margin-top:3px">'+daysB(c.idate)+' يوم</div></div></div>').join(''):'<div class="es"><div class="esic">&#x1F6E1;&#xFE0F;</div><div class="essb">لا مطالبات نشطة</div></div>';
   var act=S.data.audit.filter(a=>a.dt.startsWith(tdy));
   G('DAct').innerHTML=act.length?act.slice(0,6).map(a=>'<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd);align-items:flex-start"><span style="font-size:15px;flex-shrink:0">&#x1F4CC;</span><div><div style="font-size:12px;font-weight:600">'+a.action+'</div><div style="font-size:11px;color:var(--gr)">'+a.user+' — '+new Date(a.dt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})+'</div></div></div>').join(''):'<div class="es"><div class="esic">&#x1F4A1;</div><div class="essb">لا يوجد نشاط اليوم</div></div>';
+}
+/* ─── DAILY STATEMENT (البيان اليومي) ─── */
+function _dailyItemFieldId(type,itemId){return 'daily-extra-'+type+'-'+itemId;}
+function loadDaily(){
+  if(!S.data.dailyCustomItems)S.data.dailyCustomItems={ahli:[],other:[]};
+  if(!Array.isArray(S.data.dailyCustomItems.ahli))S.data.dailyCustomItems.ahli=Object.values(S.data.dailyCustomItems.ahli||{});
+  if(!Array.isArray(S.data.dailyCustomItems.other))S.data.dailyCustomItems.other=Object.values(S.data.dailyCustomItems.other||{});
+  if(!S.data.dailyStmts)S.data.dailyStmts=[];
+  if(!G('dailyDate').value)G('dailyDate').value=td2();
+  var dt=G('dailyDate').value;
+  G('daily-ahli-extra').innerHTML=(S.data.dailyCustomItems.ahli||[]).map(function(it){
+    return '<div class="fld"><label style="display:flex;justify-content:space-between;align-items:center">'+it.label+' <button class="mcl" style="font-size:14px;padding:0 4px" onclick="delDailyItem(\'ahli\',\''+it.id+'\')" title="حذف البند">×</button></label><input type="number" id="'+_dailyItemFieldId('ahli',it.id)+'" placeholder="0.00" style="font-family:monospace"></div>';
+  }).join('');
+  G('daily-other-extra').innerHTML=(S.data.dailyCustomItems.other||[]).map(function(it){
+    return '<div class="fld"><label style="display:flex;justify-content:space-between;align-items:center">'+it.label+' <button class="mcl" style="font-size:14px;padding:0 4px" onclick="delDailyItem(\'other\',\''+it.id+'\')" title="حذف البند">×</button></label><input type="number" id="'+_dailyItemFieldId('other',it.id)+'" placeholder="0.00" style="font-family:monospace"></div>';
+  }).join('');
+  var ent=S.data.dailyStmts.find(function(e){return e.date===dt;});
+  G('daily-ahli-main').value=ent&&ent.ahliMain?ent.ahliMain:'';
+  G('daily-ahli-sub').value=ent&&ent.ahliSub?ent.ahliSub:'';
+  G('daily-zad').value=ent&&ent.zad?ent.zad:'';
+  G('daily-rev').value=ent&&ent.rev?ent.rev:'';
+  G('daily-notes').value=ent?(ent.notes||''):'';
+  (S.data.dailyCustomItems.ahli||[]).forEach(function(it){var f=G(_dailyItemFieldId('ahli',it.id));if(f)f.value=(ent&&ent.ahliExtra&&ent.ahliExtra[it.id]!=null)?ent.ahliExtra[it.id]:'';});
+  (S.data.dailyCustomItems.other||[]).forEach(function(it){var f=G(_dailyItemFieldId('other',it.id));if(f)f.value=(ent&&ent.otherExtra&&ent.otherExtra[it.id]!=null)?ent.otherExtra[it.id]:'';});
+  var rows=S.data.dailyStmts.slice().sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,30);
+  G('dailyTbd').innerHTML=rows.length?rows.map(function(e){
+    return '<tr><td style="font-family:monospace">'+e.date+'</td><td>'+fR(e.ahliMain||0)+'</td><td>'+fR(e.ahliSub||0)+'</td><td>'+fR(e.zad||0)+'</td><td style="font-weight:700;color:var(--sc)">'+fR(e.rev||0)+'</td><td style="font-size:12px;color:var(--gr)">'+(e.notes||'—')+'</td><td><button class="btn bsm bxs" onclick="G(\'dailyDate\').value=\''+e.date+'\';loadDaily()">فتح</button>'+(can('all')?' <button class="btn bd2 bxs" onclick="delDailyStmt(\''+e.id+'\')">حذف</button>':'')+'</td></tr>';
+  }).join(''):'<tr><td colspan="7"><div class="es"><div class="esic">&#x1F4C5;</div><div class="esti">لا يوجد بيانات محفوظة</div></div></td></tr>';
+}
+function addDailyItem(type){
+  var label=prompt('اسم البند الجديد:');
+  if(!label||!label.trim())return;
+  if(!S.data.dailyCustomItems)S.data.dailyCustomItems={ahli:[],other:[]};
+  if(!S.data.dailyCustomItems[type])S.data.dailyCustomItems[type]=[];
+  S.data.dailyCustomItems[type].push({id:uid(),label:label.trim()});
+  alog('إضافة بند بيان يومي',label.trim());
+  sv();loadDaily();toast('تمت إضافة البند');
+}
+function delDailyItem(type,id){
+  if(!can('all')){toast('حذف البنود مخصص لمدير النظام فقط','e');return;}
+  if(!confirm('حذف هذا البند من النموذج؟ (لن يُحذف من السجلات المحفوظة سابقاً)'))return;
+  S.data.dailyCustomItems[type]=(S.data.dailyCustomItems[type]||[]).filter(function(it){return it.id!==id;});
+  sv();loadDaily();toast('تم حذف البند','w');
+}
+function saveDaily(){
+  var dt=V('dailyDate')||td2();
+  var ahliExtra={},otherExtra={};
+  (S.data.dailyCustomItems.ahli||[]).forEach(function(it){ahliExtra[it.id]=Nv(_dailyItemFieldId('ahli',it.id));});
+  (S.data.dailyCustomItems.other||[]).forEach(function(it){otherExtra[it.id]=Nv(_dailyItemFieldId('other',it.id));});
+  var entry={ahliMain:Nv('daily-ahli-main'),ahliSub:Nv('daily-ahli-sub'),ahliExtra:ahliExtra,zad:Nv('daily-zad'),rev:Nv('daily-rev'),otherExtra:otherExtra,notes:V('daily-notes'),date:dt,by:S.cu.u,at:new Date().toISOString()};
+  var i=S.data.dailyStmts.findIndex(function(e){return e.date===dt;});
+  if(i>=0){entry.id=S.data.dailyStmts[i].id;S.data.dailyStmts[i]=entry;alog('تحديث البيان اليومي','تاريخ '+dt);}
+  else{entry.id=uid();S.data.dailyStmts.unshift(entry);alog('حفظ البيان اليومي','تاريخ '+dt);}
+  sv();loadDaily();toast('تم حفظ البيان اليومي');
+}
+function delDailyStmt(id){
+  if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}
+  var e=S.data.dailyStmts.find(function(x){return x.id===id;});
+  if(!e)return;
+  var rsn=getDeleteReason('بيان يومي',e.date);
+  if(!rsn)return;
+  logDeletion('بيان يومي',{num:e.date,amount:e.rev,desc:'بيان يوم '+e.date,date:e.date},rsn);
+  S.data.dailyStmts=S.data.dailyStmts.filter(function(x){return x.id!==id;});
+  sv();loadDaily();toast('تم الحذف','w');
+}
+function printDailyReport(){
+  var dt=V('dailyDate')||td2();
+  var e=S.data.dailyStmts.find(function(x){return x.date===dt;});
+  if(!e){toast('لا يوجد بيان محفوظ لهذا التاريخ — احفظ أولاً','e');return;}
+  var ahliRows=(S.data.dailyCustomItems.ahli||[]).map(function(it){return[it.label,(e.ahliExtra&&e.ahliExtra[it.id])||0];});
+  var otherRows=(S.data.dailyCustomItems.other||[]).map(function(it){return[it.label,(e.otherExtra&&e.otherExtra[it.id])||0];});
+  var allRows=[['الحساب الرئيسي',e.ahliMain||0],['ورشة الصندوق البارد (فرعي)',e.ahliSub||0]].concat(ahliRows).concat([['مؤسسة زاد الجود للوجبات السريعة',e.zad||0],['الإيرادات اليومية',e.rev||0]]).concat(otherRows);
+  var total=allRows.reduce(function(s,r){return s+r[1];},0);
+  var rowsHtml=allRows.map(function(r){return '<tr><td>'+r[0]+'</td><td style="font-family:monospace;text-align:left">'+r[1].toLocaleString('en-US')+'</td></tr>';}).join('');
+  var html='<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>البيان اليومي '+dt+'</title><style>body{font-family:Arial;padding:20px;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:10px}th{background:#1A56DB;color:#fff;padding:8px;text-align:right}td{padding:6px 8px;border:1px solid #ddd}tr:nth-child(even){background:#f9f9f9}@media print{@page{margin:10mm}}</style></head><body><div style="text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px"><div style="font-size:18px;font-weight:900">القوافل الخمسة للخدمات اللوجستية</div><div style="font-size:14px;font-weight:700;margin-top:4px">البيان اليومي — '+dt+'</div></div><table><thead><tr><th>البند</th><th>المبلغ</th></tr></thead><tbody>'+rowsHtml+'<tr style="font-weight:700;background:#EFF6FF"><td>الإجمالي</td><td style="font-family:monospace;text-align:left">'+total.toLocaleString('en-US')+'</td></tr></tbody></table>'+(e.notes?'<div style="margin-top:14px"><b>ملاحظات:</b> '+e.notes+'</div>':'')+'</body></html>';
+  var w=window.open('','_blank','width=900,height=700');w.document.write(html);w.document.close();setTimeout(function(){w.print();},500);
+}
+/* ─── MONTHLY COMMITMENTS (الالتزامات الشهرية) ─── */
+function _commitActiveMonth(){
+  if(!S.data.commitments||!S.data.commitments.length)return ym();
+  var months=S.data.commitments.map(function(c){return c.month;}).filter(Boolean);
+  return months.length?months.sort().pop():ym();
+}
+function loadCommit(){
+  if(!S.data.commitments)S.data.commitments=[];
+  if(!S.data.commitArchive)S.data.commitArchive=[];
+  var activeM=_commitActiveMonth();
+  if(!G('commitMonth').value)G('commitMonth').value=activeM;
+  var selM=G('commitMonth').value||activeM;
+  var isActive=selM===activeM;
+  var items=isActive?S.data.commitments:((S.data.commitArchive.find(function(a){return a.month===selM;})||{}).items||[]);
+  var total=items.reduce(function(s,c){return s+(c.estAmount||0);},0);
+  var paid=items.reduce(function(s,c){return s+(c.paidTotal||0);},0);
+  G('commitTotal').textContent=fR(total);
+  G('commitPaid').textContent=fR(paid);
+  G('commitRemain').textContent=fR(total-paid);
+  G('commitTbd').innerHTML=items.length?items.map(function(c){
+    var st=((c.paidTotal||0)>=(c.estAmount||0)&&(c.estAmount||0)>0)?'<span class="bdg bn">مدفوع</span>':((c.paidTotal||0)>0)?'<span class="bdg bo">مدفوع جزئياً</span>':'<span class="bdg br">لم يُدفع</span>';
+    var lastPay=(c.payments&&c.payments.length)?c.payments[c.payments.length-1].date:'—';
+    var btns=isActive?('<button class="btn bsm bxs" onclick="payCommitItem(\''+c.id+'\')">&#x1F4B0; دفعة</button>'+(can('all')?' <button class="btn bd2 bxs" onclick="delCommitItem(\''+c.id+'\')">حذف</button>':'')):'';
+    return '<tr><td>'+c.name+'</td><td>'+fR(c.estAmount||0)+'</td><td style="color:var(--sc)">'+fR(c.paidTotal||0)+'</td><td style="color:var(--dn)">'+fR((c.estAmount||0)-(c.paidTotal||0))+'</td><td style="font-size:12px">'+lastPay+'</td><td>'+st+'</td><td>'+btns+'</td></tr>';
+  }).join(''):'<tr><td colspan="7"><div class="es"><div class="esic">&#x1F4CB;</div><div class="esti">لا توجد بنود</div><div class="essb">استخدم زر "بند جديد" للإضافة</div></div></td></tr>';
+  G('commitArchive').innerHTML=S.data.commitArchive.length?S.data.commitArchive.slice().sort(function(a,b){return b.month.localeCompare(a.month);}).map(function(a){
+    return '<button class="btn bsm" style="margin:3px" onclick="G(\'commitMonth\').value=\''+a.month+'\';loadCommit()">'+a.month+'</button>';
+  }).join(''):'<div class="es"><div class="essb">لا توجد أشهر مؤرشفة</div></div>';
+}
+function openAddCommitItem(){
+  var activeM=_commitActiveMonth();
+  if(G('commitMonth').value&&G('commitMonth').value!==activeM){toast('لا يمكن إضافة بنود لشهر مؤرشف — اعرض الشهر الحالي أولاً','e');return;}
+  var name=prompt('اسم البند (مثال: إيجار، اتصالات...):');
+  if(!name||!name.trim())return;
+  var amt=parseFloat(prompt('المبلغ التقديري:'));
+  if(isNaN(amt)||amt<0){toast('مبلغ غير صحيح','e');return;}
+  if(!S.data.commitments)S.data.commitments=[];
+  S.data.commitments.push({id:uid(),name:name.trim(),estAmount:amt,paidTotal:0,payments:[],month:activeM,by:S.cu.u,at:new Date().toISOString()});
+  alog('إضافة بند التزام',name.trim()+' — '+fR(amt));
+  sv();loadCommit();toast('تمت إضافة البند');
+}
+function payCommitItem(id){
+  var c=S.data.commitments.find(function(x){return x.id===id;});
+  if(!c)return;
+  var amt=parseFloat(prompt('مبلغ الدفعة لـ "'+c.name+'":'));
+  if(isNaN(amt)||amt<=0){toast('مبلغ غير صحيح','e');return;}
+  c.payments=c.payments||[];
+  c.payments.push({date:td2(),amount:amt,by:S.cu.u});
+  c.paidTotal=(c.paidTotal||0)+amt;
+  alog('دفعة التزام',c.name+' — '+fR(amt));
+  sv();loadCommit();toast('تم تسجيل الدفعة');
+}
+function delCommitItem(id){
+  if(!can('all')){toast('الحذف مخصص لمدير النظام فقط','e');return;}
+  var c=S.data.commitments.find(function(x){return x.id===id;});
+  if(!c)return;
+  var rsn=getDeleteReason('بند التزام',c.name);
+  if(!rsn)return;
+  logDeletion('بند التزام',{num:c.name,amount:c.estAmount,desc:c.name},rsn);
+  S.data.commitments=S.data.commitments.filter(function(x){return x.id!==id;});
+  sv();loadCommit();toast('تم الحذف','w');
+}
+function rolloverCommit(){
+  if(!can('all')){toast('الترحيل مخصص لمدير النظام فقط','e');return;}
+  var activeM=_commitActiveMonth();
+  if(!S.data.commitments.length){toast('لا توجد بنود لترحيلها','e');return;}
+  if(!confirm('ترحيل بنود شهر '+activeM+' إلى الشهر القادم؟ سيتم أرشفة الشهر الحالي وإنشاء بنود جديدة بنفس الأسماء والمبالغ التقديرية (بدون مدفوعات).'))return;
+  if(!S.data.commitArchive)S.data.commitArchive=[];
+  var existingArch=S.data.commitArchive.find(function(a){return a.month===activeM;});
+  var snapshot=S.data.commitments.map(function(c){return Object.assign({},c);});
+  if(existingArch)existingArch.items=snapshot;
+  else S.data.commitArchive.push({month:activeM,items:snapshot,archivedBy:S.cu.u,archivedAt:new Date().toISOString()});
+  var d=new Date(activeM+'-01T00:00:00');d.setMonth(d.getMonth()+1);
+  var nextM=d.toISOString().slice(0,7);
+  S.data.commitments=snapshot.map(function(c){return{id:uid(),name:c.name,estAmount:c.estAmount,paidTotal:0,payments:[],month:nextM,by:S.cu.u,at:new Date().toISOString()};});
+  alog('ترحيل الالتزامات',activeM+' ← '+nextM);
+  sv();G('commitMonth').value=nextM;loadCommit();toast('تم الترحيل إلى شهر '+nextM);
+}
+function printCommitReport(){
+  var activeM=_commitActiveMonth();
+  var selM=V('commitMonth')||activeM;
+  var isActive=selM===activeM;
+  var items=isActive?S.data.commitments:((S.data.commitArchive.find(function(a){return a.month===selM;})||{}).items||[]);
+  var total=items.reduce(function(s,c){return s+(c.estAmount||0);},0),paid=items.reduce(function(s,c){return s+(c.paidTotal||0);},0);
+  var rowsHtml=items.map(function(c){
+    var st=((c.paidTotal||0)>=(c.estAmount||0)&&(c.estAmount||0)>0)?'مدفوع':((c.paidTotal||0)>0)?'مدفوع جزئياً':'لم يُدفع';
+    return '<tr><td>'+c.name+'</td><td style="text-align:left;font-family:monospace">'+(c.estAmount||0).toLocaleString('en-US')+'</td><td style="text-align:left;font-family:monospace">'+(c.paidTotal||0).toLocaleString('en-US')+'</td><td>'+st+'</td></tr>';
+  }).join('');
+  var html='<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>الالتزامات الشهرية '+selM+'</title><style>body{font-family:Arial;padding:20px;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:10px}th{background:#1A56DB;color:#fff;padding:8px;text-align:right}td{padding:6px 8px;border:1px solid #ddd}tr:nth-child(even){background:#f9f9f9}@media print{@page{margin:10mm}}</style></head><body><div style="text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px"><div style="font-size:18px;font-weight:900">القوافل الخمسة للخدمات اللوجستية</div><div style="font-size:14px;font-weight:700;margin-top:4px">الالتزامات الشهرية — '+selM+'</div></div><table><thead><tr><th>البند</th><th>التقديري</th><th>المدفوع</th><th>الحالة</th></tr></thead><tbody>'+rowsHtml+'<tr style="font-weight:700;background:#EFF6FF"><td>الإجمالي</td><td style="font-family:monospace;text-align:left">'+total.toLocaleString('en-US')+'</td><td style="font-family:monospace;text-align:left">'+paid.toLocaleString('en-US')+'</td><td></td></tr></tbody></table></body></html>';
+  var w=window.open('','_blank','width=900,height=700');w.document.write(html);w.document.close();setTimeout(function(){w.print();},500);
 }
 /* ─── OPERATIONS ─── */
 function loadOps(){
@@ -2876,6 +3043,14 @@ function fillExFromEmp(){
   }
 }
 
+function fillBoeFromEmp(){
+  var eid=V('boe-emp-sel');
+  if(!eid)return;
+  var emp=S.data.employees.find(function(e){return e.id===eid;});
+  if(!emp)return;
+  G('boe-t').value=emp.name;
+  if(G('boe-phone'))G('boe-phone').value=emp.phone||'';
+}
 function fillBoFromEmp(){
   var eid=V('bo-emp-sel');
   var row=G('bo-custody-link-row');
