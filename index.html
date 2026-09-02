@@ -176,6 +176,9 @@ tbody tr:hover td{background:var(--ltr)}
   <button class="sbi" onclick="N('emps',this)" data-pg="emps">&#x1F464; سجل الموظفين</button>
   <button class="sbi" onclick="N('cu',this)" data-pg="cu">&#x1F45B; العهد الشخصية</button>
   <button class="sbi" onclick="N('cl',this)" data-pg="cl">&#x1F6E1;&#xFE0F; مطالبات التأمين</button>
+  <div class="sbs">متابعة يومية وشهرية</div>
+  <button class="sbi" onclick="N('daily',this)" data-pg="daily">&#x1F4C5; البيان اليومي</button>
+  <button class="sbi" onclick="N('commit',this)" data-pg="commit">&#x1F4CB; الالتزامات الشهرية</button>
   <div class="sbs">إدارة النظام</div>
   <button class="sbi" onclick="N('rp',this)" data-pg="rp">&#x1F4CB; التقارير الشاملة</button>
   <button class="sbi" id="usNav" onclick="N('us',this)" style="display:none">&#x1F465; المستخدمون</button>
@@ -828,6 +831,76 @@ tbody tr:hover td{background:var(--ltr)}
   </div>
 </div>
 </div></div></div>
+<!-- ═══ DAILY STATEMENT ═══ -->
+<div class="pg" id="pg-daily">
+  <div class="page-hdr"><h2>📅 البيان اليومي</h2>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input type="date" id="dailyDate" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+      <button class="btn bsm bp" onclick="loadDaily()">🔍 عرض</button>
+      <button class="btn bsm" onclick="saveDaily()">💾 حفظ</button>
+      <button class="btn bsm" onclick="printDailyReport()">📄 PDF</button>
+    </div>
+  </div>
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="cht">🏦 البنك الأهلي
+        <button class="btn bsm" onclick="addDailyItem('ahli')" style="font-size:11px">+ بند</button>
+      </div>
+      <div id="ahliItems">
+        <div class="fld"><label>الحساب الرئيسي</label><input type="number" id="daily-ahli-main" placeholder="0.00" style="font-family:monospace"></div>
+        <div class="fld"><label>ورشة الصندوق البارد (فرعي)</label><input type="number" id="daily-ahli-sub" placeholder="0.00" style="font-family:monospace"></div>
+        <div id="daily-ahli-extra"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cht">🏪 جهات أخرى
+        <button class="btn bsm" onclick="addDailyItem('other')" style="font-size:11px">+ بند</button>
+      </div>
+      <div id="otherItems">
+        <div class="fld"><label>مؤسسة زاد الجود للوجبات السريعة</label><input type="number" id="daily-zad" placeholder="0.00" style="font-family:monospace"></div>
+        <div class="fld"><label>الإيرادات اليومية</label><input type="number" id="daily-rev" placeholder="0.00" style="font-family:monospace"></div>
+        <div id="daily-other-extra"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="cht">📝 ملاحظات</div>
+    <textarea id="daily-notes" placeholder="ملاحظات اليوم..." style="width:100%;min-height:60px;padding:9px;border:1.5px solid var(--bd);border-radius:9px;font-family:var(--fn);font-size:13px;outline:none"></textarea>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="cht">📋 سجل البيانات اليومية</div>
+    <div class="tw"><table><thead><tr><th>التاريخ</th><th>أهلي رئيسي</th><th>أهلي فرعي</th><th>زاد الجود</th><th>الإيرادات</th><th>ملاحظات</th><th></th></tr></thead>
+    <tbody id="dailyTbd"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══ MONTHLY COMMITMENTS ═══ -->
+<div class="pg" id="pg-commit">
+  <div class="page-hdr"><h2>📋 الالتزامات الشهرية</h2>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input type="month" id="commitMonth" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+      <button class="btn bsm bp" onclick="loadCommit()">🔍 عرض</button>
+      <button class="btn bsm" onclick="openAddCommitItem()">➕ بند جديد</button>
+      <button class="btn bsm" onclick="rolloverCommit()">📤 ترحيل للشهر القادم</button>
+      <button class="btn bsm" onclick="printCommitReport()">📄 PDF</button>
+    </div>
+  </div>
+  <div class="mets" style="margin-bottom:16px">
+    <div class="met mb"><div class="ml2">إجمالي الالتزامات</div><div class="mv2" id="commitTotal">—</div></div>
+    <div class="met mr"><div class="ml2">إجمالي المدفوع</div><div class="mv2" id="commitPaid">—</div></div>
+    <div class="met mg"><div class="ml2">المتبقي</div><div class="mv2" id="commitRemain">—</div></div>
+  </div>
+  <div class="card">
+    <div class="tw"><table><thead><tr>
+      <th>البند</th><th>المبلغ التقديري</th><th>المدفوع</th><th>المتبقي</th><th>آخر دفعة</th><th>الحالة</th><th></th>
+    </tr></thead><tbody id="commitTbd"></tbody></table></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="cht">📂 الأشهر المؤرشفة</div>
+    <div id="commitArchive"></div>
+  </div>
+</div>
+
 <!-- ══ MODALS ══ -->
 <div class="mo2" id="opM"><div class="mb2"><div class="mhd"><div class="mtt">&#x1F69B; تسجيل عملية يومية</div><button class="mcl" onclick="CM('opM')">×</button></div>
 <div class="fg">
@@ -1079,7 +1152,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],deletedEmployees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],clients:[],costCenters:[],customRoles:[],systemStartDate:'',prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
+var S={cu:null,data:{users:[],employees:[],deletedEmployees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],dailyStmts:[],dailyCustomItems:{ahli:[],other:[]},commitments:[],commitArchive:[],clients:[],costCenters:[],customRoles:[],systemStartDate:'',prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
 var BK_KEY='qawafil_v14'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
@@ -1453,7 +1526,7 @@ function initApp(){
   G('TPD').textContent=days[d.getDay()]+' '+d.getDate()+' '+months[d.getMonth()]+' '+d.getFullYear();
   // Show only allowed pages in sidebar
   var r=ROLES[u.r]||{};
-  var pageNavMap={ops:'opNav',rev:'revNav',prices:'prNav',tr:'trNav',bk:'bkNav',ap:'apNav',cu:'cuNav',cl:'clNav',rp:'rpNav',us:'usNav',au:'auNav'};
+  var pageNavMap={daily:'',commit:'',ops:'opNav',rev:'revNav',prices:'prNav',tr:'trNav',bk:'bkNav',ap:'apNav',cu:'cuNav',cl:'clNav',rp:'rpNav',us:'usNav',au:'auNav'};
   // Show/hide all nav items based on permissions
   document.querySelectorAll('.sbi[data-pg]').forEach(function(el){
     var pg=el.getAttribute('data-pg');
@@ -1502,7 +1575,7 @@ function N(pg,btn){
   if(!canPage(pg)){toast('ليس لديك صلاحية الوصول لهذه الصفحة','e');return;}
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
-  var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',veh:'سجل السيارات',ba:'الحسابات البنكية',emps:'سجل الموظفين',cc:'مراكز التكلفة',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,veh:loadVeh,ba:loadBA,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
+  var el=G('pg-'+pg);if(el)el.classList.add('on');if(btn)btn.classList.add('on');var titles={dash:'لوحة التحكم',ops:'العمليات اليومية',rev:'تقارير الإيرادات',prices:'إدارة الأسعار',tr:'الخزينة',bk:'البنك',ap:'اعتماد المصروفات',veh:'سجل السيارات',ba:'الحسابات البنكية',emps:'سجل الموظفين',cc:'مراكز التكلفة',cu:'العهد الشخصية',cl:'مطالبات التأمين',rp:'التقارير الشاملة',us:'إدارة المستخدمين',au:'سجل العمليات'};G('PGT').textContent=titles[pg]||'';var L={ops:loadOps,rev:loadRev,prices:loadPrices,tr:loadTr,bk:loadBk,ap:loadAp,veh:loadVeh,ba:loadBA,emps:loadEmps,cc:loadCC,cu:loadCu,cl:loadClaims,rp:loadRp,us:loadUs,au:loadAudit,dash:loadDash,daily:loadDaily,commit:loadCommit};if(L[pg])L[pg]();if(window.innerWidth<=768)G('SB').classList.remove('open');}
 function OM(id){
   if(id==='usM'){
     G('us-n').value='';G('us-u').value='';G('us-p').value='';
