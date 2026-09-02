@@ -32,9 +32,9 @@
 body{font-family:var(--fn);background:var(--ltr);color:var(--nv);min-height:100vh;direction:rtl}
 .shell{display:flex;min-height:100vh}
 .sb{width:248px;background:var(--nv);position:fixed;top:0;right:0;bottom:0;z-index:100;display:flex;flex-direction:column;overflow-y:auto}
-.mn{margin-right:248px;flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.mn{margin-right:248px;flex:1;display:flex;flex-direction:column}
 .tb{background:var(--wh);border-bottom:1px solid var(--bd);height:62px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 1px 8px rgba(26,86,219,.07)}
-.ct{padding:22px;flex:1;overflow-y:auto;height:0}
+.ct{padding:22px;flex:1}
 .sbb{padding:18px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
 .sbbi{width:40px;height:40px;background:var(--ry);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 .sbbn{font-size:13px;font-weight:700;color:#fff;line-height:1.3}.sbbs{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px}
@@ -126,7 +126,7 @@ tbody tr:hover td{background:var(--ltr)}
 .page-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px}
 .page-hdr h2{font-size:18px;font-weight:700}
 .notif-banner{background:var(--dnb);border:1px solid #FCA5A5;border-radius:12px;padding:12px 16px;font-size:13px;color:#991B1B;display:flex;align-items:center;gap:10px;margin-bottom:16px;display:none}
-@media print{.sb,.tb,.btn,.mo2,.tc{display:none!important}.mn{margin-right:0!important}.ct{padding:10px!important;height:0}}
+@media print{.sb,.tb,.btn,.mo2,.tc{display:none!important}.mn{margin-right:0!important}.ct{padding:10px!important}}
 @media(max-width:1024px){.sb{width:210px}.mn{margin-right:210px}}
 @media(max-width:768px){.sb{transform:translateX(110%);transition:transform .3s}.sb.open{transform:none}.mn{margin-right:0}.g3{grid-template-columns:1fr 1fr}}
 @media(max-width:580px){.mets,.g2,.g3{grid-template-columns:1fr}.fr,.fr3{grid-template-columns:1fr}.mb2.lg,.mb2.xl,.mb2.xxl{width:100%}}
