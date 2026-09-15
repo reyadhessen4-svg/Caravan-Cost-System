@@ -3918,6 +3918,7 @@ function saveRc(){
   G('rc-custody-id').value='';
   
   sv();CM('rcM');loadTr();loadCu();loadDash();
+  if(confirm('هل تريد طباعة سند القبض الآن؟'))printReceipt(rcRec.id);
 }
 
 
