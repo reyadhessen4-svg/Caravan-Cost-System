@@ -1513,9 +1513,11 @@ function doLogin(){
   if(!user){G('lgE').style.display='block';return;}
   G('lgE').style.display='none';
   user.ll=new Date().toISOString();user.lo='';
+  if(!user.sessToken)user.sessToken=uid(); // every user gets a session token so it can be revoked later
   S.cu=user;
   alog('تسجيل الدخول','المستخدم: '+user.name);
   sv();
+  try{localStorage.setItem('qawafil_session',JSON.stringify({u:user.u,id:user.id,t:Date.now(),tok:user.sessToken}));}catch(e){}
   G('LP').style.display='none';
   G('APP').style.display='block';
   initApp();
@@ -2944,11 +2946,17 @@ function saveEditUs(){
   usr.customPages=isSame?null:checked; // null = use role default
   // Change password if provided
   var newP=G('use-p').value;
-  if(newP){if(newP.length<6){toast('كلمة المرور يجب أن تكون 6 أحرف على الأقل','e');return;}usr.p=newP;}
+  var pwChanged=false;
+  if(newP){if(newP.length<6){toast('كلمة المرور يجب أن تكون 6 أحرف على الأقل','e');return;}usr.p=newP;usr.sessToken=uid();pwChanged=true;}
   alog('تعديل مستخدم',oldInfo+' → '+n+' ('+ROLES[r]?.lbl+')');
   sv();CM('usEM');loadUs();
   // If editing current user, refresh their role display
-  if(id===S.cu.id){S.cu=usr;G('SBNm').textContent=usr.name;G('SBRl').textContent=ROLES[usr.r]?.lbl||'';G('SBAv').textContent=usr.name[0];}
+  if(id===S.cu.id){
+    S.cu=usr;G('SBNm').textContent=usr.name;G('SBRl').textContent=ROLES[usr.r]?.lbl||'';G('SBAv').textContent=usr.name[0];
+    // Editing your own password here also revokes any other device's saved session —
+    // keep THIS device logged in with the fresh token.
+    if(pwChanged){try{localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now(),tok:usr.sessToken}));}catch(e){}}
+  }
   toast('تم حفظ التعديلات بنجاح');
 }
 
@@ -3721,15 +3729,19 @@ function saveNewPass(){
   if(!user)return;
   user.p=newP;
   user.mustChangePass=false;
+  user.sessToken=uid(); // revoke any other device's saved auto-login session immediately
   S.cu.p=newP;
   S.cu.mustChangePass=false;
+  S.cu.sessToken=user.sessToken;
   alog('تغيير كلمة المرور','المستخدم: '+S.cu.name);
   sv();
+  // Keep THIS device logged in with the fresh token (only other devices get logged out)
+  try{localStorage.setItem('qawafil_session',JSON.stringify({u:S.cu.u,id:S.cu.id,t:Date.now(),tok:S.cu.sessToken}));}catch(e){}
   G('chPassM').classList.remove('on');
   // Clear fields
   G('cp-old').value='';G('cp-new').value='';G('cp-confirm').value='';
   G('cp-strength').style.display='none';
-  toast('✅ تم تغيير كلمة المرور بنجاح');
+  toast('✅ تم تغيير كلمة المرور بنجاح — تم تسجيل الخروج تلقائياً من أي جهاز آخر كان مسجّلاً بحسابك');
 }
 
 function openChangePass(isMandatory){
@@ -6310,7 +6322,12 @@ function applyRefUpdate(){
 }
 
 
-function _tryAutoLogin(){try{var sess=localStorage.getItem('qawafil_session');if(!sess)return;var s=JSON.parse(sess);if(!s||!s.u||(Date.now()-s.t)>30*24*60*60*1000){localStorage.removeItem('qawafil_session');return;}if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);if(!S.data.users||!S.data.users.length){setTimeout(_tryAutoLogin,500);return;}var usr=S.data.users.find(function(x){return x.u===s.u&&x.active;});if(!usr){localStorage.removeItem('qawafil_session');return;}S.cu=usr;usr.ll=new Date().toISOString();var lp=G('LP');if(lp&&lp.parentNode)lp.parentNode.removeChild(lp);G('APP').style.display='block';localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now()}));initApp();}catch(e){}}
+function _tryAutoLogin(){try{var sess=localStorage.getItem('qawafil_session');if(!sess)return;var s=JSON.parse(sess);if(!s||!s.u||(Date.now()-s.t)>30*24*60*60*1000){localStorage.removeItem('qawafil_session');return;}if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);if(!S.data.users||!S.data.users.length){setTimeout(_tryAutoLogin,500);return;}var usr=S.data.users.find(function(x){return x.u===s.u&&x.active;});if(!usr){localStorage.removeItem('qawafil_session');return;}
+  // The saved session must carry the user's CURRENT token. Changing the password issues a
+  // fresh token, which instantly invalidates this saved session on every other device —
+  // no need to wait out the 30-day expiry.
+  if(!usr.sessToken||s.tok!==usr.sessToken){localStorage.removeItem('qawafil_session');return;}
+  S.cu=usr;usr.ll=new Date().toISOString();var lp=G('LP');if(lp&&lp.parentNode)lp.parentNode.removeChild(lp);G('APP').style.display='block';localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now(),tok:usr.sessToken}));initApp();}catch(e){}}
 function getDeleteReason(t,n){var r=prompt('حذف '+t+' رقم '+n+'\nسبب الحذف:');if(r===null)return null;if(!r.trim()){toast('سبب الحذف إجباري','e');return null;}return r.trim();}
 function logDeletion(t,doc,rsn){alog('حذف '+t,'سريال '+(doc.num||'—')+' — '+rsn);if(!S.data.deletedSerials)S.data.deletedSerials=[];S.data.deletedSerials.push({type:t,num:doc.num,amount:doc.amount||0,desc:doc.desc||'',to:doc.to||'',date:doc.date||td2(),deletedBy:S.cu?S.cu.name:'',deletedAt:new Date().toISOString(),reason:rsn});}
 function showDeletedSerials(){var types=[{name:'مصروفات الخزينة',data:S.data.expenses,ctr:S.data.ctr.ex},{name:'مقبوضات الخزينة',data:S.data.receipts,ctr:S.data.ctr.rc},{name:'الوارد البنكي',data:S.data.bankIn,ctr:S.data.ctr.bi||0},{name:'الصادر البنكي',data:S.data.bankOut,ctr:S.data.ctr.bo||0}];var html='';var total=0;types.forEach(function(t){if(!t.ctr||!t.data.length)return;var es={};t.data.forEach(function(e){if(e.num)es[e.num]=true;});var nums=t.data.filter(function(e){return e.num;}).map(function(e){return e.num;});if(!nums.length)return;var mn=Math.min.apply(null,nums);var missing=[];for(var i=mn;i<=t.ctr;i++){if(!es[i])missing.push(i);}if(!missing.length)return;total+=missing.length;html+='<div style="margin-bottom:16px;border:1px solid #ddd;border-radius:8px;overflow:hidden"><div style="background:#1A56DB;color:#fff;padding:10px 14px;font-weight:700">'+t.name+' ('+missing.length+' محذوف)</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f5f5f5"><th style="padding:8px;text-align:right;border:1px solid #ddd">السريال</th><th style="padding:8px;text-align:right;border:1px solid #ddd">سبب الحذف</th><th style="padding:8px;text-align:right;border:1px solid #ddd">محذوف بواسطة</th></tr></thead><tbody>';missing.forEach(function(n){var d=(S.data.deletedSerials||[]).find(function(x){return x.num==n;});html+='<tr><td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#DC2626">'+n+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.reason:'—')+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.deletedBy:'—')+'</td></tr>';});html+='</tbody></table></div>';});if(!total)html='<div style="padding:40px;text-align:center;color:#059669">لا توجد سيريالات محذوفة</div>';var w=window.open('','_blank','width=800,height=600');w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>السيريالات المحذوفة</title></head><body dir="rtl" style="font-family:Cairo,Arial;padding:20px"><h2>السيريالات المحذوفة</h2>'+html+'</body></html>');w.document.close();}
@@ -7202,4 +7219,5 @@ ld();
     <button class="btn bg3" onclick="exportSettlementPDF()">&#x1F4C4; تصدير PDF</button>
   </div>
 </div></div>
+
 </body></html>
