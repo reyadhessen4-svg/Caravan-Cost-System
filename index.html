@@ -205,7 +205,7 @@ tbody tr:hover td{background:var(--ltr)}
       <div id="syncIcon" style="font-size:14px;padding:4px 8px;background:var(--scb);border-radius:8px;color:var(--sc);cursor:default" title="حالة المزامنة">&#x2601;&#xFE0F;</div>
       <button class="btn bsm" onclick="window.print()" title="طباعة">&#x1F5A8;&#xFE0F;</button>
       <button class="btn bsm" onclick="backupData()" title="نسخ احتياطي — تصدير فوري لكل بيانات النظام">&#x1F4BE;</button>
-      <label class="btn bsm" style="cursor:pointer" title="استرجاع نسخة احتياطية من ملف">
+      <label id="restoreBtnLbl" class="btn bsm" style="cursor:pointer" title="استرجاع نسخة احتياطية من ملف">
         &#x1F4E4;
         <input type="file" id="restoreFileInput" accept=".json" onchange="handleRestoreFile(this)" style="display:none">
       </label>
@@ -1553,6 +1553,11 @@ function initApp(){
   });
   if(r.all||can('ap'))G('apNav').style.display='';
   if(r.all){G('usNav').style.display='';G('auNav').style.display='';}
+  // Restore-from-backup is a manager-only action (it fully replaces live data for
+  // everyone) — hide the icon entirely for non-admins instead of showing it and
+  // then refusing the click, to avoid confusion/temptation.
+  var restoreLbl=G('restoreBtnLbl');
+  if(restoreLbl)restoreLbl.style.display=r.all?'':'none';
   document.querySelectorAll('input[type=date]').forEach(i=>{if(!i.value)i.value=td2();});
   document.querySelectorAll('input[type=month]').forEach(i=>{if(!i.value)i.value=ym();});
   G('opMon').value=ym();
