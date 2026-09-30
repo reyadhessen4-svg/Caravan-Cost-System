@@ -142,7 +142,7 @@ tbody tr:hover td{background:var(--ltr)}
       <div class="llnm">القوافل الخمسة</div>
       <div class="llsb">نظام الإدارة المتكامل للخدمات اللوجستية</div>
     </div>
-    <div class="fg">
+    <div class="fg" id="lgFields">
       <div class="fld"><label>اسم المستخدم</label><input type="text" id="lgu" placeholder="أدخل اسم المستخدم" autocomplete="username"></div>
       <div class="fld"><label>كلمة المرور</label><input type="password" id="lgp" placeholder="أدخل كلمة المرور" autocomplete="current-password"></div>
       <div id="lgE" style="display:none" class="al" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">&#x274C; اسم المستخدم أو كلمة المرور غير صحيحة</div>
@@ -151,6 +151,17 @@ tbody tr:hover td{background:var(--ltr)}
         <span id="lpLoadingMsg">جاري الاتصال بالسيرفر...</span>
       </div>
       <button class="btn bp" id="lpLoginBtn" style="width:100%;padding:13px;font-size:15px;justify-content:center;display:none" onclick="doLogin()">&#x1F511; دخول للنظام</button>
+    </div>
+    <div class="fg" id="otpFields" style="display:none">
+      <div class="al ai" style="margin-bottom:4px">&#x1F510; تم إرسال رمز تحقق مكوّن من 6 أرقام إلى بريدك الإلكتروني <b id="otpEmailMask"></b></div>
+      <div class="fld"><label>رمز التحقق (OTP)</label><input type="text" id="otp-code" placeholder="000000" maxlength="6" inputmode="numeric" style="text-align:center;font-size:22px;letter-spacing:8px;font-family:monospace" autocomplete="one-time-code"></div>
+      <div id="otpErr" style="display:none" class="al" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5"></div>
+      <div style="font-size:12px;color:var(--gr);text-align:center" id="otpTimer"></div>
+      <button class="btn bp" id="otpSubmitBtn" style="width:100%;padding:13px;font-size:15px;justify-content:center" onclick="submitOtp()">&#x2705; تأكيد الرمز</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn bsm" style="flex:1" id="otpResendBtn" onclick="resendOtp()" disabled>إعادة إرسال الرمز</button>
+        <button class="btn bsm" style="flex:1" onclick="cancelOtpLogin()">رجوع لتسجيل الدخول</button>
+      </div>
     </div>
   </div>
 </div>
@@ -216,6 +227,13 @@ tbody tr:hover td{background:var(--ltr)}
 <!-- ═══ DASHBOARD ═══ -->
 <div class="pg on" id="pg-dash">
   <div class="notif-banner" id="alertBanner">&#x26A0;&#xFE0F; <span id="alertMsg"></span></div>
+  <div class="notif-banner" id="loginAlertBanner" style="display:none;background:#FEF3C7;border-color:#FDE68A;color:#92400E;flex-direction:column;align-items:flex-start;gap:6px">
+    <div style="display:flex;align-items:center;gap:6px;width:100%">
+      &#x1F510; <b>تنبيه أمان — تسجيلات دخول لحساب مدير النظام:</b>
+      <button class="btn bxs" style="margin-right:auto" onclick="dismissLoginAlerts()">تم الاطلاع ✓</button>
+    </div>
+    <div id="loginAlertMsg" style="font-size:12px;width:100%"></div>
+  </div>
   <div class="notif-banner" id="backupReminderBanner" style="background:var(--lt);border-color:#BFDBFE;color:var(--ry2)">
     &#x1F4BE; <span>لم تأخذ نسخة احتياطية اليوم — يُنصح بأخذ نسخة يومية.</span>
     <button class="btn bxs bp" style="margin-right:auto" onclick="backupData()">تصدير الآن</button>
@@ -1162,20 +1180,32 @@ tbody tr:hover td{background:var(--ltr)}
   <div class="fld"><label>الاسم الكامل <span class="req">*</span></label><input type="text" id="us-n" placeholder="الاسم الكامل"></div>
   <div class="fld"><label>اسم المستخدم <span class="req">*</span></label><input type="text" id="us-u" placeholder="للدخول (بالإنجليزية)"></div>
   <div class="fld"><label>كلمة المرور <span class="req">*</span></label><input type="password" id="us-p" placeholder="كلمة مرور قوية"></div>
+  <div class="fld"><label>البريد الإلكتروني <span id="us-email-req" class="req" style="display:none">*</span></label><input type="email" id="us-email" placeholder="مطلوب لمدير النظام (لرمز التحقق OTP)"></div>
   <div class="fld"><label>الدور الوظيفي <span class="req">*</span></label>
-    <select id="us-r"><option value="admin">مدير النظام</option><option value="finance">المدير المالي</option><option value="treasury">أمين الخزينة</option><option value="ops">موظف التشغيل</option><option value="claims">مسؤول المطالبات</option></select>
+    <select id="us-r" onchange="G('us-email-req').style.display=(V('us-r')==='admin')?'':'none'"><option value="admin">مدير النظام</option><option value="finance">المدير المالي</option><option value="treasury">أمين الخزينة</option><option value="ops">موظف التشغيل</option><option value="claims">مسؤول المطالبات</option></select>
   </div>
 </div>
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],deletedEmployees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],dailyStmts:[],dailyCustomItems:{ahli:[],other:[]},commitments:[],commitArchive:[],clients:[],costCenters:[],customRoles:[],systemStartDate:'',prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
+var S={cu:null,data:{users:[],employees:[],deletedEmployees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],dailyStmts:[],dailyCustomItems:{ahli:[],other:[]},commitments:[],commitArchive:[],loginAlerts:[],clients:[],costCenters:[],customRoles:[],systemStartDate:'',prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
 var BK_KEY='qawafil_v14'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
 var AUDIT_REF=DB_REF+'/auditLog'; // Durable, append-only child of the SAME already-permitted path.
 // Using update() below (not set()) for the main save means this child is never touched/wiped
 // by a stale client's whole-document save — no separate Firebase security rule needed.
+
+/* ── OTP email verification (admin-role accounts) ──
+   Paste your deployed Google Apps Script Web App URL here after following the setup
+   guide. Until this is set, admin logins skip OTP automatically (with a warning) so
+   nobody gets locked out during setup. */
+var OTP_WEBAPP_URL='https://script.google.com/macros/s/AKfycbxsgc1j73oUymFSJT_UqXAL92UPxwWRBUVXJt_4Yqua7nDdYCRUjsUeWU-QupQAccla9g/exec';
+var OTP_VALID_MS=3*60*1000; // 3 minutes
+var OTP_RESEND_COOLDOWN_MS=30*1000;
+var OTP_MAX_ATTEMPTS=3;
+var _pendingOtpLogin=null; // {user, code, expiresAt, attempts, resendAt}
+var _otpTimerInterval=null;
 
 /* ── Firebase Init ── */
 (function(){
@@ -1272,7 +1302,7 @@ function ld(){
       var d=snap.val();
       if(d&&d.users){
         S.data=Object.assign({},S.data,d);
-        var arrFields=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit','dailyStmts','commitments','commitArchive'];
+        var arrFields=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit','dailyStmts','commitments','commitArchive','loginAlerts'];
         arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
         mergeCustomRoles();
         setSyncIcon('ok');
@@ -1357,7 +1387,7 @@ function _startListener(){
     // Ensure arrays
     var arrF=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles',
       'prices','ops','receipts','expenses','bankIn','bankOut','bankRevs',
-      'custodies','custodyEnts','claims','audit','dailyStmts','commitments','commitArchive'];
+      'custodies','custodyEnts','claims','audit','dailyStmts','commitments','commitArchive','loginAlerts'];
     arrF.forEach(function(f){
       if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);
       if(!S.data[f])S.data[f]=[];
@@ -1507,20 +1537,159 @@ function recoverAuditLog(){
   });
 }
 function getPr(cid,date){var p=S.data.prices.filter(x=>x.cid===cid&&x.from<=date&&(!x.to||x.to>=date));p.sort((a,b)=>b.from.localeCompare(a.from));return p.length?p[0].price:0;}
+/* ── Login device/location alerts (admin-role accounts only) ──
+   No permission prompt needed: uses a free IP-geolocation lookup (approximate
+   city/country only — not precise GPS), so nothing extra to grant on the employee's end. */
+var _thisSessionLoginAlertId=null;
+function _deviceLabel(){
+  var ua=navigator.userAgent;
+  var os=/Windows/.test(ua)?'Windows':/Mac OS/.test(ua)?'Mac':/Android/.test(ua)?'Android':/iPhone|iPad/.test(ua)?'iOS':/Linux/.test(ua)?'Linux':'جهاز غير معروف';
+  var br=/Edg\//.test(ua)?'Edge':/OPR\//.test(ua)?'Opera':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':/Safari\//.test(ua)?'Safari':'متصفح غير معروف';
+  return os+' — '+br;
+}
+function _fetchLoginLocation(cb){
+  var done=false;
+  var timer=setTimeout(function(){if(!done){done=true;cb(null);}},4000);
+  fetch('https://ipapi.co/json/').then(function(r){return r.json();}).then(function(d){
+    if(done)return;done=true;clearTimeout(timer);
+    cb({city:d.city||'',country:d.country_name||'',ip:d.ip||''});
+  }).catch(function(){if(!done){done=true;clearTimeout(timer);cb(null);}});
+}
+function _recordLoginAlert(user){
+  var r=ROLES[user.r]||{};
+  if(!r.all)return; // only track admin-role accounts, as requested
+  _fetchLoginLocation(function(loc){
+    if(!S.data.loginAlerts)S.data.loginAlerts=[];
+    var entry={id:uid(),uid:user.id,userName:user.name,at:new Date().toISOString(),
+      device:_deviceLabel(),city:loc?loc.city:'',country:loc?loc.country:'',ip:loc?loc.ip:'',seen:false};
+    S.data.loginAlerts.unshift(entry);
+    if(S.data.loginAlerts.length>50)S.data.loginAlerts.length=50;
+    _thisSessionLoginAlertId=entry.id; // never notify a session about its own login
+    sv();
+    if(S.cu&&S.cu.id===user.id)checkLoginAlerts();
+  });
+}
+function checkLoginAlerts(){
+  var banner=G('loginAlertBanner');
+  if(!banner||!S.cu)return;
+  var r=ROLES[S.cu.r]||{};
+  if(!r.all){banner.style.display='none';return;}
+  var unseen=(S.data.loginAlerts||[]).filter(function(a){return a.uid===S.cu.id&&!a.seen&&a.id!==_thisSessionLoginAlertId;});
+  if(!unseen.length){banner.style.display='none';return;}
+  banner.style.display='flex';
+  G('loginAlertMsg').innerHTML=unseen.map(function(a){
+    var when=new Date(a.at).toLocaleString('ar-EG');
+    var loc=(a.city||a.country)?(' — 📍 '+[a.city,a.country].filter(Boolean).join('، ')):' — 📍 الموقع غير معروف';
+    return '<div style="margin-bottom:3px">🖥️ '+a.device+loc+' — '+when+'</div>';
+  }).join('');
+  banner.dataset.ids=unseen.map(function(a){return a.id;}).join(',');
+}
+function dismissLoginAlerts(){
+  var banner=G('loginAlertBanner');
+  var ids=(banner.dataset.ids||'').split(',').filter(Boolean);
+  (S.data.loginAlerts||[]).forEach(function(a){if(ids.indexOf(a.id)>=0)a.seen=true;});
+  sv();
+  banner.style.display='none';
+}
 function doLogin(){
   var u=V('lgu').trim(),p=V('lgp');
   var user=S.data.users.find(x=>x.u===u&&x.p===p&&x.active);
   if(!user){G('lgE').style.display='block';return;}
   G('lgE').style.display='none';
+  var r=ROLES[user.r]||{};
+  var otpConfigured=OTP_WEBAPP_URL&&OTP_WEBAPP_URL.indexOf('PASTE_YOUR')!==0;
+  if(r.all&&otpConfigured&&user.email){
+    _startOtpLogin(user);
+  } else {
+    if(r.all&&!otpConfigured)toast('⚠️ التحقق بخطوتين لم يُفعَّل بعد (رابط الإرسال غير مضبوط) — تم الدخول مباشرة','w');
+    else if(r.all&&!user.email)toast('⚠️ لا يوجد بريد إلكتروني مسجّل لحسابك — أضِفه من إدارة المستخدمين لتفعيل التحقق بخطوتين. تم الدخول مباشرة','w');
+    _finishLogin(user);
+  }
+}
+function _finishLogin(user){
   user.ll=new Date().toISOString();user.lo='';
   if(!user.sessToken)user.sessToken=uid(); // every user gets a session token so it can be revoked later
   S.cu=user;
   alog('تسجيل الدخول','المستخدم: '+user.name);
   sv();
   try{localStorage.setItem('qawafil_session',JSON.stringify({u:user.u,id:user.id,t:Date.now(),tok:user.sessToken}));}catch(e){}
+  _recordLoginAlert(user);
   G('LP').style.display='none';
   G('APP').style.display='block';
   initApp();
+}
+/* ── OTP step (admin accounts only) ── */
+function _genOtpCode(){return String(Math.floor(100000+Math.random()*900000));}
+function _maskEmail(em){var parts=em.split('@');if(parts.length!==2)return em;var name=parts[0];var shown=name.length<=2?name[0]+'*':name.slice(0,2)+'***';return shown+'@'+parts[1];}
+function _startOtpLogin(user){
+  var code=_genOtpCode();
+  _pendingOtpLogin={user:user,code:code,expiresAt:Date.now()+OTP_VALID_MS,attempts:0,resendAt:Date.now()+OTP_RESEND_COOLDOWN_MS};
+  G('lgFields').style.display='none';
+  G('otpFields').style.display='flex';
+  G('otpEmailMask').textContent=_maskEmail(user.email);
+  G('otp-code').value='';
+  G('otpErr').style.display='none';
+  _sendOtpEmail(user,code);
+  _startOtpTimer();
+}
+function _sendOtpEmail(user,code){
+  fetch(OTP_WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({email:user.email,code:code,name:user.name})}).catch(function(err){
+    console.warn('OTP email send failed:',err);
+  });
+}
+function _startOtpTimer(){
+  clearInterval(_otpTimerInterval);
+  var resendBtn=G('otpResendBtn');
+  _otpTimerInterval=setInterval(function(){
+    if(!_pendingOtpLogin){clearInterval(_otpTimerInterval);return;}
+    var left=Math.max(0,_pendingOtpLogin.expiresAt-Date.now());
+    var mm=Math.floor(left/60000),ss=Math.floor((left%60000)/1000);
+    G('otpTimer').textContent=left>0?('صلاحية الرمز: '+mm+':'+(ss<10?'0':'')+ss):'⏰ انتهت صلاحية الرمز — اطلب رمزًا جديدًا';
+    resendBtn.disabled=Date.now()<_pendingOtpLogin.resendAt;
+    if(left<=0)clearInterval(_otpTimerInterval);
+  },500);
+}
+function submitOtp(){
+  if(!_pendingOtpLogin){cancelOtpLogin();return;}
+  var entered=V('otp-code').trim();
+  if(Date.now()>_pendingOtpLogin.expiresAt){G('otpErr').textContent='⏰ انتهت صلاحية الرمز — اضغط "إعادة إرسال الرمز"';G('otpErr').style.display='block';return;}
+  if(entered!==_pendingOtpLogin.code){
+    _pendingOtpLogin.attempts++;
+    if(_pendingOtpLogin.attempts>=OTP_MAX_ATTEMPTS){
+      G('otpErr').textContent='❌ محاولات كثيرة خاطئة — اضغط "إعادة إرسال الرمز" للمحاولة من جديد';
+      G('otpErr').style.display='block';
+      _pendingOtpLogin.expiresAt=0; // force expiry, requiring a resend
+      return;
+    }
+    G('otpErr').textContent='❌ الرمز غير صحيح ('+(OTP_MAX_ATTEMPTS-_pendingOtpLogin.attempts)+' محاولات متبقية)';
+    G('otpErr').style.display='block';
+    return;
+  }
+  var user=_pendingOtpLogin.user;
+  clearInterval(_otpTimerInterval);
+  _pendingOtpLogin=null;
+  G('otpFields').style.display='none';
+  G('lgFields').style.display='';
+  _finishLogin(user);
+}
+function resendOtp(){
+  if(!_pendingOtpLogin)return;
+  if(Date.now()<_pendingOtpLogin.resendAt)return;
+  var user=_pendingOtpLogin.user;
+  var code=_genOtpCode();
+  _pendingOtpLogin={user:user,code:code,expiresAt:Date.now()+OTP_VALID_MS,attempts:0,resendAt:Date.now()+OTP_RESEND_COOLDOWN_MS};
+  G('otp-code').value='';
+  G('otpErr').style.display='none';
+  _sendOtpEmail(user,code);
+  _startOtpTimer();
+  toast('تم إرسال رمز جديد إلى بريدك الإلكتروني');
+}
+function cancelOtpLogin(){
+  clearInterval(_otpTimerInterval);
+  _pendingOtpLogin=null;
+  G('otpFields').style.display='none';
+  G('lgFields').style.display='';
+  G('lgp').value='';
 }
 function doLogout(){
   var finish=function(){
@@ -1567,7 +1736,7 @@ function initApp(){
   var fm=new Date();fm.setDate(1);
   ['stF','bkStF'].forEach(id=>{var el=G(id);if(el)el.value=fm.toISOString().split('T')[0];});
   ['stT','bkStT'].forEach(id=>{var el=G(id);if(el)el.value=td2();});
-  fillDrops();fillAllEmpDropdowns();fillCCDropdowns();fillVehDropdowns();getBankAccounts();fillCustodyLinkDropdown('ex-custody-link');fillCustodyLinkDropdown('bo-custody-link');updApCnt();updBkApCnt();checkAlerts();
+  fillDrops();fillAllEmpDropdowns();fillCCDropdowns();fillVehDropdowns();getBankAccounts();fillCustodyLinkDropdown('ex-custody-link');fillCustodyLinkDropdown('bo-custody-link');updApCnt();updBkApCnt();checkAlerts();checkLoginAlerts();
   var firstPage='dash';
   if(!canPage('dash')){
     var u2=S.data.users.find(function(x){return x.id===S.cu.id;})||S.cu;
@@ -2686,7 +2855,7 @@ function deleteRole(key){
   loadRolesList();
   toast('تم حذف الدور','w');
 }
-function saveUs(){var n=V('us-n'),u=V('us-u'),p=V('us-p'),r=V('us-r');if(!n||!u||!p){toast('يرجى تعبئة الحقول المطلوبة','e');return;}if(S.data.users.find(x=>x.u===u)){toast('اسم المستخدم مستخدم مسبقاً','e');return;}S.data.users.push({id:uid(),name:n,u:u,p:p,r:r,active:true,ll:'',lo:'',mustChangePass:true});alog('إضافة مستخدم جديد',n+' — '+ROLES[r].lbl);sv();CM('usM');loadUs();toast('تم إضافة المستخدم بنجاح');}
+function saveUs(){var n=V('us-n'),u=V('us-u'),p=V('us-p'),r=V('us-r'),em=V('us-email').trim();if(!n||!u||!p){toast('يرجى تعبئة الحقول المطلوبة','e');return;}if(r==='admin'&&!em){toast('البريد الإلكتروني مطلوب لمدير النظام (لإرسال رمز التحقق)','e');return;}if(S.data.users.find(x=>x.u===u)){toast('اسم المستخدم مستخدم مسبقاً','e');return;}S.data.users.push({id:uid(),name:n,u:u,p:p,r:r,email:em,active:true,ll:'',lo:'',mustChangePass:true});alog('إضافة مستخدم جديد',n+' — '+ROLES[r].lbl);sv();CM('usM');loadUs();toast('تم إضافة المستخدم بنجاح');}
 function togUs(id){var u=S.data.users.find(x=>x.id===id);if(!u)return;if(u.id===S.cu.id){toast('لا يمكن إيقاف حسابك الخاص','e');return;}u.active=!u.active;alog(u.active?'تفعيل مستخدم':'إيقاف مستخدم',u.name);sv();loadUs();toast(u.active?'تم تفعيل الحساب':'تم إيقاف الحساب',u.active?'s':'w');}
 /* ─── AUDIT ─── */
 function loadAudit(){var df=V('auDt'),uf=V('auUsr');var logs=S.data.audit;if(df)logs=logs.filter(a=>a.dt.startsWith(df));if(uf)logs=logs.filter(a=>a.user===uf);G('auTbd').innerHTML=logs.slice(0,200).map(a=>'<tr><td style="font-family:monospace;font-size:12px;white-space:nowrap">'+new Date(a.dt).toLocaleString('en-US')+'</td><td style="font-weight:600">'+a.user+'</td><td><span class="bdg '+(ROLES[S.data.users.find(u=>u.name===a.user)?.r]?.c||'bg2')+'">'+a.role+'</span></td><td>'+a.action+'</td><td style="color:var(--gr);font-size:12px">'+a.details+'</td><td><span class="bdg bn">'+a.res+'</span></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا توجد سجلات</div></div></td></tr>';}
@@ -2907,6 +3076,8 @@ function editUs(id){
   G('use-n').value=u.name;
   G('use-u').value=u.u;
   G('use-p').value='';
+  G('use-email').value=u.email||'';
+  G('use-email-req').style.display=(u.r==='admin')?'':'none';
   fillRoleSelect('use-r');
   var rs=G('use-r');
   for(var i=0;i<rs.options.length;i++){if(rs.options[i].value===u.r)rs.selectedIndex=i;}
@@ -2917,20 +3088,22 @@ function editUs(id){
     var checked=userPages.indexOf(p.id)>=0||u.r==='admin';
     return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px 6px;border-radius:6px;background:var(--wh);border:1px solid var(--bd)"><input type="checkbox" class="pg-chk" value="'+p.id+'" '+(checked?'checked':'')+' style="width:14px;height:14px">'+p.lbl+'</label>';
   }).join('');
-  // Update checkboxes when role changes
+  // Update checkboxes + email requirement when role changes
   G('use-r').onchange=function(){
     var rPgs=ROLES[this.value]?.pages||[];
     var isAdmin=this.value==='admin';
     document.querySelectorAll('.pg-chk').forEach(function(cb){
       cb.checked=isAdmin||rPgs.indexOf(cb.value)>=0;
     });
+    G('use-email-req').style.display=isAdmin?'':'none';
   };
   OM('usEM');
 }
 
 function saveEditUs(){
-  var id=V('use-id'),n=V('use-n'),u=V('use-u'),r=V('use-r');
+  var id=V('use-id'),n=V('use-n'),u=V('use-u'),r=V('use-r'),em=V('use-email').trim();
   if(!id||!n||!u||!r){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  if(r==='admin'&&!em){toast('البريد الإلكتروني مطلوب لمدير النظام (لإرسال رمز التحقق)','e');return;}
   var usr=S.data.users.find(x=>x.id===id);
   if(!usr)return;
   // Check username uniqueness (ignore self)
@@ -2939,6 +3112,7 @@ function saveEditUs(){
   usr.name=n;
   usr.u=u;
   usr.r=r;
+  usr.email=em;
   // Save custom pages
   var checked=Array.from(document.querySelectorAll('.pg-chk:checked')).map(cb=>cb.value);
   var defaultPages=ROLES[r]?.pages||[];
@@ -6805,8 +6979,9 @@ ld();
   <div class="fld"><label>الاسم الكامل <span class="req">*</span></label><input type="text" id="use-n" placeholder="الاسم الكامل"></div>
   <div class="fld"><label>اسم المستخدم <span class="req">*</span></label><input type="text" id="use-u" placeholder="اسم الدخول"></div>
   <div class="fld"><label>كلمة المرور الجديدة</label><input type="password" id="use-p" placeholder="اتركها فارغة إذا لا تريد تغييرها"></div>
+  <div class="fld"><label>البريد الإلكتروني <span id="use-email-req" class="req" style="display:none">*</span></label><input type="email" id="use-email" placeholder="مطلوب لمدير النظام (لرمز التحقق OTP)"></div>
   <div class="fld"><label>الدور الوظيفي <span class="req">*</span></label>
-    <select id="use-r">
+    <select id="use-r" onchange="G('use-email-req').style.display=(V('use-r')==='admin')?'':'none'">
       <option value="admin">مدير النظام</option>
       <option value="finance">المدير المالي</option>
       <option value="treasury">أمين الخزينة</option>
