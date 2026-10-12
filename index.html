@@ -26,6 +26,7 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <style>
 :root{--nv:#0B1F4B;--ry:#1A56DB;--ry2:#1E40AF;--sky:#3B82F6;--lt:#EBF2FF;--ltr:#F5F9FF;--gd:#F0A500;--wh:#fff;--gr:#6B7280;--gr2:#9CA3AF;--bd:#DBEAFE;--sc:#059669;--scb:#D1FAE5;--wn:#D97706;--wnb:#FEF3C7;--dn:#DC2626;--dnb:#FEE2E2;--pu:#7C3AED;--pub:#EDE9FE;--fn:"Cairo",sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
@@ -819,6 +820,8 @@ tbody tr:hover td{background:var(--ltr)}
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn bp" onclick="OM('usM')">&#x2795; مستخدم جديد</button>
       <button class="btn" onclick="openRoleM()">&#x1F3F7;&#xFE0F; دور جديد</button>
+      <button class="btn" onclick="migrateAuthAccounts()" title="إنشاء حسابات دخول آمنة لكل المستخدمين">&#x1F510; ترحيل حسابات الدخول</button>
+      <button class="btn" onclick="purgePlainPasswords()" title="حذف كلمات المرور المحفوظة نصياً من القاعدة بعد الترحيل">&#x1F9F9; حذف كلمات المرور المحفوظة</button>
       <button class="btn bd2" onclick="resetAllData()" title="مسح جميع البيانات وبدء من الصفر">&#x1F5D1;&#xFE0F; مسح كل البيانات</button>
     </div>
   </div>
@@ -1217,6 +1220,7 @@ var _otpTimerInterval=null;
       projectId:"caravan-cost-system",
       appId:"1:618081494939:web:8738bb21677e450deea33e"
     };
+    window._FB_CFG=cfg;
     firebase.initializeApp(cfg);
     DB=firebase.database();
   }catch(e){
@@ -1283,8 +1287,144 @@ function setSyncIcon(status){
   }
 }
 
-/* ── Load: Firebase primary, localStorage fallback ── */
+/* ── Firebase Authentication layer ──
+   Users still type their normal username + password. The username is mapped to a hidden
+   email (username@qawafil.local) that Firebase Auth signs in with. Once the database rules
+   are locked to authenticated users, nobody without an account can read or write data. */
+var AUTH_DOMAIN_SUFFIX='@qawafil.local';
+var _authRequired=false;   // true when the unauthenticated pre-login read was denied (rules locked)
+var _legacyReadable=false; // true when the DB is still readable without signing in (pre-lock)
+function _authAvailable(){return !!(DB&&window.firebase&&firebase.auth&&window._FB_CFG);}
+function _authEmail(u){
+  u=String(u||'').trim().toLowerCase();
+  if(/^[a-z0-9._-]+$/.test(u))return u+AUTH_DOMAIN_SUFFIX;
+  var hex='';var bytes=unescape(encodeURIComponent(u));
+  for(var i=0;i<bytes.length;i++)hex+=('0'+bytes.charCodeAt(i).toString(16)).slice(-2);
+  return 'x'+hex+AUTH_DOMAIN_SUFFIX;
+}
+function _adminCall(action,payload){
+  var fu=_authAvailable()?firebase.auth().currentUser:null;
+  if(!fu)return Promise.reject(new Error('no-auth'));
+  return fu.getIdToken().then(function(tok){
+    var body=Object.assign({action:action,idToken:tok},payload||{});
+    return fetch(OTP_WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)});
+  }).then(function(r){return r.json();}).then(function(res){
+    if(!res||res.status!=='ok')throw new Error((res&&res.error)||'failed');
+    return res;
+  });
+}
+function migrateAuthAccounts(){
+  if(!can('all')){toast('مخصص لمدير النظام فقط','e');return;}
+  if(!_authAvailable()){toast('مكتبة المصادقة لم تُحمَّل — أعد تحميل الصفحة','e');return;}
+  var users=(S.data.users||[]).filter(function(u){return u.p&&!u.authOk;});
+  if(!users.length){toast('كل الحسابات مرحّلة بالفعل','i');return;}
+  if(!confirm('سيتم إنشاء حساب دخول (Firebase) لعدد '+users.length+' مستخدم بنفس كلمات مرورهم الحالية.\n\nمتابعة؟'))return;
+  var forceChange=confirm('كلمات المرور القديمة كانت مكشوفة في قاعدة البيانات المفتوحة.\n\nهل تريد إجبار كل مستخدم على اختيار كلمة مرور جديدة عند أول دخول؟ (موصى به)');
+  var aux=_auxAuth();
+  var rep={ok:[],weak:[],mismatch:[],collide:[],err:[]};
+  var seen={};
+  var chain=Promise.resolve();
+  users.forEach(function(u){
+    chain=chain.then(function(){
+      var em=_authEmail(u.u);
+      var label=u.name+' ('+u.u+')';
+      if(seen[em]){rep.collide.push(label);return;}
+      seen[em]=1;
+      return aux.createUserWithEmailAndPassword(em,u.p).then(function(){u.authOk=true;if(forceChange)u.mustChangePass=true;rep.ok.push(label);return aux.signOut();}).catch(function(err){
+        var c=(err&&err.code)||'';
+        if(c==='auth/email-already-in-use'){
+          return aux.signInWithEmailAndPassword(em,u.p).then(function(){u.authOk=true;if(forceChange)u.mustChangePass=true;rep.ok.push(label);return aux.signOut();}).catch(function(){rep.mismatch.push(label);});
+        }
+        if(c==='auth/weak-password'){rep.weak.push(label);return;}
+        rep.err.push(label+': '+c);
+      });
+    });
+  });
+  chain.then(function(){
+    alog('ترحيل حسابات الدخول','نجح '+rep.ok.length+' — تعذّر '+(users.length-rep.ok.length));
+    sv();
+    var m='نتيجة الترحيل:\n✅ نجح: '+rep.ok.length;
+    if(rep.weak.length)m+='\n\n⚠️ كلمة المرور أقل من 6 أحرف (غيّرها ثم أعد المحاولة):\n- '+rep.weak.join('\n- ');
+    if(rep.mismatch.length)m+='\n\n⚠️ حساب دخول موجود بكلمة مرور مختلفة:\n- '+rep.mismatch.join('\n- ');
+    if(rep.collide.length)m+='\n\n⚠️ تعارض في اسم المستخدم (حروف كبيرة/صغيرة):\n- '+rep.collide.join('\n- ');
+    if(rep.err.length)m+='\n\n❌ أخطاء:\n- '+rep.err.join('\n- ');
+    if(!rep.weak.length&&!rep.mismatch.length&&!rep.collide.length&&!rep.err.length)m+='\n\nالخطوة التالية: سجّل خروج ثم ادخل من جديد للتأكد، ثم اضغط \"حذف كلمات المرور المحفوظة\".';
+    alert(m);
+  });
+}
+function purgePlainPasswords(){
+  if(!can('all')){toast('مخصص لمدير النظام فقط','e');return;}
+  var withP=(S.data.users||[]).filter(function(u){return u.p;});
+  if(!withP.length){toast('لا توجد كلمات مرور محفوظة نصياً','i');return;}
+  var notReady=withP.filter(function(u){return !u.authOk;});
+  if(notReady.length){alert('لا يمكن الحذف قبل ترحيل هؤلاء المستخدمين (سيفقدون القدرة على الدخول):\n- '+notReady.map(function(u){return u.name+' ('+u.u+')';}).join('\n- '));return;}
+  if(!confirm('سيتم حذف كلمات المرور المحفوظة نصياً من قاعدة البيانات نهائياً لـ '+withP.length+' مستخدم.\n\nتأكد أنك جرّبت الدخول بحسابك الجديد أولاً. متابعة؟'))return;
+  withP.forEach(function(u){delete u.p;});
+  alog('حذف كلمات المرور المحفوظة','عدد الحسابات: '+withP.length);
+  sv();
+  toast('✅ تم حذف كلمات المرور المحفوظة من قاعدة البيانات');
+}
+function _auxAuth(){
+  var app;
+  try{app=firebase.app('aux');}catch(e){app=firebase.initializeApp(window._FB_CFG,'aux');}
+  return app.auth();
+}
+function _normalizeData(d){
+  S.data=Object.assign({},S.data,d);
+  var arrFields=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit','dailyStmts','commitments','commitArchive','loginAlerts'];
+  arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
+  mergeCustomRoles();
+}
+/* After a successful Firebase sign-in: read the real data, find this person's user record. */
+function _loadAfterAuth(fu,isAuto,cb){
+  DB.ref(DB_REF).once('value').then(function(snap){
+    var d=snap.val();
+    if(!(d&&d.users)){
+      toast('⚠️ تعذّر تحميل بيانات السيرفر — أعد المحاولة','e');
+      firebase.auth().signOut();_showLoginPage();return;
+    }
+    _normalizeData(d);
+    _firebaseUnconfirmed=false;
+    setSyncIcon('ok');
+    var usr=(S.data.users||[]).find(function(x){return _authEmail(x.u)===fu.email&&x.active;});
+    if(!usr){
+      toast('هذا الحساب غير مفعّل أو غير موجود في النظام','e');
+      firebase.auth().signOut();_showLoginPage();return;
+    }
+    _listenerActive=false;
+    try{DB.ref(DB_REF).off();}catch(e){}
+    _startListener();
+    cb(usr);
+  }).catch(function(err){
+    console.warn('Load after auth failed:',err);
+    toast('تعذّر تحميل البيانات بعد تسجيل الدخول','e');
+    firebase.auth().signOut();_showLoginPage();
+  });
+}
 function ld(){
+  if(!_authAvailable()){_legacyLd();return;}
+  var unsub=firebase.auth().onAuthStateChanged(function(fu){
+    unsub();
+    var otpPending=false;try{otpPending=!!localStorage.getItem('qawafil_otp_pending');}catch(e){}
+    if(fu&&otpPending){
+      // A sign-in was started but the OTP step was never completed — do not restore it.
+      try{localStorage.removeItem('qawafil_otp_pending');}catch(e){}
+      firebase.auth().signOut().then(function(){_legacyLd();},function(){_legacyLd();});
+    } else if(fu){
+      // Session restored from a previous sign-in on this device
+      _loadAfterAuth(fu,true,function(usr){
+        usr.ll=new Date().toISOString();
+        S.cu=usr;
+        var lp=G('LP');if(lp&&lp.parentNode)lp.parentNode.removeChild(lp);
+        G('APP').style.display='block';
+        initApp();
+      });
+    } else {
+      _legacyLd();
+    }
+  });
+}
+function _legacyLd(){
   if(DB){
     setSyncIcon('saving');
     // Timeout: if Firebase doesn't respond in 8 seconds, use localStorage
@@ -1299,6 +1439,7 @@ function ld(){
 
     DB.ref(DB_REF).once('value').then(function(snap){
       clearTimeout(_fbTimeout);
+      _legacyReadable=true;
       var d=snap.val();
       if(d&&d.users){
         S.data=Object.assign({},S.data,d);
@@ -1323,6 +1464,14 @@ function ld(){
       _startListener();
     }).catch(function(err){
       clearTimeout(_fbTimeout);
+      var denied=err&&(err.code==='PERMISSION_DENIED'||/permission_denied/i.test(String(err.message||err)));
+      if(denied&&_authAvailable()){
+        // Rules are locked: data is only available after signing in. Show the login form.
+        _authRequired=true;_legacyReadable=false;
+        setSyncIcon('');
+        _showLoginPage();
+        return;
+      }
       console.warn('Firebase read failed, using localStorage:',err);
       setSyncIcon('error');
       _firebaseUnconfirmed=true;
@@ -1364,7 +1513,7 @@ function _showLoginPage(){
   var btn=document.getElementById('lpLoginBtn');
   var msg=document.getElementById('lpLoadingMsg');
   if(lb)lb.style.display='none';
-  if(btn)btn.style.display='';
+  if(btn){btn.style.display='';btn.disabled=false;}
   if(msg)msg.textContent='';
 }
 
@@ -1408,6 +1557,7 @@ function _startListener(){
     }
   },function(err){
     console.error('Firebase listener error:',err);
+    _listenerActive=false;
     setSyncIcon('error');
   });
 }
@@ -1593,26 +1743,48 @@ function dismissLoginAlerts(){
 }
 function doLogin(){
   var u=V('lgu').trim(),p=V('lgp');
-  var user=S.data.users.find(x=>x.u===u&&x.p===p&&x.active);
-  if(!user){G('lgE').style.display='block';return;}
+  if(!u||!p){G('lgE').style.display='block';return;}
   G('lgE').style.display='none';
+  if(!_authAvailable()){_legacyLogin(u,p);return;}
+  var btn=G('lpLoginBtn');if(btn)btn.disabled=true;
+  firebase.auth().signInWithEmailAndPassword(_authEmail(u),p).then(function(cred){
+    _loadAfterAuth(cred.user,false,function(user){
+      if(btn)btn.disabled=false;
+      _afterCredentialsOk(user,true);
+    });
+  }).catch(function(err){
+    if(btn)btn.disabled=false;
+    var c=(err&&err.code)||'';
+    if(c==='auth/network-request-failed'){toast('تعذّر الاتصال بالإنترنت','e');return;}
+    if(c==='auth/too-many-requests'){toast('محاولات خاطئة كثيرة — انتظر بضع دقائق ثم أعد المحاولة','e');return;}
+    // Transition window only: database still readable and this user's login account not created yet
+    if(_legacyReadable){_legacyLogin(u,p);return;}
+    G('lgE').style.display='block';
+  });
+}
+function _legacyLogin(u,p){
+  var user=(S.data.users||[]).find(function(x){return x.u===u&&x.p&&x.p===p&&x.active;});
+  if(!user){G('lgE').style.display='block';return;}
+  _afterCredentialsOk(user,false);
+}
+function _afterCredentialsOk(user,hasAuth){
   var r=ROLES[user.r]||{};
   var otpConfigured=OTP_WEBAPP_URL&&OTP_WEBAPP_URL.indexOf('PASTE_YOUR')!==0;
-  if(r.all&&otpConfigured&&user.email){
+  if(r.all&&otpConfigured&&user.email&&hasAuth){
     _startOtpLogin(user);
   } else {
-    if(r.all&&!otpConfigured)toast('⚠️ التحقق بخطوتين لم يُفعَّل بعد (رابط الإرسال غير مضبوط) — تم الدخول مباشرة','w');
+    if(r.all&&!hasAuth)toast('⚠️ دخول انتقالي بدون رمز تحقق — أكمل ترحيل الحسابات من إدارة المستخدمين','w');
+    else if(r.all&&!otpConfigured)toast('⚠️ التحقق بخطوتين لم يُفعَّل بعد (رابط الإرسال غير مضبوط) — تم الدخول مباشرة','w');
     else if(r.all&&!user.email)toast('⚠️ لا يوجد بريد إلكتروني مسجّل لحسابك — أضِفه من إدارة المستخدمين لتفعيل التحقق بخطوتين. تم الدخول مباشرة','w');
     _finishLogin(user);
   }
 }
 function _finishLogin(user){
   user.ll=new Date().toISOString();user.lo='';
-  if(!user.sessToken)user.sessToken=uid(); // every user gets a session token so it can be revoked later
   S.cu=user;
+  try{localStorage.removeItem('qawafil_otp_pending');}catch(e){}
   alog('تسجيل الدخول','المستخدم: '+user.name);
   sv();
-  try{localStorage.setItem('qawafil_session',JSON.stringify({u:user.u,id:user.id,t:Date.now(),tok:user.sessToken}));}catch(e){}
   _recordLoginAlert(user);
   G('LP').style.display='none';
   G('APP').style.display='block';
@@ -1624,6 +1796,7 @@ function _maskEmail(em){var parts=em.split('@');if(parts.length!==2)return em;va
 function _startOtpLogin(user){
   var code=_genOtpCode();
   _pendingOtpLogin={user:user,code:code,expiresAt:Date.now()+OTP_VALID_MS,attempts:0,resendAt:Date.now()+OTP_RESEND_COOLDOWN_MS};
+  try{localStorage.setItem('qawafil_otp_pending','1');}catch(e){}
   G('lgFields').style.display='none';
   G('otpFields').style.display='flex';
   G('otpEmailMask').textContent=_maskEmail(user.email);
@@ -1633,7 +1806,11 @@ function _startOtpLogin(user){
   _startOtpTimer();
 }
 function _sendOtpEmail(user,code){
-  fetch(OTP_WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({email:user.email,code:code,name:user.name})}).catch(function(err){
+  var fu=_authAvailable()?firebase.auth().currentUser:null;
+  if(!fu){toast('تعذّر إرسال الرمز — لا توجد جلسة دخول','e');return;}
+  fu.getIdToken().then(function(tok){
+    return fetch(OTP_WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'otp',idToken:tok,email:user.email,code:code,name:user.name})});
+  }).catch(function(err){
     console.warn('OTP email send failed:',err);
   });
 }
@@ -1687,14 +1864,17 @@ function resendOtp(){
 function cancelOtpLogin(){
   clearInterval(_otpTimerInterval);
   _pendingOtpLogin=null;
+  try{localStorage.removeItem('qawafil_otp_pending');}catch(e){}
+  try{if(_authAvailable())firebase.auth().signOut();}catch(e){}
   G('otpFields').style.display='none';
   G('lgFields').style.display='';
   G('lgp').value='';
 }
 function doLogout(){
   var finish=function(){
-    try{localStorage.removeItem('qawafil_session');}catch(e){}
-    location.reload();
+    try{localStorage.removeItem('qawafil_session');localStorage.removeItem('qawafil_otp_pending');}catch(e){}
+    if(_authAvailable()){firebase.auth().signOut().then(function(){location.reload();},function(){location.reload();});}
+    else location.reload();
   };
   if(S.cu){
     S.cu.lo=new Date().toISOString();
@@ -2855,8 +3035,32 @@ function deleteRole(key){
   loadRolesList();
   toast('تم حذف الدور','w');
 }
-function saveUs(){var n=V('us-n'),u=V('us-u'),p=V('us-p'),r=V('us-r'),em=V('us-email').trim();if(!n||!u||!p){toast('يرجى تعبئة الحقول المطلوبة','e');return;}if(r==='admin'&&!em){toast('البريد الإلكتروني مطلوب لمدير النظام (لإرسال رمز التحقق)','e');return;}if(S.data.users.find(x=>x.u===u)){toast('اسم المستخدم مستخدم مسبقاً','e');return;}S.data.users.push({id:uid(),name:n,u:u,p:p,r:r,email:em,active:true,ll:'',lo:'',mustChangePass:true});alog('إضافة مستخدم جديد',n+' — '+ROLES[r].lbl);sv();CM('usM');loadUs();toast('تم إضافة المستخدم بنجاح');}
-function togUs(id){var u=S.data.users.find(x=>x.id===id);if(!u)return;if(u.id===S.cu.id){toast('لا يمكن إيقاف حسابك الخاص','e');return;}u.active=!u.active;alog(u.active?'تفعيل مستخدم':'إيقاف مستخدم',u.name);sv();loadUs();toast(u.active?'تم تفعيل الحساب':'تم إيقاف الحساب',u.active?'s':'w');}
+function saveUs(){
+  var n=V('us-n'),u=V('us-u'),p=V('us-p'),r=V('us-r'),em=V('us-email').trim();
+  if(!n||!u||!p){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
+  if(r==='admin'&&!em){toast('البريد الإلكتروني مطلوب لمدير النظام (لإرسال رمز التحقق)','e');return;}
+  if(p.length<6){toast('كلمة المرور يجب أن تكون 6 أحرف على الأقل','e');return;}
+  if(S.data.users.find(function(x){return x.u===u;})){toast('اسم المستخدم مستخدم مسبقاً','e');return;}
+  var finish=function(authOk){
+    var rec={id:uid(),name:n,u:u,r:r,email:em,active:true,ll:'',lo:'',mustChangePass:true,authOk:!!authOk};
+    if(!authOk)rec.p=p;
+    S.data.users.push(rec);
+    alog('إضافة مستخدم جديد',n+' — '+ROLES[r].lbl);
+    sv();CM('usM');loadUs();toast('تم إضافة المستخدم بنجاح');
+  };
+  if(_authAvailable()&&firebase.auth().currentUser){
+    var aux=_auxAuth();
+    aux.createUserWithEmailAndPassword(_authEmail(u),p).then(function(){return aux.signOut();}).then(function(){finish(true);}).catch(function(err){
+      var c=(err&&err.code)||'';
+      if(c==='auth/email-already-in-use')toast('اسم المستخدم موجود بالفعل في نظام الدخول','e');
+      else if(c==='auth/weak-password')toast('كلمة المرور ضعيفة — 6 أحرف على الأقل','e');
+      else toast('تعذّر إنشاء حساب الدخول ('+c+')','e');
+    });
+  } else {
+    finish(false);
+  }
+}
+function togUs(id){var u=S.data.users.find(x=>x.id===id);if(!u)return;if(u.id===S.cu.id){toast('لا يمكن إيقاف حسابك الخاص','e');return;}u.active=!u.active;alog(u.active?'تفعيل مستخدم':'إيقاف مستخدم',u.name);sv();loadUs();toast(u.active?'تم تفعيل الحساب':'تم إيقاف الحساب',u.active?'s':'w');if(u.authOk&&_authAvailable()&&firebase.auth().currentUser){_adminCall('setDisabled',{username:u.u,disabled:!u.active}).catch(function(){toast('تنبيه: لم يتم تعطيل حساب الدخول نفسه في Firebase — تأكد من إعداد سكربت الإدارة','w');});}}
 /* ─── AUDIT ─── */
 function loadAudit(){var df=V('auDt'),uf=V('auUsr');var logs=S.data.audit;if(df)logs=logs.filter(a=>a.dt.startsWith(df));if(uf)logs=logs.filter(a=>a.user===uf);G('auTbd').innerHTML=logs.slice(0,200).map(a=>'<tr><td style="font-family:monospace;font-size:12px;white-space:nowrap">'+new Date(a.dt).toLocaleString('en-US')+'</td><td style="font-weight:600">'+a.user+'</td><td><span class="bdg '+(ROLES[S.data.users.find(u=>u.name===a.user)?.r]?.c||'bg2')+'">'+a.role+'</span></td><td>'+a.action+'</td><td style="color:var(--gr);font-size:12px">'+a.details+'</td><td><span class="bdg bn">'+a.res+'</span></td></tr>').join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا توجد سجلات</div></div></td></tr>';}
 
@@ -3104,34 +3308,39 @@ function saveEditUs(){
   var id=V('use-id'),n=V('use-n'),u=V('use-u'),r=V('use-r'),em=V('use-email').trim();
   if(!id||!n||!u||!r){toast('يرجى تعبئة الحقول المطلوبة','e');return;}
   if(r==='admin'&&!em){toast('البريد الإلكتروني مطلوب لمدير النظام (لإرسال رمز التحقق)','e');return;}
-  var usr=S.data.users.find(x=>x.id===id);
+  var usr=S.data.users.find(function(x){return x.id===id;});
   if(!usr)return;
   // Check username uniqueness (ignore self)
-  if(S.data.users.find(x=>x.u===u&&x.id!==id)){toast('اسم المستخدم مستخدم من مستخدم آخر','e');return;}
-  var oldInfo=usr.name+' ('+ROLES[usr.r]?.lbl+')';
-  usr.name=n;
-  usr.u=u;
-  usr.r=r;
-  usr.email=em;
-  // Save custom pages
-  var checked=Array.from(document.querySelectorAll('.pg-chk:checked')).map(cb=>cb.value);
-  var defaultPages=ROLES[r]?.pages||[];
-  var isSame=checked.length===defaultPages.length&&checked.every(p=>defaultPages.indexOf(p)>=0);
-  usr.customPages=isSame?null:checked; // null = use role default
-  // Change password if provided
+  if(S.data.users.find(function(x){return x.u===u&&x.id!==id;})){toast('اسم المستخدم مستخدم من مستخدم آخر','e');return;}
+  if(usr.authOk&&u!==usr.u){toast('لا يمكن تغيير اسم المستخدم بعد ترحيل الحساب — أنشئ مستخدماً جديداً','e');return;}
   var newP=G('use-p').value;
-  var pwChanged=false;
-  if(newP){if(newP.length<6){toast('كلمة المرور يجب أن تكون 6 أحرف على الأقل','e');return;}usr.p=newP;usr.sessToken=uid();pwChanged=true;}
-  alog('تعديل مستخدم',oldInfo+' → '+n+' ('+ROLES[r]?.lbl+')');
-  sv();CM('usEM');loadUs();
-  // If editing current user, refresh their role display
-  if(id===S.cu.id){
-    S.cu=usr;G('SBNm').textContent=usr.name;G('SBRl').textContent=ROLES[usr.r]?.lbl||'';G('SBAv').textContent=usr.name[0];
-    // Editing your own password here also revokes any other device's saved session —
-    // keep THIS device logged in with the fresh token.
-    if(pwChanged){try{localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now(),tok:usr.sessToken}));}catch(e){}}
+  if(newP&&newP.length<6){toast('كلمة المرور يجب أن تكون 6 أحرف على الأقل','e');return;}
+  var apply=function(pwChanged){
+    var oldInfo=usr.name+' ('+ROLES[usr.r]?.lbl+')';
+    usr.name=n;
+    usr.u=u;
+    usr.r=r;
+    usr.email=em;
+    var checked=Array.from(document.querySelectorAll('.pg-chk:checked')).map(function(cb){return cb.value;});
+    var defaultPages=ROLES[r]?.pages||[];
+    var isSame=checked.length===defaultPages.length&&checked.every(function(p){return defaultPages.indexOf(p)>=0;});
+    usr.customPages=isSame?null:checked; // null = use role default
+    if(pwChanged==='legacy'){usr.p=newP;}
+    if(pwChanged){usr.mustChangePass=true;} // temporary password set by the admin: force the user to choose their own
+    alog('تعديل مستخدم',oldInfo+' → '+n+' ('+ROLES[r]?.lbl+')'+(pwChanged?' — تم تعيين كلمة مرور جديدة':''));
+    sv();CM('usEM');loadUs();
+    if(id===S.cu.id){S.cu=usr;G('SBNm').textContent=usr.name;G('SBRl').textContent=ROLES[usr.r]?.lbl||'';G('SBAv').textContent=usr.name[0];}
+    toast('تم حفظ التعديلات بنجاح');
+  };
+  if(newP&&usr.authOk){
+    _adminCall('resetPassword',{username:usr.u,newPassword:newP}).then(function(){apply(true);}).catch(function(err){
+      toast('تعذّر تغيير كلمة المرور — تأكد من إعداد سكربت الإدارة في Google ('+(err&&err.message||'')+')','e');
+    });
+  } else if(newP){
+    apply('legacy');
+  } else {
+    apply(false);
   }
-  toast('تم حفظ التعديلات بنجاح');
 }
 
 function delUs(id){
@@ -3143,6 +3352,7 @@ function delUs(id){
   S.data.users=S.data.users.filter(x=>x.id!==id);
   alog('حذف مستخدم',u.name+' — '+ROLES[u.r]?.lbl);
   sv();loadUs();toast('تم حذف المستخدم','w');
+  if(u.authOk&&_authAvailable()&&firebase.auth().currentUser){_adminCall('deleteUser',{username:u.u}).catch(function(){toast('تنبيه: لم يُحذف حساب الدخول نفسه من Firebase — تأكد من إعداد سكربت الإدارة','w');});}
 }
 
 
@@ -3894,28 +4104,37 @@ function saveNewPass(){
   var newP=G('cp-new').value;
   var conf=G('cp-confirm').value;
   if(!oldP||!newP||!conf){toast('يرجى تعبئة جميع الحقول','e');return;}
-  if(S.cu.p!==oldP){toast('كلمة المرور الحالية غير صحيحة','e');return;}
   if(newP.length<6){toast('كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل','e');return;}
   if(newP===oldP){toast('كلمة المرور الجديدة يجب أن تختلف عن الحالية','e');return;}
   if(newP!==conf){toast('كلمة المرور الجديدة وتأكيدها غير متطابقتين','e');return;}
-  // Update password
   var user=S.data.users.find(function(u){return u.id===S.cu.id;});
   if(!user)return;
-  user.p=newP;
-  user.mustChangePass=false;
-  user.sessToken=uid(); // revoke any other device's saved auto-login session immediately
-  S.cu.p=newP;
-  S.cu.mustChangePass=false;
-  S.cu.sessToken=user.sessToken;
-  alog('تغيير كلمة المرور','المستخدم: '+S.cu.name);
-  sv();
-  // Keep THIS device logged in with the fresh token (only other devices get logged out)
-  try{localStorage.setItem('qawafil_session',JSON.stringify({u:S.cu.u,id:S.cu.id,t:Date.now(),tok:S.cu.sessToken}));}catch(e){}
-  G('chPassM').classList.remove('on');
-  // Clear fields
-  G('cp-old').value='';G('cp-new').value='';G('cp-confirm').value='';
-  G('cp-strength').style.display='none';
-  toast('✅ تم تغيير كلمة المرور بنجاح — تم تسجيل الخروج تلقائياً من أي جهاز آخر كان مسجّلاً بحسابك');
+  var done=function(){
+    user.mustChangePass=false;
+    S.cu.mustChangePass=false;
+    alog('تغيير كلمة المرور','المستخدم: '+S.cu.name);
+    sv();
+    G('chPassM').classList.remove('on');
+    G('cp-old').value='';G('cp-new').value='';G('cp-confirm').value='';
+    G('cp-strength').style.display='none';
+    toast('✅ تم تغيير كلمة المرور بنجاح');
+  };
+  var fu=_authAvailable()?firebase.auth().currentUser:null;
+  if(fu){
+    var cred=firebase.auth.EmailAuthProvider.credential(fu.email,oldP);
+    fu.reauthenticateWithCredential(cred).then(function(){return fu.updatePassword(newP);}).then(done).catch(function(err){
+      var c=(err&&err.code)||'';
+      if(c==='auth/wrong-password'||c==='auth/invalid-credential'||c==='auth/invalid-login-credentials')toast('كلمة المرور الحالية غير صحيحة','e');
+      else if(c==='auth/weak-password')toast('كلمة المرور الجديدة ضعيفة — استخدم 6 أحرف على الأقل','e');
+      else if(c==='auth/too-many-requests')toast('محاولات كثيرة — انتظر قليلاً ثم أعد المحاولة','e');
+      else toast('تعذّر تغيير كلمة المرور ('+c+')','e');
+    });
+    return;
+  }
+  // Transition mode (login account not created yet): legacy stored password
+  if(S.cu.p!==oldP){toast('كلمة المرور الحالية غير صحيحة','e');return;}
+  user.p=newP;S.cu.p=newP;
+  done();
 }
 
 function openChangePass(isMandatory){
@@ -6496,12 +6715,7 @@ function applyRefUpdate(){
 }
 
 
-function _tryAutoLogin(){try{var sess=localStorage.getItem('qawafil_session');if(!sess)return;var s=JSON.parse(sess);if(!s||!s.u||(Date.now()-s.t)>30*24*60*60*1000){localStorage.removeItem('qawafil_session');return;}if(S.data.users&&!Array.isArray(S.data.users))S.data.users=Object.values(S.data.users);if(!S.data.users||!S.data.users.length){setTimeout(_tryAutoLogin,500);return;}var usr=S.data.users.find(function(x){return x.u===s.u&&x.active;});if(!usr){localStorage.removeItem('qawafil_session');return;}
-  // The saved session must carry the user's CURRENT token. Changing the password issues a
-  // fresh token, which instantly invalidates this saved session on every other device —
-  // no need to wait out the 30-day expiry.
-  if(!usr.sessToken||s.tok!==usr.sessToken){localStorage.removeItem('qawafil_session');return;}
-  S.cu=usr;usr.ll=new Date().toISOString();var lp=G('LP');if(lp&&lp.parentNode)lp.parentNode.removeChild(lp);G('APP').style.display='block';localStorage.setItem('qawafil_session',JSON.stringify({u:usr.u,id:usr.id,t:Date.now(),tok:usr.sessToken}));initApp();}catch(e){}}
+function _tryAutoLogin(){/* session restore is handled by Firebase Auth in ld() */}
 function getDeleteReason(t,n){var r=prompt('حذف '+t+' رقم '+n+'\nسبب الحذف:');if(r===null)return null;if(!r.trim()){toast('سبب الحذف إجباري','e');return null;}return r.trim();}
 function logDeletion(t,doc,rsn){alog('حذف '+t,'سريال '+(doc.num||'—')+' — '+rsn);if(!S.data.deletedSerials)S.data.deletedSerials=[];S.data.deletedSerials.push({type:t,num:doc.num,amount:doc.amount||0,desc:doc.desc||'',to:doc.to||'',date:doc.date||td2(),deletedBy:S.cu?S.cu.name:'',deletedAt:new Date().toISOString(),reason:rsn});}
 function showDeletedSerials(){var types=[{name:'مصروفات الخزينة',data:S.data.expenses,ctr:S.data.ctr.ex},{name:'مقبوضات الخزينة',data:S.data.receipts,ctr:S.data.ctr.rc},{name:'الوارد البنكي',data:S.data.bankIn,ctr:S.data.ctr.bi||0},{name:'الصادر البنكي',data:S.data.bankOut,ctr:S.data.ctr.bo||0}];var html='';var total=0;types.forEach(function(t){if(!t.ctr||!t.data.length)return;var es={};t.data.forEach(function(e){if(e.num)es[e.num]=true;});var nums=t.data.filter(function(e){return e.num;}).map(function(e){return e.num;});if(!nums.length)return;var mn=Math.min.apply(null,nums);var missing=[];for(var i=mn;i<=t.ctr;i++){if(!es[i])missing.push(i);}if(!missing.length)return;total+=missing.length;html+='<div style="margin-bottom:16px;border:1px solid #ddd;border-radius:8px;overflow:hidden"><div style="background:#1A56DB;color:#fff;padding:10px 14px;font-weight:700">'+t.name+' ('+missing.length+' محذوف)</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f5f5f5"><th style="padding:8px;text-align:right;border:1px solid #ddd">السريال</th><th style="padding:8px;text-align:right;border:1px solid #ddd">سبب الحذف</th><th style="padding:8px;text-align:right;border:1px solid #ddd">محذوف بواسطة</th></tr></thead><tbody>';missing.forEach(function(n){var d=(S.data.deletedSerials||[]).find(function(x){return x.num==n;});html+='<tr><td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#DC2626">'+n+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.reason:'—')+'</td><td style="padding:8px;border:1px solid #ddd">'+(d?d.deletedBy:'—')+'</td></tr>';});html+='</tbody></table></div>';});if(!total)html='<div style="padding:40px;text-align:center;color:#059669">لا توجد سيريالات محذوفة</div>';var w=window.open('','_blank','width=800,height=600');w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>السيريالات المحذوفة</title></head><body dir="rtl" style="font-family:Cairo,Arial;padding:20px"><h2>السيريالات المحذوفة</h2>'+html+'</body></html>');w.document.close();}
