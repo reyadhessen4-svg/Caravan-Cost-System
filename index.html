@@ -5597,6 +5597,8 @@ function saveEditBO(){
   b.date=V('boe-d')||td2();
   b.amount=a;b.to=t;b.phone=V('boe-phone')||'';b.ref=V('boe-rf');b.desc=V('boe-ds');
   b.accId=accId;b.accName=acc?acc.name:'';
+  if(empSel&&empSel.value){b.empId=empSel.value;}
+  else{var _me=(S.data.employees||[]).find(function(e){return e.name===t;});b.empId=_me?_me.id:'';}
   alog('تعديل صادر بنكي','لـ '+t+' — '+fR(a)+(acc?' — '+acc.name:''));
   sv();CM('boEM');loadBk();loadBA();toast('تم حفظ التعديل — يمكنك إعادة الاعتماد الآن','i');
 }
