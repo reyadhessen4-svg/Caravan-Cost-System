@@ -1620,7 +1620,7 @@ function mergeCustomRoles(){
       lbl:cr.lbl||cr.key,c:cr.c||'bg2',all:false,
       pages:cr.pages||[],
       canDel:!!cr.canDel,canEdit:!!cr.canEdit,
-      ap:!!cr.ap,bkRev:!!cr.bkRev,rc:!!cr.rc,ex:!!cr.ex,ops:!!cr.ops,claims:!!cr.claims,
+      ap:!!cr.ap,bkRev:!!cr.bkRev,rc:!!cr.rc,ex:!!cr.ex,ops:!!cr.ops,claims:!!cr.claims,settAdd:!!cr.settAdd,
       isCustom:true
     };
   });
@@ -2840,7 +2840,9 @@ function editCuEntry(entryId){
     toast('هذا القيد ناتج تلقائيًا من سند بنكي/صرف/قبض — لتعديله يجب إلغاء اعتماد السند الأصلي وتعديله من هناك مباشرة','e');
     return;
   }
+  ceeAddSettleId='';
   OM('cuEntryEditM');
+  document.querySelector('#cuEntryEditM .mtt').textContent='✏️ تعديل قيد عهدة';
   G('cee-id').value=e.id;
   G('cee-d').value=e.date;
   G('cee-desc').value=e.desc||'';
@@ -2865,7 +2867,62 @@ function refreshCeeItemOpts(){
     return '<option value="'+ci.name+'">'+ci.name+'</option>';
   }).join('');
 }
+var canAddSett=function(){return can('all')||can('settAdd');};
+var ceeAddSettleId='';
+function openAddSettLine(settleId){
+  if(!canAddSett()){toast('ليس لديك صلاحية إضافة سطور للتقفيل','e');return;}
+  var cu=S.data.custodies.find(function(c){return c.id===curCuId;});
+  var h=cu&&cu.settHist?cu.settHist.find(function(x){return x.id===settleId;}):null;
+  if(!h){toast('التقفيل غير موجود','e');return;}
+  ceeAddSettleId=settleId;
+  G('cee-id').value='';
+  OM('cuEntryEditM');
+  document.querySelector('#cuEntryEditM .mtt').textContent='➕ إضافة سطر لتقفيل '+h.date;
+  G('cee-d').value=h.date;
+  G('cee-desc').value='';
+  G('cee-cc').innerHTML='<option value="">— اختر المركز —</option>'+(S.data.costCenters||[]).filter(function(c){return c.active;}).map(function(cc){return '<option value="'+cc.name+'">'+cc.name+'</option>';}).join('');
+  refreshCeeItemOpts();
+  G('cee-amt').value='';
+  G('cee-taxable').checked=false;
+  G('cee-veh').innerHTML='<option value="">— بدون سيارة —</option>'+(S.data.vehicles||[]).filter(function(v){return v.status==='نشطة';}).map(function(v){return '<option value="'+v.id+'">'+v.num+' '+v.letters+'</option>';}).join('');
+}
 function saveCuEntryEdit(){
+  var _isAdd=!V('cee-id')&&ceeAddSettleId;
+  if(_isAdd){
+    if(!canAddSett()){toast('ليس لديك صلاحية إضافة سطور للتقفيل','e');return;}
+    var cuA=S.data.custodies.find(function(c){return c.id===curCuId;});
+    var hA=cuA&&cuA.settHist?cuA.settHist.find(function(x){return x.id===ceeAddSettleId;}):null;
+    if(!hA){toast('التقفيل غير موجود','e');return;}
+    var baseA=Nv('cee-amt'),itemA=V('cee-item');
+    if(!baseA||!itemA){toast('يرجى تعبئة المبلغ والبند','e');return;}
+    var taxableA=G('cee-taxable').checked;
+    var taxA=taxableA?Math.round(baseA*CU_VAT_RATE*10)/1000:0;
+    var totA=Math.round((baseA+taxA)*1000)/1000;
+    var rem=cuBalanceInfo(cuA.id).remaining;
+    if(totA>rem+0.01&&!confirm('تحذير: هذا السطر سيجعل رصيد العهدة سالباً ('+fR(rem-totA)+'). هل تريد المتابعة؟'))return;
+    var vehA=V('cee-veh')?(S.data.vehicles||[]).find(function(v){return v.id===V('cee-veh');}):null;
+    S.data.custodyEnts.push({
+      id:uid(),cid:cuA.id,empName:cuA.name,
+      date:V('cee-d')||hA.date,cc:V('cee-cc'),item:itemA,
+      desc:V('cee-desc')+(taxableA?' (شامل ضريبة '+CU_VAT_RATE+'% = '+fmt(taxA,3)+' ريال)':''),
+      amount:totA,baseAmount:baseA,taxPct:taxableA?CU_VAT_RATE:0,taxAmount:taxA,
+      car:vehA?vehA.num:'',plate:vehA?vehA.letters:'',vehId:vehA?vehA.id:'',
+      settleId:hA.id,addedAfterClose:true,
+      by:S.cu?S.cu.u:'',at:new Date().toISOString()
+    });
+    if(!hA.addedLines)hA.addedLines=[];
+    hA.addedLines.push({amount:totA,item:itemA,by:S.cu?S.cu.name:'',at:new Date().toISOString(),prevTotal:hA.totalExpenses||0});
+    hA.totalExpenses=Math.round(((hA.totalExpenses||0)+totA)*1000)/1000;
+    hA.items=(hA.items||0)+1;
+    alog('إضافة سطر لتقفيل عهدة',cuA.name+' — تقفيل '+hA.date+' — '+itemA+' — '+fR(totA));
+    ceeAddSettleId='';
+    sv();CM('cuEntryEditM');loadCu();
+    if(curCuId)vwCu(curCuId);
+    viewSettlementDetail(hA.id);
+    toast('✅ تمت إضافة السطر للتقفيل وتحديث إجماليه');
+    return;
+  }
+  ceeAddSettleId='';
   if(!can('all')){toast('تعديل قيود العهدة مخصص لمدير النظام فقط','e');return;}
   var id=V('cee-id');
   var e=S.data.custodyEnts.find(function(x){return x.id===id;});
@@ -2998,6 +3055,7 @@ function viewSettlementDetail(settleId){
   var sdRec=settInfo?(settInfo.totalExpenses||0):null;
   var sdDiff=sdRec===null?0:Math.round((sdExp-sdRec)*100)/100;
   var sumHtml='<div style="margin-bottom:8px;padding:10px;background:'+(Math.abs(sdDiff)>0.009?'#fef2f2':'#f0fdf4')+';border-radius:8px;font-size:13px"><strong>مجموع سطور التقفيل:</strong> '+fR(sdExp)+(sdRet?' — مُرجَع '+fR(sdRet):'')+(sdRec!==null?' — المسجّل وقت التقفيل: '+fR(sdRec)+(Math.abs(sdDiff)>0.009?' — <strong style="color:var(--dn)">فرق '+fR(sdDiff)+'</strong> (عُدّلت أو حُذفت سطور بعد التقفيل)':' ✅ مطابق'):'')+(sdRec!==null&&Math.abs(sdDiff)>0.009&&can('all')?' <button class="btn bsm bp" style="margin-right:8px" onclick="syncSettTotal(\''+settleId+'\')">🔄 تحديث إجمالي التقفيل</button>':'')+(settInfo&&settInfo.prevTotals&&settInfo.prevTotals.length?'<div style="font-size:11px;color:var(--gr);margin-top:4px">الإجمالي الأصلي المحفوظ: '+settInfo.prevTotals.map(function(p){return fR(p.total)+' ('+p.at+' — '+p.by+')';}).join(' ، ')+'</div>':'')+'</div>';
+  var addBtn=(settInfo&&settInfo.id&&canAddSett()&&cu&&cu.status!=='x')?'<button class="btn bsm bp" style="margin-bottom:8px" onclick="openAddSettLine(\''+settleId+'\')">➕ إضافة سطر لهذا التقفيل</button>':'';
   var stHtml='';
   if(cu&&settInfo&&settInfo.id){
     var st=cuSettStatement(cu,settInfo);
@@ -3011,7 +3069,7 @@ function viewSettlementDetail(settleId){
       '<div class="met '+(st.end<0?'mr':'mg')+'"><div class="ml2">رصيد نهاية العهدة</div><div class="mv2">'+fR(st.end)+'</div></div>'+
       '</div></div>';
   }
-  G('settDetailC').innerHTML=warnHtml+stHtml+sumHtml+
+  G('settDetailC').innerHTML=warnHtml+addBtn+stHtml+sumHtml+
     '<div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>مركز التكلفة</th><th>المبلغ</th><th>السيارة</th><th>البيان</th><th></th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
 
   OM('settDetailM');
@@ -3095,7 +3153,7 @@ function openRoleM(key){
   G('role-key').value=cr?cr.key:'';
   G('role-lbl').value=cr?cr.lbl:'';
   G('role-c').value=cr?(cr.c||'bg2'):'bg2';
-  ['ap','bkRev','rc','ex','ops','claims','canEdit','canDel'].forEach(function(f){
+  ['ap','bkRev','rc','ex','ops','claims','settAdd','canEdit','canDel'].forEach(function(f){
     G('role-'+f).checked=cr?!!cr[f]:false;
   });
   var pages=cr?(cr.pages||[]):['dash'];
@@ -3121,7 +3179,7 @@ function saveRole(){
     pages:pages,
     ap:G('role-ap').checked,bkRev:G('role-bkRev').checked,
     rc:G('role-rc').checked,ex:G('role-ex').checked,
-    ops:G('role-ops').checked,claims:G('role-claims').checked,
+    ops:G('role-ops').checked,claims:G('role-claims').checked,settAdd:G('role-settAdd').checked,
     canEdit:G('role-canEdit').checked,canDel:G('role-canDel').checked
   };
   if(key){
@@ -7371,6 +7429,7 @@ ld();
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-ex" style="width:14px;height:14px"> تسجيل طلبات الصرف</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-ops" style="width:14px;height:14px"> تسجيل العمليات اليومية</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-claims" style="width:14px;height:14px"> إدارة مطالبات التأمين</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-settAdd" style="width:14px;height:14px"> إضافة سطور إلى تقفيل عهدة محفوظ</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-canEdit" style="width:14px;height:14px"> تعديل السجلات المعتمدة</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-canDel" style="width:14px;height:14px"> حذف السجلات</label>
       </div>
