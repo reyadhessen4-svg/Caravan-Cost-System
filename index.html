@@ -1890,7 +1890,42 @@ function doLogout(){
     finish();
   }
 }
+// إصلاح تقفيلين بنفس التاريخ كانا يحملان نفس المعرّف: تُفصل سطور كل تقفيل بوقت إدخالها
+function repairDupSettleIds(){
+  var changed=0;
+  (S.data.custodies||[]).forEach(function(cu){
+    var hist=cu.settHist||[];var seen={};
+    hist.forEach(function(h){if(h.id)(seen[h.id]=seen[h.id]||[]).push(h);});
+    Object.keys(seen).forEach(function(id){
+      var recs=seen[id];if(recs.length<2)return;
+      var ents=S.data.custodyEnts.filter(function(e){return e.cid===cu.id&&e.settleId===id;});
+      var groups={};ents.forEach(function(e){var k=(e.at||'').slice(0,16);(groups[k]=groups[k]||[]).push(e);});
+      var keys=Object.keys(groups).sort();
+      var expGroups=keys.filter(function(k){return groups[k].some(function(e){return e.amount>0&&!e.isTopup;});});
+      if(expGroups.length!==recs.length)return;
+      for(var i=0;i<recs.length;i++){
+        var cnt=groups[expGroups[i]].filter(function(e){return e.amount>0&&!e.isTopup;}).length;
+        if(recs[i].items!==undefined&&recs[i].items!==cnt)return;
+      }
+      for(var j=1;j<recs.length;j++){
+        var nid=id+'_'+(j+1);
+        recs[j].id=nid;
+        groups[expGroups[j]].forEach(function(e){e.settleId=nid;});
+      }
+      recs.forEach(function(h,idx){
+        if(h.syncedAt){
+          var act=S.data.custodyEnts.filter(function(e){return e.cid===cu.id&&e.settleId===h.id&&e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
+          h.totalExpenses=Math.round(act*1000)/1000;
+        }
+      });
+      changed++;
+      alog('إصلاح معرّف تقفيل مكرر',cu.name+' — '+id+' — '+recs.length+' تقفيلات');
+    });
+  });
+  return changed;
+}
 function initApp(){
+  try{if(S.cu&&S.cu.r==='admin'&&!_firebaseUnconfirmed&&repairDupSettleIds())sv();}catch(_e){console.warn('repairDupSettleIds',_e);}
   var u=S.cu;G('SBAv').textContent=u.name[0];G('SBNm').textContent=u.name;G('SBRl').textContent=ROLES[u.r].lbl;
   var d=new Date();var days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];var months=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
   G('TPD').textContent=days[d.getDay()]+' '+d.getDate()+' '+months[d.getMonth()]+' '+d.getFullYear();
@@ -4819,6 +4854,8 @@ function saveCuSettle(){
   var settType=document.getElementById('cuSet-type').value;
   var ret=parseFloat(document.getElementById('cuSet-return').value)||0;
   var notes=document.getElementById('cuSet-notes').value;
+  var settKey='sett_'+settDate;
+  (function(){var _c=S.data.custodies.find(function(x){return x.id===cuid;});var n=1;while(_c&&(_c.settHist||[]).some(function(h){return h.id===settKey;})){n++;settKey='sett_'+settDate+'_'+n;}})();
 
   if(!settDate){toast('يرجى تحديد تاريخ التقفيل','e');return;}
   var hasItems=cuSetRows.some(function(r){return r.amount>0&&r.item;});
@@ -4856,7 +4893,7 @@ function saveCuSettle(){
       car:veh?veh.num:'',
       plate:veh?veh.letters:'',
       vehId:r.vehId||'',
-      settleId:'sett_'+settDate,
+      settleId:settKey,
       by:S.cu?S.cu.u:'',at:new Date().toISOString()
     });
   });
@@ -4880,7 +4917,7 @@ function saveCuSettle(){
       date:settDate,item:'إرجاع للخزينة',amount:-ret,
       desc:'مبلغ مُرجَع ضمن تقفيل '+settDate,
       car:'',plate:'',isReturn:true,
-      receiptNum:S.data.ctr.rc,settleId:'sett_'+settDate,
+      receiptNum:S.data.ctr.rc,settleId:settKey,
       by:S.cu?S.cu.u:'',at:new Date().toISOString()
     });
   }
@@ -4888,7 +4925,7 @@ function saveCuSettle(){
   // Record settlement
   if(!cu.settHist)cu.settHist=[];
   cu.settHist.push({
-    id:'sett_'+settDate,
+    id:settKey,
     type:settType==='full'?'تقفيل كامل':'تقفيل جزئي',
     date:settDate,
     totalExpenses:total,
