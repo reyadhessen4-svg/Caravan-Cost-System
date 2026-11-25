@@ -2690,7 +2690,8 @@ function resetCuEnFilter(){
 
 function saveCe(){var cid=V('ce-c'),a=Nv('ce-a'),it=V('ce-it');if(!cid||!a||!it){toast('يرجى تعبئة الحقول المطلوبة','e');return;}var cu=S.data.custodies.find(c=>c.id===cid);if(!cu){toast('الموظف غير موجود','e');return;}var sp=S.data.custodyEnts.filter(e=>e.cid===cid).reduce((s,e)=>s+e.amount,0);if(sp+a>cu.opening*1.1)toast('تحذير: المبلغ سيتجاوز رصيد العهدة','w');S.data.custodyEnts.push({id:uid(),cid:cid,empName:cu.name,date:V('ce-d')||td2(),item:it,amount:a,desc:V('ce-ds'),car:V('ce-cr'),plate:V('ce-pl'),by:S.cu.u,at:new Date().toISOString()});alog('قيد عهدة',cu.name+' — '+it+' — '+fR(a));sv();CM('ceM');loadCu();toast('تم تسجيل مصروف العهدة');}
 var curCuId=null;
-function vwCu(id,fromDate,toDate){
+function vwCu(id,fromDate,toDate,settF){
+  settF=settF||'';
   curCuId=id;
   var cu=S.data.custodies.find(c=>c.id===id);
   var allEn=S.data.custodyEnts.filter(e=>e.cid===id);
@@ -2714,6 +2715,15 @@ function vwCu(id,fromDate,toDate){
   var en=allEn;
   if(fromDate)en=en.filter(function(e){return e.date>=fromDate;});
   if(toDate)en=en.filter(function(e){return e.date<=toDate;});
+  if(settF==='__none')en=en.filter(function(e){return !e.settleId;});
+  else if(settF)en=en.filter(function(e){return e.settleId===settF;});
+  var _filtered=!!(fromDate||toDate||settF);
+  // مجاميع الصفوف المعروضة فعلياً (بعد التصفية)
+  var vTop=en.filter(function(e){return e.isTopup&&!e.isReturn;}).reduce(function(s,e){return s+(e.addedToOpening||0);},0);
+  var vExp=en.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
+  var vRet=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0)+en.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
+  var settOpts='<option value="">كل التقفيلات</option><option value="__none"'+(settF==='__none'?' selected':'')+'>غير مقفل بعد</option>'+
+    (cu.settHist||[]).filter(function(h){return h.id;}).map(function(h){return '<option value="'+h.id+'"'+(settF===h.id?' selected':'')+'>تقفيل '+h.date+' — '+fR(h.totalExpenses||0)+'</option>';}).join('');
 
   var rowsHtml=en.sort((a,b)=>b.date.localeCompare(a.date)).map(function(e){
     var isReturn=e.isReturn||e.amount<0;
@@ -2727,17 +2737,19 @@ function vwCu(id,fromDate,toDate){
     var canEditEntry2=can('all')&&!isTopup&&!isReturn;
     return '<tr style="background:'+(isReturn?'rgba(5,150,105,.04)':isTopup?'rgba(26,86,219,.04)':'')+'">'+
       '<td>'+e.date+'</td>'+
+      '<td style="font-size:12px;color:var(--gr);white-space:nowrap">'+(e.settleId?String(e.settleId).replace('sett_','').slice(0,10):'—')+'</td>'+
       '<td>'+badge+e.item+'</td>'+
       '<td style="color:'+amtColor+';font-weight:700">'+amtPrefix+fR(Math.abs(dispAmt))+'</td>'+
       '<td>'+(e.car?e.car+(e.plate?' ('+e.plate+')':''):'—')+'</td>'+
       '<td>'+(e.desc||'—')+'</td>'+
       (can('all')?'<td><div style="display:flex;gap:3px">'+(canEditEntry2?'<button class="btn bxs" onclick="editCuEntry(\''+e.id+'\')" title="تعديل هذا القيد">&#x270F;&#xFE0F;</button>':'')+'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\')" title="حذف هذا القيد">&#x1F5D1;&#xFE0F;</button></div></td>':'')+
     '</tr>';
-  }).join('')||'<tr><td colspan="6"><div class="es"><div class="essb">لا توجد حركات في هذه الفترة</div></div></td></tr>';
+  }).join('')||'<tr><td colspan="7"><div class="es"><div class="essb">لا توجد حركات في هذه الفترة</div></div></td></tr>';
 
   G('cuDC').innerHTML=
     '<div class="mets">'+
       '<div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div>'+
+      '<div class="met mb"><div class="ml2">التحويلات المضافة</div><div class="mv2">'+fR(topups)+'</div></div>'+
       '<div class="met mr"><div class="ml2">إجمالي المصروف</div><div class="mv2">'+fR(realExpense)+'</div></div>'+
       '<div class="met mg"><div class="ml2">إجمالي المُرجَع للخزينة</div><div class="mv2">'+fR(returned)+'</div></div>'+
       '<div class="met '+(rm<0?'mr':'mg')+'"><div class="ml2">المتبقي</div><div class="mv2">'+fR(rm)+'</div></div>'+
@@ -2747,18 +2759,22 @@ function vwCu(id,fromDate,toDate){
       '<input type="date" id="cuD-from" value="'+(fromDate||'')+'" style="padding:6px 10px;border:1px solid var(--bd);border-radius:7px;font-size:13px;outline:none">'+
       '<span style="font-size:12px;color:var(--gr)">إلى</span>'+
       '<input type="date" id="cuD-to" value="'+(toDate||'')+'" style="padding:6px 10px;border:1px solid var(--bd);border-radius:7px;font-size:13px;outline:none">'+
+      '<span style="font-size:12px;color:var(--gr);font-weight:700">حسب التقفيل:</span>'+
+      '<select id="cuD-sett" style="padding:6px 10px;border:1px solid var(--bd);border-radius:7px;font-size:13px;outline:none;font-family:var(--fn)">'+settOpts+'</select>'+
       '<button class="btn bsm bp" onclick="filterCuHistory()">&#x1F50E; تصفية</button>'+
-      (fromDate||toDate?'<button class="btn bsm" onclick="vwCu(curCuId)">&#x2716;&#xFE0F; عرض الكل</button>':'')+
+      (_filtered?'<button class="btn bsm" onclick="vwCu(curCuId)">&#x2716;&#xFE0F; عرض الكل</button>':'')+
     '</div>'+
-    '<div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th>'+(can('all')?'<th></th>':'')+'</tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'+
-    (cu.settHist&&cu.settHist.length?'<div style="margin-top:14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">سجل التسويات (دوس على أي تقفيل لعرض واستعراض سطوره):</div>'+cu.settHist.map(h=>'<div onclick="viewSettlementDetail(\''+h.id+'\')" style="padding:10px;background:var(--ltr);border-radius:8px;font-size:12px;margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bd)" onmouseover="this.style.background=\'var(--lt)\'" onmouseout="this.style.background=\'var(--ltr)\'"><div><strong>'+h.type+'</strong> — '+h.date+' — '+(h.items||0)+' سطر — إجمالي '+fR(h.totalExpenses||0)+(h.returned?' — مُرجَع '+fR(h.returned):'')+' — بواسطة '+h.by+'</div><span style="color:var(--ry)">&#x1F441;&#xFE0F; عرض</span></div>').join('')+'</div>':'');
+    (_filtered?'<div style="margin-bottom:8px;padding:10px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:12.5px"><strong>مجموع الحركات المعروضة (بعد التصفية):</strong> مصروف '+fR(vExp)+' — مُرجَع '+fR(vRet)+' — تحويلات '+fR(vTop)+' — '+en.length+' حركة<div style="color:var(--gr);margin-top:3px">الكروت أعلاه هي الإجماليات الكلية للعهدة ولا تتأثر بالتصفية.</div></div>':'')+
+    '<div class="tw"><table><thead><tr><th>تاريخ الفاتورة</th><th>تاريخ التقفيل</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th>'+(can('all')?'<th></th>':'')+'</tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'+
+    (cu.settHist&&cu.settHist.length?'<div style="margin-top:14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">سجل التسويات (دوس على أي تقفيل لعرض واستعراض سطوره):</div>'+cu.settHist.map(h=>'<div onclick="viewSettlementDetail(\''+h.id+'\')" style="padding:10px;background:var(--ltr);border-radius:8px;font-size:12px;margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bd)" onmouseover="this.style.background=\'var(--lt)\'" onmouseout="this.style.background=\'var(--ltr)\'"><div><strong>'+h.type+'</strong> — '+h.date+' — '+(h.items||0)+' سطر — إجمالي '+fR(h.totalExpenses||0)+(function(){var act=S.data.custodyEnts.filter(function(e){return e.settleId===h.id&&e.cid===cu.id&&e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);var df=Math.round((act-(h.totalExpenses||0))*100)/100;return Math.abs(df)>0.009?' <span style="color:var(--dn);font-weight:700">⚠️ المسجّل فعلياً '+fR(act)+' (فرق '+fR(df)+')</span>':'';})()+(h.returned?' — مُرجَع '+fR(h.returned):'')+' — بواسطة '+h.by+'</div><span style="color:var(--ry)">&#x1F441;&#xFE0F; عرض</span></div>').join('')+'</div>':'');
   OM('cuDM');
 }
 function filterCuHistory(){
   var from=V('cuD-from');
   var to=V('cuD-to');
   if(from&&to&&from>to){toast('تاريخ البداية يجب أن يكون قبل تاريخ النهاية','e');return;}
-  vwCu(curCuId,from,to);
+  var sf=G('cuD-sett')?G('cuD-sett').value:'';
+  vwCu(curCuId,from,to,sf);
 }
 function deleteCuEntry(entryId){
   if(!can('all')){toast('حذف قيود العهدة مخصص لمدير النظام فقط','e');return;}
@@ -2865,9 +2881,60 @@ function saveCuEntryEdit(){
 function prepSetCu(id){curCuId=id;vwCu(id);}
 
 var curSettleId=null;
+function cuEffDate(e){
+  if(e.settleId&&/^sett_\d{4}-\d{2}-\d{2}/.test(e.settleId))return String(e.settleId).slice(5,15);
+  return e.date||'';
+}
+// رصيد العهدة بعد كل الحركات حتى تاريخ D (الحركة المقفلة تُحسب بتاريخ تقفيلها لا بتاريخ فاتورتها)
+function cuBalanceAt(cu,D){
+  var bal=cu.opening||0;
+  S.data.custodyEnts.forEach(function(e){
+    if(e.cid!==cu.id)return;
+    if(cuEffDate(e)>D)return;
+    if(e.isTopup&&!e.isReturn){if(e.addedToOpening>0)bal+=e.addedToOpening;}
+    else if(e.isReturn&&e.amount===0)bal-=Math.abs(e.addedToOpening||0);
+    else if(e.amount<0)bal-=Math.abs(e.amount);
+    else if(e.amount>0)bal-=e.amount;
+  });
+  return Math.round(bal*1000)/1000;
+}
+function cuSettStatement(cu,h){
+  var D=h.date;
+  var prev=(cu.settHist||[]).filter(function(x){return x.id&&x.date<D;}).sort(function(a,b){return a.date<b.date?1:-1;})[0];
+  var P=prev?prev.date:'';
+  var start=P?cuBalanceAt(cu,P):(cu.opening||0);
+  var inP=function(e){var d=cuEffDate(e);return e.cid===cu.id&&d<=D&&(!P||d>P);};
+  var en=S.data.custodyEnts.filter(inP);
+  var topups=en.filter(function(e){return e.isTopup&&!e.isReturn&&e.addedToOpening>0;}).reduce(function(s,e){return s+e.addedToOpening;},0);
+  var closed=en.filter(function(e){return e.settleId===h.id&&e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
+  var other=en.filter(function(e){return e.settleId!==h.id&&e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
+  var ret=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0)+en.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
+  var end=cuBalanceAt(cu,D);
+  var r=function(x){return Math.round(x*1000)/1000;};
+  return {prevDate:P,start:r(start),topups:r(topups),closed:r(closed),other:r(other),ret:r(ret),end:end};
+}
+function syncSettTotal(settleId){
+  if(!can('all')){toast('هذا الإجراء مخصص لمدير النظام فقط','e');return;}
+  var cu=S.data.custodies.find(function(c){return c.id===curCuId;});
+  var h=cu&&cu.settHist?cu.settHist.find(function(x){return x.id===settleId;}):null;
+  if(!h){toast('التقفيل غير موجود','e');return;}
+  var act=Math.round(S.data.custodyEnts.filter(function(e){return e.settleId===settleId&&e.cid===cu.id&&e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0)*1000)/1000;
+  var old=h.totalExpenses||0;
+  if(Math.abs(act-old)<0.009){toast('الإجمالي مطابق بالفعل');return;}
+  if(!confirm('تحديث إجمالي تقفيل '+h.date+' — '+cu.name+'\n\nالمسجّل حالياً: '+fR(old)+'\nالمجموع الفعلي للسطور: '+fR(act)+'\n\nسيُحفظ الرقم القديم للمرجعية. متابعة؟'))return;
+  if(!h.prevTotals)h.prevTotals=[];
+  h.prevTotals.push({total:old,at:td2(),by:S.cu?S.cu.name:''});
+  h.totalExpenses=act;
+  h.syncedAt=new Date().toISOString();
+  alog('تحديث إجمالي تقفيل عهدة',cu.name+' — تقفيل '+h.date+' — من '+fR(old)+' إلى '+fR(act));
+  sv();
+  viewSettlementDetail(settleId);
+  if(curCuId)vwCu(curCuId);
+  toast('تم تحديث إجمالي التقفيل');
+}
 function viewSettlementDetail(settleId){
   curSettleId=settleId;
-  var entries=S.data.custodyEnts.filter(function(e){return e.settleId===settleId;});
+  var entries=S.data.custodyEnts.filter(function(e){return e.settleId===settleId&&(!curCuId||e.cid===curCuId);});
   var cu=curCuId?S.data.custodies.find(function(c){return c.id===curCuId;}):null;
   var settInfo=cu&&cu.settHist?cu.settHist.find(function(h){return h.id===settleId;}):null;
 
@@ -2891,7 +2958,25 @@ function viewSettlementDetail(settleId){
     '</tr>';
   }).join(''):'<tr><td colspan="7"><div class="es"><div class="essb">لا توجد سطور مرتبطة بهذا التقفيل</div></div></td></tr>';
 
-  G('settDetailC').innerHTML=warnHtml+
+  var sdExp=entries.filter(function(e){return e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
+  var sdRet=entries.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0);
+  var sdRec=settInfo?(settInfo.totalExpenses||0):null;
+  var sdDiff=sdRec===null?0:Math.round((sdExp-sdRec)*100)/100;
+  var sumHtml='<div style="margin-bottom:8px;padding:10px;background:'+(Math.abs(sdDiff)>0.009?'#fef2f2':'#f0fdf4')+';border-radius:8px;font-size:13px"><strong>مجموع سطور التقفيل:</strong> '+fR(sdExp)+(sdRet?' — مُرجَع '+fR(sdRet):'')+(sdRec!==null?' — المسجّل وقت التقفيل: '+fR(sdRec)+(Math.abs(sdDiff)>0.009?' — <strong style="color:var(--dn)">فرق '+fR(sdDiff)+'</strong> (عُدّلت أو حُذفت سطور بعد التقفيل)':' ✅ مطابق'):'')+(sdRec!==null&&Math.abs(sdDiff)>0.009&&can('all')?' <button class="btn bsm bp" style="margin-right:8px" onclick="syncSettTotal(\''+settleId+'\')">🔄 تحديث إجمالي التقفيل</button>':'')+(settInfo&&settInfo.prevTotals&&settInfo.prevTotals.length?'<div style="font-size:11px;color:var(--gr);margin-top:4px">الإجمالي الأصلي المحفوظ: '+settInfo.prevTotals.map(function(p){return fR(p.total)+' ('+p.at+' — '+p.by+')';}).join(' ، ')+'</div>':'')+'</div>';
+  var stHtml='';
+  if(cu&&settInfo&&settInfo.id){
+    var st=cuSettStatement(cu,settInfo);
+    stHtml='<div style="margin-bottom:10px"><div style="font-size:13px;font-weight:700;margin-bottom:6px">&#x1F4D2; كشف العهدة بتاريخ التقفيل '+settInfo.date+(st.prevDate?' (منذ تقفيل '+st.prevDate+')':' (من بداية العهدة)')+'</div>'+
+      '<div class="mets">'+
+      '<div class="met mb"><div class="ml2">رصيد بداية العهدة</div><div class="mv2">'+fR(st.start)+'</div></div>'+
+      '<div class="met mb"><div class="ml2">المحوَّل بعدها (+)</div><div class="mv2">'+fR(st.topups)+'</div></div>'+
+      '<div class="met mr"><div class="ml2">المصروف المقفل (−)</div><div class="mv2">'+fR(st.closed)+'</div></div>'+
+      (st.ret?'<div class="met mg"><div class="ml2">المُرجَع للخزينة (−)</div><div class="mv2">'+fR(st.ret)+'</div></div>':'')+
+      (Math.abs(st.other)>0.009?'<div class="met mr"><div class="ml2">مصروف آخر في الفترة (−)</div><div class="mv2">'+fR(st.other)+'</div></div>':'')+
+      '<div class="met '+(st.end<0?'mr':'mg')+'"><div class="ml2">رصيد نهاية العهدة</div><div class="mv2">'+fR(st.end)+'</div></div>'+
+      '</div></div>';
+  }
+  G('settDetailC').innerHTML=warnHtml+stHtml+sumHtml+
     '<div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>مركز التكلفة</th><th>المبلغ</th><th>السيارة</th><th>البيان</th><th></th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
 
   OM('settDetailM');
