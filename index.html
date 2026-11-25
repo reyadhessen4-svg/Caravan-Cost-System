@@ -609,6 +609,7 @@ tbody tr:hover td{background:var(--ltr)}
 
 <!-- ═══ CUSTODY ═══ -->
 <div class="pg" id="pg-cu">
+  <div id="cuReqBox"></div>
   <div class="page-hdr"><h2>العهد الشخصية</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <input type="date" id="cuDateF" onchange="loadCu()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
@@ -1191,7 +1192,7 @@ tbody tr:hover td{background:var(--ltr)}
 <div class="mft"><button class="btn" onclick="CM('usM')">إلغاء</button><button class="btn bp" onclick="saveUs()">&#x1F4BE; إضافة المستخدم</button></div></div></div>
 <script>
 "use strict";
-var S={cu:null,data:{users:[],employees:[],deletedEmployees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],dailyStmts:[],dailyCustomItems:{ahli:[],other:[]},commitments:[],commitArchive:[],loginAlerts:[],clients:[],costCenters:[],customRoles:[],systemStartDate:'',prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
+var S={cu:null,data:{users:[],employees:[],deletedEmployees:[],vehicles:[],bankAccounts:[],deletedSerials:[],bankRevs:[],dailyStmts:[],custodyReopenReqs:[],dailyCustomItems:{ahli:[],other:[]},commitments:[],commitArchive:[],loginAlerts:[],clients:[],costCenters:[],customRoles:[],systemStartDate:'',prices:[],ops:[],receipts:[],expenses:[],bankIn:[],bankOut:[],bankRevs:[],custodies:[],custodyEnts:[],claims:[],audit:[],ctr:{rc:1000,ex:2000,bi:3000,bo:4000,cl:5000}}};
 var BK_KEY='qawafil_v14'; // localStorage fallback key
 var DB=null; // Firebase database reference
 var DB_REF='/qawafil'; // Firebase path
@@ -1371,7 +1372,7 @@ function _auxAuth(){
 }
 function _normalizeData(d){
   S.data=Object.assign({},S.data,d);
-  var arrFields=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit','dailyStmts','commitments','commitArchive','loginAlerts'];
+  var arrFields=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit','dailyStmts','custodyReopenReqs','commitments','commitArchive','loginAlerts'];
   arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
   mergeCustomRoles();
 }
@@ -1443,7 +1444,7 @@ function _legacyLd(){
       var d=snap.val();
       if(d&&d.users){
         S.data=Object.assign({},S.data,d);
-        var arrFields=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit','dailyStmts','commitments','commitArchive','loginAlerts'];
+        var arrFields=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles','prices','ops','receipts','expenses','bankIn','bankOut','bankRevs','custodies','custodyEnts','claims','audit','dailyStmts','custodyReopenReqs','commitments','commitArchive','loginAlerts'];
         arrFields.forEach(function(f){if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);if(!S.data[f])S.data[f]=[];});
         mergeCustomRoles();
         setSyncIcon('ok');
@@ -1536,7 +1537,7 @@ function _startListener(){
     // Ensure arrays
     var arrF=['users','employees','deletedEmployees','vehicles','bankAccounts','clients','costCenters','customRoles',
       'prices','ops','receipts','expenses','bankIn','bankOut','bankRevs',
-      'custodies','custodyEnts','claims','audit','dailyStmts','commitments','commitArchive','loginAlerts'];
+      'custodies','custodyEnts','claims','audit','dailyStmts','custodyReopenReqs','commitments','commitArchive','loginAlerts'];
     arrF.forEach(function(f){
       if(S.data[f]&&!Array.isArray(S.data[f]))S.data[f]=Object.values(S.data[f]);
       if(!S.data[f])S.data[f]=[];
@@ -1620,7 +1621,7 @@ function mergeCustomRoles(){
       lbl:cr.lbl||cr.key,c:cr.c||'bg2',all:false,
       pages:cr.pages||[],
       canDel:!!cr.canDel,canEdit:!!cr.canEdit,
-      ap:!!cr.ap,bkRev:!!cr.bkRev,rc:!!cr.rc,ex:!!cr.ex,ops:!!cr.ops,claims:!!cr.claims,settAdd:!!cr.settAdd,
+      ap:!!cr.ap,bkRev:!!cr.bkRev,rc:!!cr.rc,ex:!!cr.ex,ops:!!cr.ops,claims:!!cr.claims,
       isCustom:true
     };
   });
@@ -1925,6 +1926,7 @@ function repairDupSettleIds(){
   return changed;
 }
 function initApp(){
+  try{if(S.cu&&S.cu.r==='admin'){var _pn=(S.data.custodyReopenReqs||[]).filter(function(r){return r.status==='pending';}).length;if(_pn)setTimeout(function(){toast('يوجد '+_pn+' طلب فتح عهدة بانتظار موافقتك — صفحة العهد','w');},1500);}}catch(_e){}
   try{if(S.cu&&S.cu.r==='admin'&&!_firebaseUnconfirmed&&repairDupSettleIds())sv();}catch(_e){console.warn('repairDupSettleIds',_e);}
   var u=S.cu;G('SBAv').textContent=u.name[0];G('SBNm').textContent=u.name;G('SBRl').textContent=ROLES[u.r].lbl;
   var d=new Date();var days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];var months=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
@@ -2649,6 +2651,7 @@ function cuBalanceInfo(cid){
   return {opening:opening,expense:expense,returned:returned,remaining:opening-expense-returned,topups:topups};
 }
 function loadCu(){
+  try{renderCuReqs();}catch(_e){}
   var cu=S.data.custodies,en=S.data.custodyEnts;
   var dateF=G('cuDateF')?G('cuDateF').value:'';
   var dateT=G('cuDateT')?G('cuDateT').value:'';
@@ -2769,7 +2772,7 @@ function vwCu(id,fromDate,toDate,settF){
     var badge=isReturn?'<span class="bdg bn" style="font-size:10px;margin-left:4px">إرجاع</span>':
               isTopup?'<span class="bdg bb" style="font-size:10px;margin-left:4px">إضافة رصيد</span>':'';
     if(isTopup&&!dispAmt)return'';
-    var canEditEntry2=can('all')&&!isTopup&&!isReturn;
+    var canEditEntry2=canEditCu(id)&&!isTopup&&!isReturn;
     return '<tr style="background:'+(isReturn?'rgba(5,150,105,.04)':isTopup?'rgba(26,86,219,.04)':'')+'">'+
       '<td>'+e.date+'</td>'+
       '<td style="font-size:12px;color:var(--gr);white-space:nowrap">'+(e.settleId?String(e.settleId).replace('sett_','').slice(0,10):'—')+'</td>'+
@@ -2777,11 +2780,11 @@ function vwCu(id,fromDate,toDate,settF){
       '<td style="color:'+amtColor+';font-weight:700">'+amtPrefix+fR(Math.abs(dispAmt))+'</td>'+
       '<td>'+(e.car?e.car+(e.plate?' ('+e.plate+')':''):'—')+'</td>'+
       '<td>'+(e.desc||'—')+'</td>'+
-      (can('all')?'<td><div style="display:flex;gap:3px">'+(canEditEntry2?'<button class="btn bxs" onclick="editCuEntry(\''+e.id+'\')" title="تعديل هذا القيد">&#x270F;&#xFE0F;</button>':'')+'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\')" title="حذف هذا القيد">&#x1F5D1;&#xFE0F;</button></div></td>':'')+
+      (canEditCu(id)?'<td><div style="display:flex;gap:3px">'+(canEditEntry2?'<button class="btn bxs" onclick="editCuEntry(\''+e.id+'\')" title="تعديل هذا القيد">&#x270F;&#xFE0F;</button>':'')+((can('all')||canEditEntry2)?'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\')" title="حذف هذا القيد">&#x1F5D1;&#xFE0F;</button>':'')+'</div></td>':'')+
     '</tr>';
   }).join('')||'<tr><td colspan="7"><div class="es"><div class="essb">لا توجد حركات في هذه الفترة</div></div></td></tr>';
 
-  G('cuDC').innerHTML=
+  G('cuDC').innerHTML=reqBarHtml(id)+
     '<div class="mets">'+
       '<div class="met mb"><div class="ml2">الرصيد الابتدائي</div><div class="mv2">'+fR(cu.opening)+'</div></div>'+
       '<div class="met mb"><div class="ml2">التحويلات المضافة</div><div class="mv2">'+fR(topups)+'</div></div>'+
@@ -2800,7 +2803,7 @@ function vwCu(id,fromDate,toDate,settF){
       (_filtered?'<button class="btn bsm" onclick="vwCu(curCuId)">&#x2716;&#xFE0F; عرض الكل</button>':'')+
     '</div>'+
     (_filtered?'<div style="margin-bottom:8px;padding:10px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:12.5px"><strong>مجموع الحركات المعروضة (بعد التصفية):</strong> مصروف '+fR(vExp)+' — مُرجَع '+fR(vRet)+' — تحويلات '+fR(vTop)+' — '+en.length+' حركة<div style="color:var(--gr);margin-top:3px">الكروت أعلاه هي الإجماليات الكلية للعهدة ولا تتأثر بالتصفية.</div></div>':'')+
-    '<div class="tw"><table><thead><tr><th>تاريخ الفاتورة</th><th>تاريخ التقفيل</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th>'+(can('all')?'<th></th>':'')+'</tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'+
+    '<div class="tw"><table><thead><tr><th>تاريخ الفاتورة</th><th>تاريخ التقفيل</th><th>البند</th><th>المبلغ</th><th>السيارة</th><th>البيان</th>'+(canEditCu(id)?'<th></th>':'')+'</tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'+
     (cu.settHist&&cu.settHist.length?'<div style="margin-top:14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">سجل التسويات (دوس على أي تقفيل لعرض واستعراض سطوره):</div>'+cu.settHist.map(h=>'<div onclick="viewSettlementDetail(\''+h.id+'\')" style="padding:10px;background:var(--ltr);border-radius:8px;font-size:12px;margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bd)" onmouseover="this.style.background=\'var(--lt)\'" onmouseout="this.style.background=\'var(--ltr)\'"><div><strong>'+h.type+'</strong> — '+h.date+' — '+(h.items||0)+' سطر — إجمالي '+fR(h.totalExpenses||0)+(function(){var act=S.data.custodyEnts.filter(function(e){return e.settleId===h.id&&e.cid===cu.id&&e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);var df=Math.round((act-(h.totalExpenses||0))*100)/100;return Math.abs(df)>0.009?' <span style="color:var(--dn);font-weight:700">⚠️ المسجّل فعلياً '+fR(act)+' (فرق '+fR(df)+')</span>':'';})()+(h.returned?' — مُرجَع '+fR(h.returned):'')+' — بواسطة '+h.by+'</div><span style="color:var(--ry)">&#x1F441;&#xFE0F; عرض</span></div>').join('')+'</div>':'');
   OM('cuDM');
 }
@@ -2812,9 +2815,10 @@ function filterCuHistory(){
   vwCu(curCuId,from,to,sf);
 }
 function deleteCuEntry(entryId){
-  if(!can('all')){toast('حذف قيود العهدة مخصص لمدير النظام فقط','e');return;}
   var e=S.data.custodyEnts.find(function(x){return x.id===entryId;});
   if(!e){toast('القيد غير موجود','e');return;}
+  if(!canEditCu(e.cid)){toast('حذف قيود العهدة يحتاج موافقة المدير على طلب فتح العهدة','e');return;}
+  if(!can('all')&&(e.isTopup||e.isReturn||e.amount<0)){toast('هذا القيد ناتج عن سند بنكي/قبض — حذفه للمدير فقط','e');return;}
   var cu=S.data.custodies.find(function(c){return c.id===e.cid;});
   var isTopup=e.isTopup&&!e.isReturn;
   var isReturn=e.isReturn||e.amount<0;
@@ -2827,15 +2831,16 @@ function deleteCuEntry(entryId){
   if(isTopup&&cu){cu.opening=cu.opening-(e.addedToOpening||0);}
   S.data.custodyEnts=S.data.custodyEnts.filter(function(x){return x.id!==entryId;});
   alog('حذف قيد عهدة',(cu?cu.name:'')+' — '+lbl+' — '+amtTxt+' — السبب: '+rsn.trim());
+  reqNote(e.cid,'حذف '+lbl+' '+(e.item||'')+' '+amtTxt,e.settleId);
   sv();
   loadCu();
   if(curCuId)vwCu(curCuId);
   toast('تم حذف القيد بنجاح','w');
 }
 function editCuEntry(entryId){
-  if(!can('all')){toast('تعديل قيود العهدة مخصص لمدير النظام فقط','e');return;}
   var e=S.data.custodyEnts.find(function(x){return x.id===entryId;});
   if(!e){toast('القيد غير موجود','e');return;}
+  if(!canEditCu(e.cid)){toast('تعديل قيود العهدة يحتاج موافقة المدير على طلب فتح العهدة','e');return;}
   if(e.isTopup||e.isReturn||e.amount<0){
     toast('هذا القيد ناتج تلقائيًا من سند بنكي/صرف/قبض — لتعديله يجب إلغاء اعتماد السند الأصلي وتعديله من هناك مباشرة','e');
     return;
@@ -2867,7 +2872,96 @@ function refreshCeeItemOpts(){
     return '<option value="'+ci.name+'">'+ci.name+'</option>';
   }).join('');
 }
-var canAddSett=function(){return can('all')||can('settAdd');};
+// ===== طلبات فتح العهدة للتعديل (طلب → موافقة المدير → تعديل → إغلاق) =====
+function myGrant(cid){
+  if(!S.cu)return null;
+  return (S.data.custodyReopenReqs||[]).find(function(r){return r.cid===cid&&r.status==='approved'&&r.by===S.cu.u;})||null;
+}
+function canEditCu(cid){return can('all')||!!myGrant(cid);}
+function reqNote(cid,txt,sid){
+  var g=myGrant(cid);if(!g)return;
+  if(!g.log)g.log=[];g.log.push({at:new Date().toISOString(),txt:txt});
+  if(sid){if(!g.touched)g.touched=[];if(g.touched.indexOf(sid)<0)g.touched.push(sid);}
+}
+var canAddSett=function(){return canEditCu(curCuId);};
+function reqBarHtml(cid){
+  if(can('all')||!S.cu)return '';
+  var mine=(S.data.custodyReopenReqs||[]).filter(function(r){return r.cid===cid&&r.by===S.cu.u;});
+  var ap=mine.find(function(r){return r.status==='approved';});
+  if(ap)return '<div class="al as" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px"><span>✅ العهدة مفتوحة لك للتعديل بموافقة المدير ('+(ap.decidedBy||'')+'). عدّل أو أضف أو احذف ثم اضغط إنهاء.</span><button class="btn bsm bp" onclick="closeReopenReq(\''+ap.id+'\')">🔒 إنهاء التعديل وإغلاق العهدة</button></div>';
+  var pe=mine.find(function(r){return r.status==='pending';});
+  if(pe)return '<div class="al aw" style="margin-bottom:8px">⏳ طلبك لفتح هذه العهدة بانتظار موافقة المدير ('+(pe.at||'').slice(0,10)+').</div>';
+  return '<div style="margin-bottom:8px"><button class="btn bsm" onclick="requestReopen(\''+cid+'\')">🔓 طلب فتح العهدة للتعديل</button></div>';
+}
+function requestReopen(cid){
+  if(can('all')){toast('أنت مدير، لديك صلاحية التعديل مباشرة');return;}
+  var cu=S.data.custodies.find(function(c){return c.id===cid;});
+  if(!cu)return;
+  if(!S.data.custodyReopenReqs)S.data.custodyReopenReqs=[];
+  if(S.data.custodyReopenReqs.some(function(r){return r.cid===cid&&r.by===S.cu.u&&(r.status==='pending'||r.status==='approved');})){toast('لديك طلب قائم لهذه العهدة','e');return;}
+  var why=prompt('سبب طلب فتح عهدة '+cu.name+' للتعديل:');
+  if(why===null)return;
+  if(!why.trim()){toast('اكتب سبب الطلب','e');return;}
+  S.data.custodyReopenReqs.unshift({id:uid(),cid:cid,custName:cu.name,reason:why.trim(),by:S.cu.u,byName:S.cu.name,at:new Date().toISOString(),status:'pending',log:[],touched:[]});
+  alog('طلب فتح عهدة للتعديل',cu.name+' — '+why.trim());
+  sv();
+  if(curCuId===cid)vwCu(cid);
+  loadCu();
+  toast('تم إرسال الطلب للمدير');
+}
+function decideReopen(id,ok){
+  if(!can('all')){toast('الموافقة للمدير فقط','e');return;}
+  var r=(S.data.custodyReopenReqs||[]).find(function(x){return x.id===id;});
+  if(!r||r.status!=='pending')return;
+  var note='';
+  if(!ok){var n=prompt('سبب الرفض (اختياري):');if(n===null)return;note=n;}
+  r.status=ok?'approved':'rejected';r.decidedBy=S.cu.name;r.decidedAt=new Date().toISOString();r.note=note;
+  alog(ok?'موافقة على فتح عهدة للتعديل':'رفض طلب فتح عهدة',r.custName+' — '+r.byName);
+  sv();loadCu();
+  toast(ok?'تمت الموافقة — يستطيع '+r.byName+' التعديل الآن':'تم رفض الطلب');
+}
+function closeReopenReq(id){
+  var r=(S.data.custodyReopenReqs||[]).find(function(x){return x.id===id;});
+  if(!r||r.status!=='approved')return;
+  if(!can('all')&&r.by!==S.cu.u){toast('غير مسموح','e');return;}
+  var cu=S.data.custodies.find(function(c){return c.id===r.cid;});
+  var fixed=0;
+  if(cu){
+    (r.touched||[]).forEach(function(sid){
+      var h=(cu.settHist||[]).find(function(x){return x.id===sid;});
+      if(!h)return;
+      var ents=S.data.custodyEnts.filter(function(e){return e.cid===cu.id&&e.settleId===sid&&e.amount>0&&!e.isTopup;});
+      var act=Math.round(ents.reduce(function(s,e){return s+e.amount;},0)*1000)/1000;
+      if(Math.abs(act-(h.totalExpenses||0))>0.009){
+        if(!h.prevTotals)h.prevTotals=[];
+        h.prevTotals.push({total:h.totalExpenses||0,at:td2(),by:S.cu.name+' (إغلاق طلب)'});
+        h.totalExpenses=act;fixed++;
+      }
+      h.items=ents.length;
+    });
+  }
+  r.status='closed';r.closedAt=new Date().toISOString();r.closedBy=S.cu.name;
+  alog('إغلاق عهدة بعد التعديل',(cu?cu.name:'')+' — '+(r.log||[]).length+' إجراء'+(fixed?' — تحديث إجمالي '+fixed+' تقفيل':''));
+  sv();loadCu();
+  if(curCuId)vwCu(curCuId);
+  toast('🔒 تم إغلاق العهدة'+(fixed?' وتحديث إجماليات التقفيلات المعدّلة':''));
+}
+function renderCuReqs(){
+  var box=G('cuReqBox');if(!box)return;
+  var all=S.data.custodyReopenReqs||[];
+  var list=can('all')?all:all.filter(function(r){return S.cu&&r.by===S.cu.u;});
+  var act=list.filter(function(r){return r.status==='pending'||r.status==='approved';});
+  var hist=list.filter(function(r){return r.status==='closed'||r.status==='rejected';}).slice(0,5);
+  if(!act.length&&!hist.length){box.innerHTML='';return;}
+  var stLbl={pending:'⏳ بانتظار الموافقة',approved:'✅ مفتوحة للتعديل',closed:'🔒 مغلقة',rejected:'❌ مرفوضة'};
+  var row=function(r){
+    var btn='';
+    if(can('all')&&r.status==='pending')btn='<button class="btn bsm bp" onclick="decideReopen(\''+r.id+'\',true)">✔ موافقة</button> <button class="btn bsm bd2" onclick="decideReopen(\''+r.id+'\',false)">✖ رفض</button>';
+    else if(r.status==='approved')btn='<button class="btn bsm" onclick="closeReopenReq(\''+r.id+'\')">🔒 إغلاق</button>';
+    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;background:var(--wh);font-size:12.5px"><div><strong>'+r.custName+'</strong> — '+r.byName+' — '+(r.at||'').slice(0,10)+' — '+stLbl[r.status]+'<div style="color:var(--gr)">السبب: '+r.reason+(r.note?' — ملاحظة: '+r.note:'')+((r.log||[]).length?' — '+(r.log||[]).length+' إجراء':'')+'</div></div><div style="display:flex;gap:6px">'+btn+'</div></div>';
+  };
+  box.innerHTML='<div class="card" style="margin-bottom:12px"><div class="cht">🔓 طلبات فتح العهد للتعديل</div>'+act.map(row).join('')+hist.map(row).join('')+'</div>';
+}
 var ceeAddSettleId='';
 function openAddSettLine(settleId){
   if(!canAddSett()){toast('ليس لديك صلاحية إضافة سطور للتقفيل','e');return;}
@@ -2915,6 +3009,7 @@ function saveCuEntryEdit(){
     hA.totalExpenses=Math.round(((hA.totalExpenses||0)+totA)*1000)/1000;
     hA.items=(hA.items||0)+1;
     alog('إضافة سطر لتقفيل عهدة',cuA.name+' — تقفيل '+hA.date+' — '+itemA+' — '+fR(totA));
+    reqNote(cuA.id,'إضافة '+itemA+' '+fR(totA),hA.id);
     ceeAddSettleId='';
     sv();CM('cuEntryEditM');loadCu();
     if(curCuId)vwCu(curCuId);
@@ -2923,10 +3018,10 @@ function saveCuEntryEdit(){
     return;
   }
   ceeAddSettleId='';
-  if(!can('all')){toast('تعديل قيود العهدة مخصص لمدير النظام فقط','e');return;}
   var id=V('cee-id');
   var e=S.data.custodyEnts.find(function(x){return x.id===id;});
   if(!e){toast('القيد غير موجود','e');return;}
+  if(!canEditCu(e.cid)){toast('تعديل قيود العهدة يحتاج موافقة المدير على طلب فتح العهدة','e');return;}
   var baseAmt=Nv('cee-amt');
   var item=V('cee-item');
   if(!baseAmt||!item){toast('يرجى تعبئة المبلغ والبند','e');return;}
@@ -2962,6 +3057,7 @@ function saveCuEntryEdit(){
   e.editedBy=S.cu.u;
   e.editedAt=new Date().toISOString();
   alog('تعديل قيد عهدة',(cu?cu.name:'')+' — '+item+' — تغيير من '+fR(oldAmt)+' إلى '+fR(total));
+  reqNote(e.cid,'تعديل '+item+' من '+fR(oldAmt)+' إلى '+fR(total),e.settleId);
   sv();
   CM('cuEntryEditM');
   loadCu();
@@ -3038,7 +3134,7 @@ function viewSettlementDetail(settleId){
   var rowsHtml=entries.length?entries.map(function(e){
     var isReturn=e.isReturn||e.amount<0;
     var isTopup=e.isTopup;
-    var canEditEntry=can('all')&&!isTopup&&!isReturn;
+    var canEditEntry=canEditCu(e.cid)&&!isTopup&&!isReturn;
     var amtColor=isReturn?'var(--sc)':isTopup?'var(--ry)':'var(--dn)';
     var amtStr=isReturn?('↩ +'+fR(Math.abs(e.amount))):isTopup?('↑ +'+fR(e.addedToOpening||0)):fR(e.amount);
     var vehTxt=e.car?(e.car+(e.plate?' ('+e.plate+')':'')):(isTopup||isReturn?'—':'<span style="color:var(--dn);font-weight:700">⚠️ بدون سيارة</span>');
@@ -3046,7 +3142,7 @@ function viewSettlementDetail(settleId){
       '<td>'+e.date+'</td><td>'+(e.item||'—')+'</td><td>'+(e.cc||'—')+'</td>'+
       '<td style="color:'+amtColor+';font-weight:700">'+amtStr+'</td>'+
       '<td>'+vehTxt+'</td><td style="font-size:12px;color:var(--gr)">'+(e.desc||'—')+'</td>'+
-      '<td><div style="display:flex;gap:3px">'+(canEditEntry?'<button class="btn bxs" onclick="editCuEntry(\''+e.id+'\')" title="تعديل">&#x270F;&#xFE0F;</button>':'')+(can('all')?'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\');viewSettlementDetail(\''+settleId+'\')" title="حذف">&#x1F5D1;&#xFE0F;</button>':'')+'</div></td>'+
+      '<td><div style="display:flex;gap:3px">'+(canEditEntry?'<button class="btn bxs" onclick="editCuEntry(\''+e.id+'\')" title="تعديل">&#x270F;&#xFE0F;</button>':'')+((can('all')||canEditEntry)?'<button class="btn bd2 bxs" onclick="deleteCuEntry(\''+e.id+'\');viewSettlementDetail(\''+settleId+'\')" title="حذف">&#x1F5D1;&#xFE0F;</button>':'')+'</div></td>'+
     '</tr>';
   }).join(''):'<tr><td colspan="7"><div class="es"><div class="essb">لا توجد سطور مرتبطة بهذا التقفيل</div></div></td></tr>';
 
@@ -3069,7 +3165,7 @@ function viewSettlementDetail(settleId){
       '<div class="met '+(st.end<0?'mr':'mg')+'"><div class="ml2">رصيد نهاية العهدة</div><div class="mv2">'+fR(st.end)+'</div></div>'+
       '</div></div>';
   }
-  G('settDetailC').innerHTML=warnHtml+addBtn+stHtml+sumHtml+
+  G('settDetailC').innerHTML=reqBarHtml(curCuId)+warnHtml+addBtn+stHtml+sumHtml+
     '<div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>مركز التكلفة</th><th>المبلغ</th><th>السيارة</th><th>البيان</th><th></th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
 
   OM('settDetailM');
@@ -3153,7 +3249,7 @@ function openRoleM(key){
   G('role-key').value=cr?cr.key:'';
   G('role-lbl').value=cr?cr.lbl:'';
   G('role-c').value=cr?(cr.c||'bg2'):'bg2';
-  ['ap','bkRev','rc','ex','ops','claims','settAdd','canEdit','canDel'].forEach(function(f){
+  ['ap','bkRev','rc','ex','ops','claims','canEdit','canDel'].forEach(function(f){
     G('role-'+f).checked=cr?!!cr[f]:false;
   });
   var pages=cr?(cr.pages||[]):['dash'];
@@ -3179,7 +3275,7 @@ function saveRole(){
     pages:pages,
     ap:G('role-ap').checked,bkRev:G('role-bkRev').checked,
     rc:G('role-rc').checked,ex:G('role-ex').checked,
-    ops:G('role-ops').checked,claims:G('role-claims').checked,settAdd:G('role-settAdd').checked,
+    ops:G('role-ops').checked,claims:G('role-claims').checked,
     canEdit:G('role-canEdit').checked,canDel:G('role-canDel').checked
   };
   if(key){
@@ -7429,7 +7525,6 @@ ld();
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-ex" style="width:14px;height:14px"> تسجيل طلبات الصرف</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-ops" style="width:14px;height:14px"> تسجيل العمليات اليومية</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-claims" style="width:14px;height:14px"> إدارة مطالبات التأمين</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-settAdd" style="width:14px;height:14px"> إضافة سطور إلى تقفيل عهدة محفوظ</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-canEdit" style="width:14px;height:14px"> تعديل السجلات المعتمدة</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-canDel" style="width:14px;height:14px"> حذف السجلات</label>
       </div>
