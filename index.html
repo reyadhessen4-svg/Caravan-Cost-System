@@ -633,6 +633,7 @@ tbody tr:hover td{background:var(--ltr)}
     <button class="tabb" onclick="ST('cuTbs','cuBal',this)">أرصدة العهد</button>
     <button class="tabb" onclick="ST('cuTbs','cuRep',this);loadCuReport()">&#x1F4CB; تقرير التقفيلات</button>
     <button class="tabb" onclick="ST('cuTbs','cuItemRep',this);loadCuItemReport()">&#x1F4CA; تقرير البنود</button>
+    <button class="tabb" onclick="ST('cuTbs','cuSq',this);loadCuSettQuery()">&#x1F5D3;&#xFE0F; استعلام بتاريخ التقفيل</button>
   </div>
   <div id="cuTbs">
     <div class="tabc on" id="cuLst"><div class="card"><div class="cht">قائمة العهد<button class="btn bsm" onclick="ET('cuTbl')">&#x1F4E5;</button></div><div class="tw"><table id="cuTbl" style="min-width:900px"><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>تاريخ الإنشاء</th><th>الرصيد الابتدائي</th><th>التحويلات المضافة</th><th>إجمالي المصروف</th><th>المرتجع للخزينة</th><th>المتبقي</th><th>نسبة الصرف</th><th>الحالة</th><th></th></tr></thead><tbody id="cuTbd"></tbody></table></div></div></div>
@@ -673,6 +674,24 @@ tbody tr:hover td{background:var(--ltr)}
           </div>
         </div>
         <div id="cuRepC"></div>
+      </div>
+    </div>
+    <!-- استعلام عهدة بتاريخ التقفيل -->
+    <div class="tabc" id="cuSq">
+      <div class="card">
+        <div class="cht">&#x1F5D3;&#xFE0F; استعلام عهدة بتاريخ التقفيل
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="cuSqEmp" onchange="loadCuSettQuery()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;outline:none;font-family:var(--fn)"><option value="">كل الموظفين</option></select>
+            <span style="font-size:12px;color:var(--gr)">تاريخ التقفيل من</span>
+            <input type="date" id="cuSqF" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <span style="font-size:12px;color:var(--gr)">إلى</span>
+            <input type="date" id="cuSqT" style="padding:6px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;outline:none">
+            <button class="btn bsm bp" onclick="loadCuSettQuery()">&#x1F50E; عرض</button>
+            <button class="btn bsm" onclick="window.print()">&#x1F5A8;&#xFE0F; طباعة</button>
+            <button class="btn bsm" onclick="ET('cuSqTbl')">&#x1F4E5; Excel</button>
+          </div>
+        </div>
+        <div id="cuSqC"></div>
       </div>
     </div>
     <!-- تقرير البنود -->
@@ -3090,16 +3109,33 @@ function cuSettStatement(cu,h){
   var D=h.date;
   var prev=(cu.settHist||[]).filter(function(x){return x.id&&x.date<D;}).sort(function(a,b){return a.date<b.date?1:-1;})[0];
   var P=prev?prev.date:'';
-  var start=P?cuBalanceAt(cu,P):(cu.opening||0);
+  var startDay=P?cuBalanceAt(cu,P):(cu.opening||0);
   var inP=function(e){var d=cuEffDate(e);return e.cid===cu.id&&d<=D&&(!P||d>P);};
   var en=S.data.custodyEnts.filter(inP);
-  var topups=en.filter(function(e){return e.isTopup&&!e.isReturn&&e.addedToOpening>0;}).reduce(function(s,e){return s+e.addedToOpening;},0);
-  var closed=en.filter(function(e){return e.settleId===h.id&&e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
-  var other=en.filter(function(e){return e.settleId!==h.id&&e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0);
-  var ret=en.filter(function(e){return e.amount<0;}).reduce(function(s,e){return s+Math.abs(e.amount);},0)+en.filter(function(e){return e.isReturn&&e.amount===0;}).reduce(function(s,e){return s+Math.abs(e.addedToOpening||0);},0);
-  var end=cuBalanceAt(cu,D);
+  // تقفيلات نفس اليوم تُرتَّب بحسب ترتيب تسجيلها: بداية كل واحد = نهاية السابق، والتحويلات والحركات غير المرتبطة تُحسب على أولها
+  var sibs=(cu.settHist||[]).filter(function(x){return x.id&&x.date===D;});
+  var sibIds=sibs.map(function(x){return x.id;});
+  var k=Math.max(0,sibIds.indexOf(h.id));
+  var isExp=function(e){return e.amount>0&&!e.isTopup;};
+  var isRet=function(e){return e.amount<0||(e.isReturn&&e.amount===0);};
+  var retAmt=function(e){return e.amount<0?Math.abs(e.amount):Math.abs(e.addedToOpening||0);};
+  var sum=function(a,f){return a.reduce(function(s,e){return s+f(e);},0);};
+  var topupsDay=sum(en.filter(function(e){return e.isTopup&&!e.isReturn&&e.addedToOpening>0;}),function(e){return e.addedToOpening;});
+  var seqStart=startDay,res=null;
+  for(var n=0;n<=k;n++){
+    var id=sibIds[n]||h.id;
+    var closed=sum(en.filter(function(e){return e.settleId===id&&isExp(e);}),function(e){return e.amount;});
+    var retOwn=sum(en.filter(function(e){return e.settleId===id&&isRet(e);}),retAmt);
+    var free=(n===0);
+    var topups=free?topupsDay:0;
+    var other=free?sum(en.filter(function(e){return sibIds.indexOf(e.settleId)<0&&isExp(e);}),function(e){return e.amount;}):0;
+    var retFree=free?sum(en.filter(function(e){return sibIds.indexOf(e.settleId)<0&&isRet(e);}),retAmt):0;
+    var ret=retOwn+retFree;
+    res={start:seqStart,topups:topups,closed:closed,other:other,ret:ret,end:seqStart+topups-closed-other-ret};
+    seqStart=res.end;
+  }
   var r=function(x){return Math.round(x*1000)/1000;};
-  return {prevDate:P,start:r(start),topups:r(topups),closed:r(closed),other:r(other),ret:r(ret),end:end};
+  return {prevDate:P,start:r(res.start),topups:r(res.topups),closed:r(res.closed),other:r(res.other),ret:r(res.ret),end:r(res.end)};
 }
 function syncSettTotal(settleId){
   if(!can('all')){toast('هذا الإجراء مخصص لمدير النظام فقط','e');return;}
@@ -5012,6 +5048,15 @@ function saveCuSettle(){
   (function(){var _c=S.data.custodies.find(function(x){return x.id===cuid;});var n=1;while(_c&&(_c.settHist||[]).some(function(h){return h.id===settKey;})){n++;settKey='sett_'+settDate+'_'+n;}})();
 
   if(!settDate){toast('يرجى تحديد تاريخ التقفيل','e');return;}
+  // منع حفظ صفوف لها مبلغ بدون بند (كانت تدخل في الإجمالي ولا يُحفظ لها سطر)
+  var _noItem=[];
+  cuSetRows.forEach(function(r,i){if((parseFloat(r.amount)||0)>0&&!r.item)_noItem.push(i+1);});
+  if(_noItem.length){
+    var _lst=_noItem.slice(0,15).join('، ')+(_noItem.length>15?' ...':'');
+    alert('⚠️ لا يمكن حفظ التقفيل: يوجد '+_noItem.length+' صف له مبلغ بدون بند.\n\nأرقام الصفوف: '+_lst+'\n\nاختر البند لكل صف (أو احذف الصف) ثم احفظ.');
+    toast('اختر البند للصفوف: '+_lst,'e');
+    return;
+  }
   var hasItems=cuSetRows.some(function(r){return r.amount>0&&r.item;});
   if(!hasItems&&!ret&&!confirm('لم تسجّل أي مصروفات. هل تريد المتابعة؟'))return;
 
@@ -5130,6 +5175,54 @@ function showSettlementDoneM(){
 /* ═══════════════════════════════════════════
    CUSTODY REPORT MODULE
 ═══════════════════════════════════════════ */
+function loadCuSettQuery(){
+  var empSel=G('cuSqEmp');
+  if(empSel&&empSel.options.length<=1){
+    S.data.custodies.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.name;empSel.appendChild(o);});
+  }
+  var empF=empSel?empSel.value:'',F=V('cuSqF'),T=V('cuSqT');
+  var rows=[],legacy=0;
+  S.data.custodies.forEach(function(cu){
+    if(empF&&cu.id!==empF)return;
+    (cu.settHist||[]).forEach(function(h){
+      if(!h.date||(F&&h.date<F)||(T&&h.date>T))return;
+      if(!h.id){legacy++;return;}
+      var st=cuSettStatement(cu,h);
+      var act=Math.round(S.data.custodyEnts.filter(function(e){return e.cid===cu.id&&e.settleId===h.id&&e.amount>0&&!e.isTopup;}).reduce(function(s,e){return s+e.amount;},0)*1000)/1000;
+      rows.push({cu:cu,h:h,st:st,act:act,rec:h.totalExpenses||0});
+    });
+  });
+  rows.sort(function(a,b){return a.h.date<b.h.date?1:a.h.date>b.h.date?-1:a.cu.name.localeCompare(b.cu.name);});
+  if(!rows.length){G('cuSqC').innerHTML='<div class="es"><div class="essb">لا توجد تقفيلات في هذه الفترة</div></div>';return;}
+  var tT=0,tC=0,tR=0,tD=0;
+  var body=rows.map(function(r){
+    var diff=Math.round((r.act-r.rec)*1000)/1000;
+    tT+=r.st.topups;tC+=r.st.closed;tR+=r.st.ret;tD+=diff;
+    return '<tr>'+
+      '<td style="white-space:nowrap;font-weight:700">'+r.h.date+'</td>'+
+      '<td style="font-weight:600">'+r.cu.name+'</td>'+
+      '<td>'+(r.h.type||'')+'</td>'+
+      '<td style="font-family:monospace">'+fR(r.st.start)+'</td>'+
+      '<td style="font-family:monospace;color:var(--ry)">'+(r.st.topups?'+ '+fR(r.st.topups):'—')+'</td>'+
+      '<td style="font-family:monospace;color:var(--dn);font-weight:700">'+fR(r.st.closed)+'</td>'+
+      '<td style="font-family:monospace;color:var(--sc)">'+(r.st.ret?fR(r.st.ret):'—')+'</td>'+
+      '<td style="font-family:monospace;font-weight:700;color:'+(r.st.end<0?'var(--dn)':'var(--sc)')+'">'+fR(r.st.end)+'</td>'+
+      '<td style="font-family:monospace">'+fR(r.rec)+'</td>'+
+      '<td style="font-family:monospace">'+(Math.abs(diff)>0.009?'<span style="color:var(--dn);font-weight:700">⚠️ '+fR(diff)+'</span>':'✅')+'</td>'+
+      '<td><button class="btn bxs" onclick="curCuId=\''+r.cu.id+'\';viewSettlementDetail(\''+r.h.id+'\')">&#x1F441;&#xFE0F; عرض</button></td>'+
+    '</tr>';
+  }).join('');
+  var first=rows[rows.length-1],last=rows[0];
+  var single=!!empF;
+  G('cuSqC').innerHTML=
+    (single?'<div class="mets"><div class="met mb"><div class="ml2">رصيد بداية أول تقفيل في الفترة</div><div class="mv2">'+fR(first.st.start)+'</div></div>'+
+      '<div class="met mb"><div class="ml2">إجمالي المحوَّل</div><div class="mv2">'+fR(tT)+'</div></div>'+
+      '<div class="met mr"><div class="ml2">إجمالي المصروف المقفل</div><div class="mv2">'+fR(tC)+'</div></div>'+
+      '<div class="met '+(last.st.end<0?'mr':'mg')+'"><div class="ml2">رصيد نهاية آخر تقفيل</div><div class="mv2">'+fR(last.st.end)+'</div></div></div>':'')+
+    '<div class="tw"><table id="cuSqTbl" style="min-width:1000px"><thead><tr><th>تاريخ التقفيل</th><th>الموظف</th><th>النوع</th><th>رصيد البداية</th><th>المحوَّل بعدها</th><th>المصروف المقفل</th><th>المُرجَع</th><th>رصيد النهاية</th><th>المسجّل وقت التقفيل</th><th>مطابقة السطور</th><th></th></tr></thead><tbody>'+body+
+    '</tbody><tfoot><tr style="font-weight:700;background:var(--ltr)"><td colspan="4">الإجمالي ('+rows.length+' تقفيل)</td><td>'+fR(tT)+'</td><td>'+fR(tC)+'</td><td>'+fR(tR)+'</td><td colspan="2"></td><td>'+(Math.abs(tD)>0.009?fR(tD):'✅')+'</td><td></td></tr></tfoot></table></div>'+
+    '<div style="font-size:11.5px;color:var(--gr);margin-top:8px">الحركة المقفلة تُحسب بتاريخ تقفيلها لا بتاريخ فاتورتها. «المحوَّل بعدها» هو ما دخل العهدة بين التقفيل السابق وهذا التقفيل.'+(legacy?' — يوجد '+legacy+' تقفيل قديم بدون معرّف لا يظهر في هذا الاستعلام.':'')+'</div>';
+}
 function loadCuReport(){
   // Fill employee filter
   var empSel=document.getElementById('cuRepEmp');
