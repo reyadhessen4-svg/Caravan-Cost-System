@@ -3156,6 +3156,38 @@ function syncSettTotal(settleId){
   if(curCuId)vwCu(curCuId);
   toast('تم تحديث إجمالي التقفيل');
 }
+function changeSettDate(settleId){
+  if(!can('all')){toast('تعديل تاريخ التقفيل لمدير النظام فقط','e');return;}
+  var cu=S.data.custodies.find(function(c){return c.id===curCuId;});
+  var h=cu&&cu.settHist?cu.settHist.find(function(x){return x.id===settleId;}):null;
+  if(!h){toast('التقفيل غير موجود','e');return;}
+  var nd=prompt('تاريخ التقفيل الجديد لعهدة '+cu.name+'\n(الحالي: '+h.date+')\nاكتب بالشكل: 2026-11-26',h.date);
+  if(nd===null)return;
+  nd=nd.trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(nd)||isNaN(new Date(nd).getTime())){toast('صيغة التاريخ غير صحيحة (YYYY-MM-DD)','e');return;}
+  var yr=parseInt(nd.slice(0,4),10);
+  if(yr<2025||yr>2027){toast('السنة خارج النطاق المعقول','e');return;}
+  if(nd===h.date)return;
+  var newId='sett_'+nd,n=1;
+  while((cu.settHist||[]).some(function(x){return x!==h&&x.id===newId;})){n++;newId='sett_'+nd+'_'+n;}
+  if(!confirm('تغيير تاريخ التقفيل من '+h.date+' إلى '+nd+'؟\n\nسيتغير ترتيب هذا التقفيل في الكشوف وأرصدة البداية والنهاية. تواريخ الفواتير لا تتغير.'))return;
+  var oldId=h.id,oldDate=h.date,cnt=0;
+  S.data.custodyEnts.forEach(function(e){
+    if(e.cid!==cu.id||e.settleId!==oldId)return;
+    e.settleId=newId;cnt++;
+    if(e.isReturn&&e.date===oldDate)e.date=nd;
+  });
+  if(!h.dateHistory)h.dateHistory=[];
+  h.dateHistory.push({from:oldDate,to:nd,by:S.cu?S.cu.name:'',at:new Date().toISOString()});
+  h.id=newId;h.date=nd;
+  (S.data.custodyReopenReqs||[]).forEach(function(r){if(r.cid===cu.id&&r.touched){var i=r.touched.indexOf(oldId);if(i>=0)r.touched[i]=newId;}});
+  alog('تعديل تاريخ تقفيل عهدة',cu.name+' — من '+oldDate+' إلى '+nd+' — '+cnt+' سطر');
+  sv();
+  loadCu();
+  if(curCuId)vwCu(curCuId);
+  viewSettlementDetail(newId);
+  toast('تم تغيير تاريخ التقفيل إلى '+nd);
+}
 function viewSettlementDetail(settleId){
   curSettleId=settleId;
   var entries=S.data.custodyEnts.filter(function(e){return e.settleId===settleId&&(!curCuId||e.cid===curCuId);});
@@ -3188,6 +3220,7 @@ function viewSettlementDetail(settleId){
   var sdDiff=sdRec===null?0:Math.round((sdExp-sdRec)*100)/100;
   var sumHtml='<div style="margin-bottom:8px;padding:10px;background:'+(Math.abs(sdDiff)>0.009?'#fef2f2':'#f0fdf4')+';border-radius:8px;font-size:13px"><strong>مجموع سطور التقفيل:</strong> '+fR(sdExp)+(sdRet?' — مُرجَع '+fR(sdRet):'')+(sdRec!==null?' — المسجّل وقت التقفيل: '+fR(sdRec)+(Math.abs(sdDiff)>0.009?' — <strong style="color:var(--dn)">فرق '+fR(sdDiff)+'</strong> (عُدّلت أو حُذفت سطور بعد التقفيل)':' ✅ مطابق'):'')+(sdRec!==null&&Math.abs(sdDiff)>0.009&&can('all')?' <button class="btn bsm bp" style="margin-right:8px" onclick="syncSettTotal(\''+settleId+'\')">🔄 تحديث إجمالي التقفيل</button>':'')+(settInfo&&settInfo.prevTotals&&settInfo.prevTotals.length?'<div style="font-size:11px;color:var(--gr);margin-top:4px">الإجمالي الأصلي المحفوظ: '+settInfo.prevTotals.map(function(p){return fR(p.total)+' ('+p.at+' — '+p.by+')';}).join(' ، ')+'</div>':'')+'</div>';
   var addBtn=(settInfo&&settInfo.id&&canAddSett()&&cu&&cu.status!=='x')?'<button class="btn bsm bp" style="margin-bottom:8px" onclick="openAddSettLine(\''+settleId+'\')">➕ إضافة سطر لهذا التقفيل</button>':'';
+  var dateBtn=(settInfo&&settInfo.id&&can('all'))?'<button class="btn bsm" style="margin-bottom:8px;margin-right:6px" onclick="changeSettDate(\''+settleId+'\')">📅 تعديل تاريخ التقفيل</button>':'';
   var stHtml='';
   if(cu&&settInfo&&settInfo.id){
     var st=cuSettStatement(cu,settInfo);
@@ -3201,7 +3234,7 @@ function viewSettlementDetail(settleId){
       '<div class="met '+(st.end<0?'mr':'mg')+'"><div class="ml2">رصيد نهاية العهدة</div><div class="mv2">'+fR(st.end)+'</div></div>'+
       '</div></div>';
   }
-  G('settDetailC').innerHTML=reqBarHtml(curCuId)+warnHtml+addBtn+stHtml+sumHtml+
+  G('settDetailC').innerHTML=reqBarHtml(curCuId)+warnHtml+addBtn+dateBtn+stHtml+sumHtml+
     '<div class="tw"><table><thead><tr><th>التاريخ</th><th>البند</th><th>مركز التكلفة</th><th>المبلغ</th><th>السيارة</th><th>البيان</th><th></th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
 
   OM('settDetailM');
