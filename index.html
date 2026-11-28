@@ -3157,7 +3157,7 @@ function syncSettTotal(settleId){
   toast('تم تحديث إجمالي التقفيل');
 }
 function changeSettDate(settleId){
-  if(!can('all')){toast('تعديل تاريخ التقفيل لمدير النظام فقط','e');return;}
+  if(!canEditCu(curCuId)){toast('تعديل تاريخ التقفيل يحتاج موافقة المدير على طلب فتح العهدة','e');return;}
   var cu=S.data.custodies.find(function(c){return c.id===curCuId;});
   var h=cu&&cu.settHist?cu.settHist.find(function(x){return x.id===settleId;}):null;
   if(!h){toast('التقفيل غير موجود','e');return;}
@@ -3182,6 +3182,7 @@ function changeSettDate(settleId){
   h.id=newId;h.date=nd;
   (S.data.custodyReopenReqs||[]).forEach(function(r){if(r.cid===cu.id&&r.touched){var i=r.touched.indexOf(oldId);if(i>=0)r.touched[i]=newId;}});
   alog('تعديل تاريخ تقفيل عهدة',cu.name+' — من '+oldDate+' إلى '+nd+' — '+cnt+' سطر');
+  reqNote(cu.id,'تعديل تاريخ تقفيل من '+oldDate+' إلى '+nd,newId);
   sv();
   loadCu();
   if(curCuId)vwCu(curCuId);
@@ -3220,7 +3221,7 @@ function viewSettlementDetail(settleId){
   var sdDiff=sdRec===null?0:Math.round((sdExp-sdRec)*100)/100;
   var sumHtml='<div style="margin-bottom:8px;padding:10px;background:'+(Math.abs(sdDiff)>0.009?'#fef2f2':'#f0fdf4')+';border-radius:8px;font-size:13px"><strong>مجموع سطور التقفيل:</strong> '+fR(sdExp)+(sdRet?' — مُرجَع '+fR(sdRet):'')+(sdRec!==null?' — المسجّل وقت التقفيل: '+fR(sdRec)+(Math.abs(sdDiff)>0.009?' — <strong style="color:var(--dn)">فرق '+fR(sdDiff)+'</strong> (عُدّلت أو حُذفت سطور بعد التقفيل)':' ✅ مطابق'):'')+(sdRec!==null&&Math.abs(sdDiff)>0.009&&can('all')?' <button class="btn bsm bp" style="margin-right:8px" onclick="syncSettTotal(\''+settleId+'\')">🔄 تحديث إجمالي التقفيل</button>':'')+(settInfo&&settInfo.prevTotals&&settInfo.prevTotals.length?'<div style="font-size:11px;color:var(--gr);margin-top:4px">الإجمالي الأصلي المحفوظ: '+settInfo.prevTotals.map(function(p){return fR(p.total)+' ('+p.at+' — '+p.by+')';}).join(' ، ')+'</div>':'')+'</div>';
   var addBtn=(settInfo&&settInfo.id&&canAddSett()&&cu&&cu.status!=='x')?'<button class="btn bsm bp" style="margin-bottom:8px" onclick="openAddSettLine(\''+settleId+'\')">➕ إضافة سطر لهذا التقفيل</button>':'';
-  var dateBtn=(settInfo&&settInfo.id&&can('all'))?'<button class="btn bsm" style="margin-bottom:8px;margin-right:6px" onclick="changeSettDate(\''+settleId+'\')">📅 تعديل تاريخ التقفيل</button>':'';
+  var dateBtn=(settInfo&&settInfo.id&&canEditCu(curCuId))?'<button class="btn bsm" style="margin-bottom:8px;margin-right:6px" onclick="changeSettDate(\''+settleId+'\')">📅 تعديل تاريخ التقفيل</button>':'';
   var stHtml='';
   if(cu&&settInfo&&settInfo.id){
     var st=cuSettStatement(cu,settInfo);
